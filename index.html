@@ -742,6 +742,15 @@
   .avail-lists .feed li { flex-direction: row; justify-content: space-between; align-items: baseline; gap: 10px; padding: 9px 0; }
   .avail-none { font-size: .9rem; font-weight: 600; opacity: .8; }
   .admin-box input[type="time"] { -webkit-appearance: none; appearance: none; min-height: 54px; text-align: left; }
+
+  /* Invitation to switch on phone notifications */
+  .push-card { margin: 18px 0 4px; padding: 16px; background: var(--yellow); color: var(--purple); border: 4px solid var(--white); border-radius: 16px; text-align: center; }
+  .push-card h3 { font-size: 1.15rem; font-weight: 900; text-transform: uppercase; }
+  .push-card p { margin-top: 8px; font-size: .98rem; font-weight: 700; line-height: 1.4; }
+  .push-card .row { justify-content: center; }
+  .push-card .btn { background: var(--purple); color: var(--yellow); padding: 12px 20px; }
+  .push-card .btn.ghost { background: none; color: var(--purple); box-shadow: inset 0 0 0 3px var(--purple); }
+  .push-card .form-msg { color: var(--purple); min-height: 0; }
 </style>
 </head>
 <body>
@@ -769,6 +778,16 @@
       </svg>
     </div>
   </header>
+
+  <div class="push-card" id="push-card" hidden>
+    <h3 id="push-card-title">Turn on notifications</h3>
+    <p id="push-card-text"></p>
+    <div class="row">
+      <button class="btn" id="push-card-on" type="button">Turn on</button>
+      <button class="btn ghost" id="push-card-later" type="button">Not now</button>
+    </div>
+    <p class="form-msg" id="push-card-note" role="status"></p>
+  </div>
 
   <p class="intro">Choose a section.</p>
 
@@ -831,7 +850,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 1.6 · 10 Oct 2026</p>
+  <p class="version">Version 1.7 · 10 Oct 2026</p>
 </main>
 
 <!-- ================= POSTERS MENU ================= -->
@@ -1092,7 +1111,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 1.6 · 10 Oct 2026</p>
+  <p class="version">Version 1.7 · 10 Oct 2026</p>
 </section>
 
 <!-- ================= WAITING FOR APPROVAL ================= -->
@@ -2917,7 +2936,36 @@ function drawPushToggle(note) {
   const btn = $('#push-toggle'), on = pushWanted() && pushSupported() && Notification.permission === 'granted';
   btn.textContent = 'Phone notifications: ' + (on ? 'on' : 'off');
   $('#push-note').textContent = note || '';
+  drawPushCard(note);
 }
+
+// The invitation at the top of the home screen. Phones only allow the question to be asked
+// after a tap, so this card is the tap.
+const cardSnoozed = () => { try { return Date.now() - Number(localStorage.getItem('lda-push-later') || 0) < 14 * 24 * 3600 * 1000; } catch (e) { return false; } };
+const openedFromHomeScreen = () => navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+function drawPushCard(note) {
+  const card = $('#push-card');
+  let mode = null;
+  if (pushReady() && isMember() && !cardSnoozed()) {
+    if (pushSupported()) { if (Notification.permission === 'default' && !pushWanted()) mode = 'ask'; }
+    else if (isIphone() && !openedFromHomeScreen()) mode = 'install';
+  }
+  if (note && card.getAttribute('data-busy')) mode = mode || 'ask';      // keep it open to show what happened
+  card.hidden = !mode;
+  if (!mode) return;
+  $('#push-card-title').textContent = mode === 'install' ? 'Get alerts on this iPhone' : 'Turn on notifications';
+  $('#push-card-text').textContent = mode === 'install'
+    ? 'To be notified about missing dogs when the app is closed, add it to your Home Screen: tap the Share button, then "Add to Home Screen". Then open it from the new icon.'
+    : 'Be told straight away when a dog goes missing or your help is needed, even when the app is closed.';
+  $('#push-card-on').hidden = mode === 'install';
+  $('#push-card-note').textContent = note || '';
+}
+$('#push-card-on').addEventListener('click', () => { $('#push-card').setAttribute('data-busy', '1'); $('#push-toggle').click(); });
+$('#push-card-later').addEventListener('click', () => {
+  try { localStorage.setItem('lda-push-later', String(Date.now())); } catch (e) {}
+  $('#push-card').removeAttribute('data-busy');
+  $('#push-card').hidden = true;
+});
 
 $('#push-toggle').addEventListener('click', async () => {
   if (!pushReady()) return drawPushToggle('Phone notifications are not set up yet.');
@@ -2938,6 +2986,7 @@ $('#push-toggle').addEventListener('click', async () => {
     if (answer !== 'granted') return drawPushToggle('Notifications were not allowed.');
     await registerThisPhone();
     setPushWanted(true);
+    $('#push-card').removeAttribute('data-busy');
     drawPushToggle('Notifications are on for this phone.');
   } catch (err) {
     console.error(err);
