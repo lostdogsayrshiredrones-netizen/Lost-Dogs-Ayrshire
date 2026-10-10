@@ -377,6 +377,8 @@
   [hidden] { display: none !important; }
   .admin-only { display: none !important; }
   body.is-admin .admin-only { display: block !important; }
+  .coord-only { display: none !important; }
+  body.is-coord .coord-only { display: block !important; }
 
   .center-screen { justify-content: center; text-align: center; padding-bottom: 40px; }
   .center-screen .logo { margin: 0 auto 20px; }
@@ -761,6 +763,35 @@
 #read-end{display:flex;flex-direction:column;gap:10px;margin-top:18px}
 #read-end[hidden]{display:none}
 .credit { margin: 4px 0 0; text-align: center; font-size: .8rem; font-weight: 600; line-height: 1.4; opacity: .75; }
+
+/* ---- Roles ---- */
+.role-pick { width: 100%; margin-top: 8px; }
+.role-pick label { display: block; font-size: .85rem; font-weight: 800; color: #555; }
+.role-pick select { width: 100%; margin-top: 4px; padding: 10px 12px; font: inherit; font-weight: 700; color: #1a1a1a; background: #fff; border: 3px solid var(--purple); border-radius: 12px; }
+.admin-box.request { border-style: solid; background: rgba(253,249,15,.12); }
+.admin-box.request p { margin-top: 8px; font-weight: 600; }
+.request-reason { font-style: italic; }
+
+/* ---- Volunteer agreement ---- */
+.agreement-text { text-align: left; font-size: .95rem; line-height: 1.45; }
+.agreement-text h3 { margin: 16px 0 6px; font-size: 1rem; font-weight: 800; color: var(--purple); }
+.agreement-text p { margin: 8px 0; }
+.agreement-text ul { margin: 0; padding-left: 20px; }
+.agreement-text li { margin: 6px 0; }
+.agreement-text .notice { padding: 10px 12px; border-left: 5px solid var(--purple); background: #f3eefc; border-radius: 6px; }
+.signed-title { display: block; font-size: 1.05rem; font-weight: 900; color: var(--purple); text-transform: uppercase; }
+.sign-pad { display: block; width: 100%; height: auto; aspect-ratio: 3 / 1; margin-top: 4px; background: #fff; border: 3px solid var(--yellow); border-radius: 12px; touch-action: none; cursor: crosshair; }
+.pad-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pad-row .field-help { margin: 0; }
+.agree-date { margin-top: 14px; font-weight: 700; }
+#agree-guardian { display: flex; flex-direction: column; gap: 6px; }
+.signed-banner { margin: 0 0 12px; padding: 12px 14px; border-radius: 12px; background: var(--yellow); color: var(--purple); font-weight: 900; text-align: center; }
+.signed-form { text-align: left; margin-bottom: 14px; }
+.signed-form .details { margin-top: 10px; }
+.signature { display: block; width: 100%; max-width: 320px; height: auto; border: 2px solid #ddd; border-radius: 8px; background: #fff; }
+.signed-when { margin-top: 10px; font-size: .85rem; font-weight: 600; color: #555; }
+#agreement .agreement-text { margin-top: 4px; }
+#agree-done .btn { margin-bottom: 16px; }
 </style>
 </head>
 <body>
@@ -838,6 +869,14 @@
     </button>
 
 
+    <!-- TILE: Volunteer Agreement -->
+    <button class="tile" data-go="agreement">
+      <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true">
+        <path fill-rule="evenodd" d="M15 3h24l11 11v43H15z M22 23h21v4H22z M22 32h21v4H22z M22 42c4-5 6 3 9-1s4 2 8-2l1 3c-4 4-6-1-8 2s-6-3-9 1z"/></svg></span>
+      <span class="count" id="agree-count" hidden>!</span>
+      <span class="tile-name">Volunteer Agreement</span>
+    </button>
+
     <!-- TILE: Members (admins only) -->
     <button class="tile admin-only" data-go="members">
       <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true">
@@ -860,7 +899,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 2.1 · 10 Oct 2026</p>
+  <p class="version">Version 2.2 · 10 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1122,7 +1161,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 2.1 · 10 Oct 2026</p>
+  <p class="version">Version 2.2 · 10 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1138,7 +1177,7 @@
 <section class="screen" id="dogs">
   <button class="back" data-go="home">&larr; Home</button>
   <h2 class="page-title">Missing Dogs</h2>
-  <button class="btn wide admin-only" data-go="dog-edit/new" style="margin:0 0 18px">Add a dog</button>
+  <button class="btn wide coord-only" data-go="dog-edit/new" style="margin:0 0 18px">Add a dog</button>
   <div class="tabs">
     <button class="btn" data-dog-filter="active">Active</button>
     <button class="btn" data-dog-filter="closed">Closed</button>
@@ -1307,6 +1346,107 @@
   </div>
 </section>
 
+<!-- ================= VOLUNTEER AGREEMENT ================= -->
+<section class="screen" id="agreement">
+  <button class="back" data-go="home">&larr; Home</button>
+  <h2 class="page-title">Volunteer Agreement</h2>
+  <button class="btn wide admin-only" data-go="agreements" style="margin:0 0 18px">Signed forms (admins)</button>
+  <div id="agree-done"></div>
+
+  <div class="card agreement-text">
+  <strong class="signed-title">Volunteer Agreement &amp; Liability Disclaimer</strong>
+  <p><strong>Organization Name:</strong> LOST DOGS AYRSHIRE<br><strong>Purpose:</strong> Missing Dog Search &amp; Rescue Support</p>
+  <p class="notice"><strong>Important Notice</strong><br>This agreement is binding in honour only. It is a statement of our shared intent and values. It is not intended to be a legally binding contract of employment, and no employment relationship is created between the volunteer and the group.</p>
+  <h3>1. Voluntary Participation &amp; Physical Health</h3>
+  <ul>
+    <li>I understand that participating in outdoor search operations is completely voluntary.</li>
+    <li>I confirm that I am physically fit enough to undertake outdoor search activities, which may involve walking on uneven terrain, in poor weather conditions, or during low-light hours.</li>
+    <li>I accept sole responsibility for managing my own health, stamina, and any pre-existing medical conditions during an active search.</li>
+    <li><strong>Under 18s:</strong> If I am under the age of 18, I must be accompanied at all times by a parent or legal guardian who must also sign this agreement on my behalf.</li>
+  </ul>
+  <h3>2. Assumption of Risk &amp; Liability</h3>
+  <ul>
+    <li>I acknowledge that searching for missing dogs carries inherent physical risks. These include, but are not limited to: slips, trips, and falls; exposure to extreme weather; traffic hazards; and potential injuries or bites from frightened or defensive animals.</li>
+    <li>I agree that LOST DOGS AYRSHIRE, its founders, and its coordinators are not liable for any personal injury, illness, medical emergencies, or loss/damage to my personal property sustained while volunteering.</li>
+  </ul>
+  <h3>3. Operational Safety &amp; Conduct Rules</h3>
+  <ul>
+    <li>I agree to follow all safety briefings, search protocols, and instructions given by the designated search coordinators.</li>
+    <li>I will prioritize my personal safety and the safety of the public at all times. If I feel a situation or terrain is unsafe, I will withdraw and notify the coordinator immediately.</li>
+    <li>I will use the &ldquo;Buddy System&rdquo; and will never conduct a field or night search completely alone.</li>
+    <li>I will wear appropriate footwear and high-visibility clothing, and carry necessary personal safety gear (e.g., a torch and a fully charged mobile phone) as advised.</li>
+    <li>I will respect local laws and will not trespass on private property without explicit permission from landowners or search coordinators.</li>
+  </ul>
+  <h3>4. Handling &amp; Approaching Animals</h3>
+  <ul>
+    <li>I understand that missing dogs are frequently in &ldquo;survival mode&rdquo; and may react with panic, flight, or aggression.</li>
+    <li>I agree not to chase, corner, lure aggressively, or shout at a missing dog, as this can drive them into further danger (such as roads). I will strictly follow the group&rsquo;s protocol regarding sightings and containment.</li>
+  </ul>
+  <h3>5. Use of Private Vehicles</h3>
+  <ul>
+    <li>I confirm that if I use my own vehicle for volunteer activities (such as traveling to search sites or transporting gear), it is fully roadworthy, taxed, and has a valid MOT.</li>
+    <li>I accept sole responsibility for ensuring my motor insurance policy covers volunteer driving. (Note: Most UK insurers cover volunteer driving at no extra cost, but it is your responsibility to verify this with your provider).</li>
+    <li>I agree to comply with all UK driving laws. I accept that LOST DOGS AYRSHIRE accepts no liability for parking fines, traffic penalties, vehicle damage, or theft incurred during volunteering.</li>
+  </ul>
+  <h3>6. Care of Loaned Equipment</h3>
+  <ul>
+    <li>I agree to look after any equipment loaned to me by the group (e.g., thermal equipment, microchip scanners, trail cameras, traps, walkie-talkies, uniforms) and use it only for its intended purpose.</li>
+    <li>I will report any damage, malfunction, or loss of the equipment to a search coordinator as soon as possible.</li>
+    <li>I agree to return all loaned items promptly upon request, or immediately if I step down from my volunteer role.</li>
+  </ul>
+  <h3>7. Confidentiality, Privacy &amp; Media</h3>
+  <ul>
+    <li>I agree to keep sensitive information regarding missing animal owners, home addresses, or ongoing search operations private.</li>
+    <li>I will not post specific search locations, live tracking coordinates, or sensitive updates on my personal social media accounts unless explicitly authorized by the search coordinator.</li>
+  </ul>
+  <h3>8. Data Protection (UK GDPR)</h3>
+  <ul>
+    <li>I consent to LOST DOGS AYRSHIRE holding my name, contact details, and emergency contact info for operational and safety purposes. This data will be stored securely and will never be shared with third parties without my consent.</li>
+  </ul>
+  </div>
+
+  <form class="form" id="agree-form" novalidate hidden>
+    <h3 class="section">Volunteer Declaration &amp; Sign-off</h3>
+    <p class="intro" style="text-align:left">By signing below, I confirm that I have read, understood, and agree to the terms of this volunteer disclaimer.</p>
+
+    <label for="agree-name">Volunteer name</label>
+    <input id="agree-name" type="text" autocomplete="name" maxlength="100">
+
+    <label for="agree-sign">Volunteer signature</label>
+    <canvas class="sign-pad" id="agree-sign" width="900" height="300" role="img" aria-label="Signature box. Sign here with your finger."></canvas>
+    <div class="pad-row"><span class="field-help">Sign in the white box with your finger.</span><button class="link" type="button" data-clear-pad="me">Clear</button></div>
+
+    <p class="agree-date">Date: <strong id="agree-date"></strong></p>
+
+    <label for="agree-emergency-name">Emergency contact name &amp; relationship</label>
+    <input id="agree-emergency-name" type="text" maxlength="120" placeholder="e.g. Jane Smith, wife" autocomplete="off">
+
+    <label for="agree-emergency-phone">Emergency contact phone number</label>
+    <input id="agree-emergency-phone" type="tel" maxlength="30" inputmode="tel" autocomplete="off">
+
+    <label class="check"><input type="checkbox" id="agree-under18"> I am under 18 years of age</label>
+    <div id="agree-guardian" hidden>
+      <p class="field-help">A parent or legal guardian must sign below.</p>
+      <label for="agree-guardian-name">Parent/guardian name</label>
+      <input id="agree-guardian-name" type="text" maxlength="100" autocomplete="off">
+      <label for="agree-guardian-sign">Parent/guardian signature</label>
+      <canvas class="sign-pad" id="agree-guardian-sign" width="900" height="300" role="img" aria-label="Parent or guardian signature box."></canvas>
+      <div class="pad-row"><span class="field-help">The parent or guardian signs here.</span><button class="link" type="button" data-clear-pad="guardian">Clear</button></div>
+    </div>
+
+    <p class="form-msg" id="agree-msg" role="status"></p>
+    <button class="save" id="agree-submit" type="submit">Submit</button>
+    <button class="btn wide ghost" id="agree-cancel" type="button" hidden>Cancel</button>
+  </form>
+</section>
+
+<!-- ================= SIGNED FORMS (admins) ================= -->
+<section class="screen" id="agreements">
+  <button class="back" id="agreements-back" data-go="agreement">&larr; Volunteer Agreement</button>
+  <h2 class="page-title" id="agreements-title">Signed forms</h2>
+  <div id="agreements-body"></div>
+</section>
+
 <!-- Shared paw shape -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -1414,7 +1554,9 @@ function friendlyError(err) {
 // ============================================================
 const state = { fb: null, user: null, profile: null, route: '', subs: [] };
 
-const isMember = () => !!state.profile && (state.profile.role === 'member' || state.profile.role === 'admin');
+const ACCESS = ['member', 'coordinator', 'admin'];   // roles that can use the app
+const isMember = () => !!state.profile && ACCESS.includes(state.profile.role);
+const isCoord  = () => !!state.profile && (state.profile.role === 'coordinator' || state.profile.role === 'admin');
 const isAdmin  = () => !!state.profile && state.profile.role === 'admin';
 
 function activate(id) {
@@ -1441,6 +1583,7 @@ function go(route) {
 function render() {
   clearSubs();
   document.body.classList.toggle('is-admin', isAdmin());
+  document.body.classList.toggle('is-coord', isCoord());
 
   // Not connected yet / not signed in / not approved: those screens take over.
   if (!state.fb)      return activate(state.loadError ? 'offline' : 'loading');
@@ -1454,10 +1597,12 @@ function render() {
 
   if (name === 'dogs')      { activate('dogs');     return showDogs(); }
   if (name === 'dog')       { activate('dog');      return showDog(arg); }
-  if (name === 'dog-edit')  { if (!isAdmin()) return go('dogs'); activate('dog-edit'); return showDogEdit(arg); }
+  if (name === 'dog-edit')  { if (!isCoord()) return go('dogs'); activate('dog-edit'); return showDogEdit(arg); }
   if (name === 'members')   { if (!isAdmin()) return go('home'); activate('members');  return showMembers(); }
   if (name === 'poster')    { activate('poster');   return showPoster(arg); }
   if (name === 'read')      { activate('read');     return showReader(arg); }
+  if (name === 'agreement') { activate('agreement'); return showAgreement(); }
+  if (name === 'agreements') { if (!isAdmin()) return go('agreement'); activate('agreements'); return showAgreements(arg); }
   if (name === 'poster-edit') { if (!isAdmin()) return go('posters'); activate('poster-edit'); return showPosterEdit(arg); }
 
   activate(name);
@@ -1669,7 +1814,7 @@ function showPending() {
 
 function drawAccount() {
   const p = state.profile || {};
-  $('#account-name').textContent = (p.name || '') + (isAdmin() ? ' (admin)' : '');
+  $('#account-name').textContent = (p.name || '') + (isAdmin() ? ' (admin)' : isCoord() ? ' (coordinator)' : '');
 }
 
 // ============================================================
@@ -1685,6 +1830,9 @@ function showHome() {
     badge.textContent = String(n);
     badge.hidden = n === 0;
   }, () => {}));
+  // A "!" on the Volunteer Agreement tile until this person has signed it.
+  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', state.user.uid),
+    snap => { $('#agree-count').hidden = snap.exists(); }, () => { $('#agree-count').hidden = true; }));
   if (isAdmin()) {
     state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'users'), fb.where('role', '==', 'pending')), snap => {
       const badge = $('#members-count');
@@ -1768,7 +1916,7 @@ function showDog(id) {
     state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'dogs', id, 'availability'),
       snap => { live.replies = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })); draw(); }, () => {}));
     state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'users'),
-      snap => { live.members = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(m => m.role === 'member' || m.role === 'admin'); draw(); }, () => {}));
+      snap => { live.members = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(m => ACCESS.includes(m.role)); draw(); }, () => {}));
   }
   const answer = async (status, from) => {
     try {
@@ -1787,6 +1935,7 @@ function showDog(id) {
     if (live.map) { live.map.remove(); live.map = null; }
     const draft = $('#update-text') ? $('#update-text').value : '';   // keep a half-typed update across live refreshes
     if ($('#avail-time')) live.timeDraft = $('#avail-time').value;      // and a half-chosen availability time
+    if ($('#removal-why')) live.whyDraft = $('#removal-why').value;      // and a half-typed removal reason
     const st = STATUSES[d.status] || {};
     const photo = live.images.find(i => i.kind === 'photo');
     const posters = live.images.filter(i => i.kind === 'poster');
@@ -1845,14 +1994,29 @@ function showDog(id) {
       }
     }
 
-    // --- Admin controls
-    if (isAdmin()) {
+    // --- Removal request: a coordinator asks, an admin decides
+    const clearRequest = () => fb.updateDoc(dogRef, { removalByUid: '', removalBy: '', removalReason: '' }).catch(err => alert(friendlyError(err)));
+    if (d.removalByUid && isCoord()) {
+      root.appendChild(h('div', { class: 'admin-box request' },
+        h('h3', null, 'Removal requested'),
+        h('p', null, (d.removalBy || 'A coordinator') + ' has asked for this post to be removed' + (d.removalAt ? ' (' + when(d.removalAt) + ')' : '') + '.'),
+        d.removalReason ? h('p', { class: 'request-reason' }, '“' + d.removalReason + '”') : null,
+        isAdmin()
+          ? h('div', { class: 'row' },
+              h('button', { class: 'btn danger', type: 'button', onclick: () => deleteDog(id, d.name) }, 'Remove post'),
+              h('button', { class: 'btn ghost', type: 'button', onclick: clearRequest }, 'Keep post'))
+          : h('p', { class: 'avail-note' }, 'Waiting for an admin to decide.'),
+        !isAdmin() && d.removalByUid === state.user.uid ? h('button', { class: 'link', type: 'button', onclick: clearRequest }, 'Cancel my request') : null));
+    }
+
+    // --- Coordinator and admin controls
+    if (isCoord()) {
       const select = h('select', { id: 'status-select', onchange: async e => {
         try { await fb.updateDoc(dogRef, { status: e.target.value, updatedAt: fb.serverTimestamp() }); }
         catch (err) { alert(friendlyError(err)); }
       } }, Object.entries(STATUSES).map(([k, v]) => h('option', { value: k, selected: k === d.status }, v.label)));
-      root.appendChild(h('div', { class: 'admin-box' },
-        h('h3', null, 'Admin'),
+      const box = h('div', { class: 'admin-box' },
+        h('h3', null, isAdmin() ? 'Admin' : 'Coordinator'),
         h('label', { for: 'status-select' }, 'Status'), select,
         h('button', { class: 'btn wide ' + (d.askAvailability ? 'ghost' : ''), type: 'button', onclick: async () => {
           try {
@@ -1860,10 +2024,34 @@ function showDog(id) {
             if (!d.askAvailability) sendPush({ type: 'availability', dogId: id });
           }
           catch (err) { alert(friendlyError(err)); }
-        } }, d.askAvailability ? 'Stop asking for availability' : 'Ask members for availability'),
-        h('div', { class: 'row' },
+        } }, d.askAvailability ? 'Stop asking for availability' : 'Ask members for availability'));
+      if (isAdmin()) {
+        box.appendChild(h('div', { class: 'row' },
           h('button', { class: 'btn', 'data-go': 'dog-edit/' + id }, 'Edit details'),
-          h('button', { class: 'btn danger', onclick: () => deleteDog(id, d.name) }, 'Delete'))));
+          h('button', { class: 'btn danger', onclick: () => deleteDog(id, d.name) }, 'Delete')));
+      } else {
+        box.appendChild(h('button', { class: 'btn wide', 'data-go': 'dog-edit/' + id }, 'Edit details'));
+        if (!d.removalByUid && live.asking) {
+          const why = h('input', { id: 'removal-why', type: 'text', maxlength: '200', placeholder: 'e.g. duplicate post, added by mistake', autocomplete: 'off' });
+          why.value = live.whyDraft || '';
+          box.appendChild(h('label', { for: 'removal-why' }, 'Why should this post be removed?'));
+          box.appendChild(why);
+          box.appendChild(h('div', { class: 'row' },
+            h('button', { class: 'btn', type: 'button', onclick: async () => {
+              const reason = why.value.trim();
+              try {
+                await fb.updateDoc(dogRef, { removalByUid: state.user.uid, removalBy: state.profile.name || '', removalReason: reason, removalAt: fb.serverTimestamp() });
+                live.asking = false; live.whyDraft = '';
+                sendPush({ type: 'removal', dogId: id });
+                draw();
+              } catch (err) { alert(friendlyError(err)); }
+            } }, 'Send request'),
+            h('button', { class: 'btn ghost', type: 'button', onclick: () => { live.asking = false; live.whyDraft = ''; draw(); } }, 'Cancel')));
+        } else if (!d.removalByUid) {
+          box.appendChild(h('button', { class: 'btn wide ghost', type: 'button', onclick: () => { live.asking = true; draw(); } }, 'Ask an admin to remove this post'));
+        }
+      }
+      root.appendChild(box);
     }
 
     // --- Details
@@ -1880,7 +2068,7 @@ function showDog(id) {
     const seen = s => s.seenAt || s.createdAt;            // when the dog was seen, not when it was typed in
     const sightings = live.sightings.slice().sort((x, y) => millis(seen(y)) - millis(seen(x)));
     sightings.forEach(s => points.push({ lat: s.lat, lng: s.lng, kind: 'sighting', label: 'Seen ' + when(seen(s)) + (s.note ? ': ' + s.note : '') }));
-    if (points.length || isAdmin()) {
+    if (points.length || isCoord()) {
       root.appendChild(h('h3', { class: 'section' }, 'Map'));
       const mapEl = h('div', { class: 'map', id: 'dog-map' });
       root.appendChild(mapEl);
@@ -1888,7 +2076,7 @@ function showDog(id) {
         h('span', { class: 'dot last' }), ' Last seen ', h('span', { class: 'dot sighting' }), ' Sighting'));
       makeMap(mapEl, points).then(map => { live.map = map; if (map && live.pendingAdd) { live.pendingAdd(map); live.pendingAdd = null; } });
 
-      if (isAdmin()) {
+      if (isCoord()) {
         const form = h('div', { class: 'admin-box', hidden: true },
           h('p', null, 'Tap the map where the dog was seen.'),
           h('label', { for: 'sighting-when' }, 'When was the dog seen?'),
@@ -1932,7 +2120,7 @@ function showDog(id) {
           h('span', { class: 'feed-when' }, 'Seen ' + when(seen(s)) + (s.byName ? ' \u00b7 logged by ' + s.byName : '')),
           h('span', null, s.note || 'Sighting reported'),
           h('a', { class: 'maplink', href: 'https://www.google.com/maps?q=' + s.lat + ',' + s.lng, target: '_blank', rel: 'noopener' }, 'Open in Maps'),
-          isAdmin() && h('button', { class: 'link danger', onclick: () => fb.deleteDoc(fb.doc(fb.db, 'dogs', id, 'sightings', s.id)) }, 'Remove')))));
+          isCoord() && h('button', { class: 'link danger', onclick: () => fb.deleteDoc(fb.doc(fb.db, 'dogs', id, 'sightings', s.id)) }, 'Remove')))));
       }
       if (typeof d.lat === 'number') root.appendChild(h('a', { class: 'btn wide ghost', href: 'https://www.google.com/maps?q=' + d.lat + ',' + d.lng, target: '_blank', rel: 'noopener' }, 'Open last-seen location in Maps'));
     }
@@ -1965,7 +2153,7 @@ function showDog(id) {
 
     // --- Updates
     root.appendChild(h('h3', { class: 'section' }, 'Updates'));
-    if (isAdmin()) {
+    if (isCoord()) {
       const ta = h('textarea', { id: 'update-text', rows: '3', placeholder: 'Write an update for the team' });
       ta.value = draft;
       const msg = h('p', { class: 'form-msg' });
@@ -1991,7 +2179,7 @@ function showDog(id) {
       root.appendChild(h('ul', { class: 'card feed' }, live.updates.map(u => h('li', null,
         h('span', { class: 'feed-when' }, when(u.createdAt) + (u.byName ? ' · ' + u.byName : '')),
         h('span', { class: 'feed-text' }, u.text),
-        isAdmin() && h('button', { class: 'link danger', onclick: () => fb.deleteDoc(fb.doc(fb.db, 'dogs', id, 'updates', u.id)) }, 'Remove')))));
+        isCoord() && h('button', { class: 'link danger', onclick: () => fb.deleteDoc(fb.doc(fb.db, 'dogs', id, 'updates', u.id)) }, 'Remove')))));
     } else {
       root.appendChild(h('p', { class: 'empty' }, 'No updates yet.'));
     }
@@ -2014,7 +2202,7 @@ async function deleteDog(id, name) {
 }
 
 // ============================================================
-//  Missing dogs: add / edit (admins)
+//  Missing dogs: add / edit (coordinators and admins)
 // ============================================================
 function showDogEdit(id) {
   const fb = state.fb, form = $('#dog-form'), msg = $('#dog-form-msg');
@@ -2216,8 +2404,13 @@ function showMembers() {
   const fb = state.fb, list = $('#member-list');
   list.textContent = '';
   list.appendChild(h('p', { class: 'empty' }, 'Loading…'));
-  const order = { pending: 0, admin: 1, member: 2, blocked: 3 };
-  const label = { pending: 'Waiting for approval', admin: 'Admin', member: 'Member', blocked: 'Access removed' };
+  const order = { pending: 0, admin: 1, coordinator: 2, member: 3, blocked: 4 };
+  const label = { pending: 'Waiting for approval', admin: 'Admin', coordinator: 'Coordinator', member: 'Member', blocked: 'Access removed' };
+  const can = {
+    member: 'Members can see everything, send their availability and sign the volunteer agreement.',
+    coordinator: 'Coordinators can also add and update missing dogs, add sightings, send notifications, and ask for a post to be removed.',
+    admin: 'Admins can do everything, including deleting posts, adding posters, seeing availability and signed forms, and managing members.'
+  };
 
   const setRole = async (m, role, question) => {
     if (question && !confirm(question)) return;
@@ -2229,23 +2422,222 @@ function showMembers() {
     const members = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (order[a.role] ?? 9) - (order[b.role] ?? 9) || String(a.name || '').localeCompare(String(b.name || '')));
     list.textContent = '';
-    $('#member-total').textContent = members.filter(m => m.role === 'member' || m.role === 'admin').length + ' with access, '
+    $('#member-total').textContent = members.filter(m => ACCESS.includes(m.role)).length + ' with access, '
       + members.filter(m => m.role === 'pending').length + ' waiting';
     members.forEach(m => {
       const me = m.id === state.user.uid;
       const actions = [];
       if (m.role === 'pending') actions.push(h('button', { class: 'btn', onclick: () => setRole(m, 'member') }, 'Approve'));
       if (m.role === 'blocked') actions.push(h('button', { class: 'btn', onclick: () => setRole(m, 'member') }, 'Give access back'));
-      if (m.role === 'member')  actions.push(h('button', { class: 'btn ghost', onclick: () => setRole(m, 'admin', 'Make ' + (m.name || 'this person') + ' an admin? Admins can add dogs and manage members.') }, 'Make admin'));
-      if (m.role === 'admin' && !me) actions.push(h('button', { class: 'btn ghost', onclick: () => setRole(m, 'member', 'Remove admin rights from ' + (m.name || 'this person') + '?') }, 'Remove admin'));
+      // Approved people (other than yourself) get a role picker.
+      let picker = null;
+      if (ACCESS.includes(m.role) && !me) {
+        const id = 'role-' + m.id;
+        const select = h('select', { id, onchange: async e => {
+          const role = e.target.value;
+          if (!confirm('Make ' + (m.name || 'this person') + ' ' + (role === 'admin' ? 'an admin' : 'a ' + role) + '?\n\n' + can[role])) { e.target.value = m.role; return; }
+          await setRole(m, role);
+        } }, ACCESS.map(r => h('option', { value: r, selected: r === m.role }, label[r])));
+        picker = h('div', { class: 'role-pick' }, h('label', { for: id }, 'Role'), select);
+      }
       if (m.role !== 'blocked' && !me) actions.push(h('button', { class: 'btn danger', onclick: () => setRole(m, 'blocked', 'Remove access for ' + (m.name || 'this person') + '?') }, m.role === 'pending' ? 'Decline' : 'Remove access'));
       list.appendChild(h('li', { class: 'card member ' + m.role },
         h('strong', null, (m.name || 'No name') + (me ? ' (you)' : '')),
         h('span', { class: 'member-email' }, m.email || ''),
         h('span', { class: 'badge ' + (m.role === 'pending' ? 'live' : 'closed') }, label[m.role] || m.role),
+        picker,
         actions.length ? h('div', { class: 'row' }, actions) : null));
     });
   }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
+}
+
+// ============================================================
+//  Volunteer agreement: sign in the app; admins see who has signed
+// ============================================================
+function signaturePad(canvas) {
+  const ctx = canvas.getContext('2d');
+  let drawing = false, empty = true, last = null;
+  const at = e => { const r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * canvas.width / r.width, y: (e.clientY - r.top) * canvas.height / r.height }; };
+  const clear = () => { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); empty = true; };
+  canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    drawing = true; last = at(e); empty = false;
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(last.x, last.y, 2.4, 0, Math.PI * 2); ctx.fill();
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!drawing) return;
+    e.preventDefault();
+    const p = at(e);
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 4.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    last = p;
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(type => canvas.addEventListener(type, () => { drawing = false; }));
+  clear();
+  return { clear, isEmpty: () => empty, image: () => canvas.toDataURL('image/png') };
+}
+const pads = { me: signaturePad($('#agree-sign')), guardian: signaturePad($('#agree-guardian-sign')) };
+$$('[data-clear-pad]').forEach(b => b.addEventListener('click', () => pads[b.getAttribute('data-clear-pad')].clear()));
+$('#agree-under18').addEventListener('change', e => { $('#agree-guardian').hidden = !e.target.checked; });
+
+const dayText = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : (iso || ''); };
+const todayIso = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+
+// A signed form, laid out like the bottom of the paper one.
+function agreementCard(a) {
+  const row = (label, value) => value ? [h('dt', null, label), h('dd', null, value)] : [];
+  return h('div', { class: 'card signed-form' },
+    h('strong', { class: 'signed-title' }, 'Volunteer Declaration & Sign-off'),
+    h('dl', { class: 'details' },
+      row('Volunteer name', a.name),
+      row('Signature', a.signature ? h('img', { class: 'signature', alt: 'Signature of ' + (a.name || 'the volunteer'), src: a.signature }) : ''),
+      row('Date', dayText(a.signedDate)),
+      row('Emergency contact name & relationship', a.emergencyName),
+      row('Emergency contact phone number', a.emergencyPhone ? h('a', { href: 'tel:' + String(a.emergencyPhone).replace(/[^0-9+]/g, '') }, a.emergencyPhone) : ''),
+      a.under18 ? row('Under 18', 'Yes') : [],
+      a.under18 ? row('Parent/guardian name', a.guardianName) : [],
+      a.under18 ? row('Parent/guardian signature', a.guardianSignature ? h('img', { class: 'signature', alt: 'Signature of ' + (a.guardianName || 'the parent or guardian'), src: a.guardianSignature }) : '') : []),
+    h('p', { class: 'signed-when' }, 'Signed in the app' + (a.signedAt ? ' ' + when(a.signedAt) : '') + '.'));
+}
+
+function showAgreement() {
+  const fb = state.fb, uid = state.user.uid, ref = fb.doc(fb.db, 'agreements', uid);
+  const done = $('#agree-done'), form = $('#agree-form'), msg = $('#agree-msg');
+  let saved = null, loaded = false, editing = false;
+
+  const fill = a => {
+    form.reset();
+    pads.me.clear(); pads.guardian.clear();
+    $('#agree-name').value = (a && a.name) || state.profile.name || '';
+    $('#agree-emergency-name').value = (a && a.emergencyName) || '';
+    $('#agree-emergency-phone').value = (a && a.emergencyPhone) || '';
+    $('#agree-under18').checked = !!(a && a.under18);
+    $('#agree-guardian-name').value = (a && a.guardianName) || '';
+    $('#agree-guardian').hidden = !(a && a.under18);
+    $('#agree-date').textContent = dayText(todayIso());
+    msg.textContent = '';
+  };
+  fill(null);
+  form.hidden = true;
+  done.textContent = '';
+  done.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+
+  function draw() {
+    done.textContent = '';
+    if (saved && !editing) {
+      form.hidden = true;
+      done.appendChild(h('p', { class: 'signed-banner' }, '✓ You have signed this agreement.'));
+      done.appendChild(agreementCard(saved));
+      done.appendChild(h('button', { class: 'btn wide ghost', type: 'button', onclick: () => { editing = true; fill(saved); draw(); form.scrollIntoView({ block: 'start' }); } }, 'Update my details and sign again'));
+    } else {
+      form.hidden = false;
+      $('#agree-cancel').hidden = !saved;
+    }
+  }
+  $('#agree-cancel').onclick = () => { editing = false; draw(); window.scrollTo(0, 0); };
+
+  state.subs.push(fb.onSnapshot(ref, snap => {
+    saved = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null;
+    loaded = true;
+    if (!editing) draw();
+  }, err => {
+    loaded = true; draw();
+    msg.textContent = err && err.code === 'permission-denied' ? 'Not ready yet. The new security rules need pasting into Firebase first.' : friendlyError(err);
+  }));
+
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const under18 = $('#agree-under18').checked;
+    const data = {
+      uid,
+      name: $('#agree-name').value.trim(),
+      signature: '',
+      signedDate: todayIso(),
+      emergencyName: $('#agree-emergency-name').value.trim(),
+      emergencyPhone: $('#agree-emergency-phone').value.trim(),
+      under18,
+      guardianName: under18 ? $('#agree-guardian-name').value.trim() : '',
+      guardianSignature: '',
+      formVersion: 1,
+      signedAt: fb.serverTimestamp()
+    };
+    const problem =
+      !data.name ? 'Enter your name.'
+      : pads.me.isEmpty() ? 'Sign in the signature box with your finger.'
+      : !data.emergencyName ? 'Enter your emergency contact’s name and relationship.'
+      : data.emergencyPhone.replace(/[^0-9]/g, '').length < 7 ? 'Enter your emergency contact’s phone number.'
+      : under18 && !data.guardianName ? 'Enter the parent or guardian’s name.'
+      : under18 && pads.guardian.isEmpty() ? 'The parent or guardian needs to sign in their box.'
+      : '';
+    if (problem) { msg.textContent = problem; return; }
+    data.signature = pads.me.image();
+    if (under18) data.guardianSignature = pads.guardian.image();
+    const btn = $('#agree-submit');
+    btn.disabled = true; msg.textContent = 'Saving…';
+    try {
+      await fb.setDoc(ref, data);
+      editing = false; msg.textContent = '';
+      saved = { ...data, signedAt: new Date() };
+      draw();
+      window.scrollTo(0, 0);
+    } catch (err) {
+      msg.textContent = err && err.code === 'permission-denied' ? 'Not saved. The new security rules need pasting into Firebase first.' : friendlyError(err);
+    }
+    btn.disabled = false;
+  };
+}
+
+// Admins: who has signed, who has not, and each signed form.
+function showAgreements(uid) {
+  const fb = state.fb, root = $('#agreements-body'), back = $('#agreements-back');
+  root.textContent = '';
+  root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  const fail = err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, err && err.code === 'permission-denied' ? 'Not ready yet. The new security rules need pasting into Firebase first.' : friendlyError(err))); };
+
+  if (uid) {
+    back.setAttribute('data-go', 'agreements'); back.textContent = '← Signed forms';
+    $('#agreements-title').textContent = 'Signed form';
+    state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', uid), snap => {
+      root.textContent = '';
+      if (!snap.exists()) { root.appendChild(h('p', { class: 'empty' }, 'This person has no signed form.')); return; }
+      const a = snap.data({ serverTimestamps: 'estimate' });
+      root.appendChild(agreementCard(a));
+      root.appendChild(h('p', { class: 'hint' }, 'Volunteer Agreement & Liability Disclaimer.'));
+      root.appendChild(h('button', { class: 'link danger center', type: 'button', onclick: async () => {
+        if (!confirm('Delete the signed form for ' + (a.name || 'this person') + '? They will be asked to sign again.')) return;
+        try { await fb.deleteDoc(fb.doc(fb.db, 'agreements', uid)); go('agreements'); } catch (err) { alert(friendlyError(err)); }
+      } }, 'Delete this signed form'));
+    }, fail));
+    return;
+  }
+
+  back.setAttribute('data-go', 'agreement'); back.textContent = '← Volunteer Agreement';
+  $('#agreements-title').textContent = 'Signed forms';
+  let people = null, forms = null;
+  const byName = (x, y) => String(x.name || '').localeCompare(String(y.name || ''));
+  function draw() {
+    if (!people || !forms) return;
+    root.textContent = '';
+    const signed = new Map(forms.map(f => [f.id, f]));
+    const yes = people.filter(p => signed.has(p.id)).sort(byName), no = people.filter(p => !signed.has(p.id)).sort(byName);
+    root.appendChild(h('p', { class: 'intro' }, yes.length + ' of ' + people.length + ' people have signed.'));
+    root.appendChild(h('h3', { class: 'section' }, 'Signed (' + yes.length + ')'));
+    root.appendChild(yes.length
+      ? h('ul', { class: 'card feed' }, yes.map(p => h('li', null,
+          h('span', { class: 'feed-text' }, p.name || signed.get(p.id).name || 'No name'),
+          h('span', { class: 'feed-when' }, 'Signed ' + dayText(signed.get(p.id).signedDate)),
+          h('button', { class: 'link', type: 'button', 'data-go': 'agreements/' + p.id }, 'Open form'))))
+      : h('p', { class: 'empty' }, 'Nobody has signed yet.'));
+    root.appendChild(h('h3', { class: 'section' }, 'Not signed yet (' + no.length + ')'));
+    root.appendChild(no.length
+      ? h('ul', { class: 'card feed' }, no.map(p => h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name'))))
+      : h('p', { class: 'empty' }, 'Everyone has signed.'));
+  }
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'users'),
+    snap => { people = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => ACCESS.includes(p.role)); draw(); }, fail));
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'agreements'),
+    snap => { forms = snap.docs.map(d => ({ id: d.id, ...d.data() })); draw(); }, fail));
 }
 
 // ============================================================
@@ -3157,6 +3549,7 @@ function startAlerts() {
   const fb = state.fb;
 
   let knownDogs = null;     // dog id -> whether availability was being asked for, as last seen
+  let knownRemovals = new Map();   // dog id -> who has asked for it to be removed
   alertSubs.push(fb.onSnapshot(fb.collection(fb.db, 'dogs'), snap => {
     if (knownDogs) snap.docs.forEach(d => {
       const dog = d.data();
@@ -3170,6 +3563,12 @@ function startAlerts() {
         showAlert('Availability needed', where + '. Can you help with this search?', 'dog/' + d.id);
       }
     });
+    if (knownDogs && isAdmin()) snap.docs.forEach(d => {
+      const dog = d.data();
+      if (dog.removalByUid && dog.removalByUid !== state.user.uid && knownRemovals.get(d.id) !== dog.removalByUid)
+        showAlert('Removal request', (dog.removalBy || 'A coordinator') + ' has asked to remove ' + (dog.name || 'a dog') + '.', 'dog/' + d.id);
+    });
+    knownRemovals = new Map(snap.docs.map(d => [d.id, d.data().removalByUid || '']));
     knownDogs = new Map(snap.docs.map(d => [d.id, !!d.data().askAvailability]));
   }, () => {}));
 

@@ -1,5 +1,6 @@
 // Lost Dogs Ayrshire: the notification sender.
-// The app calls this when an admin adds a dog, asks for availability, or when someone asks to join.
+// The app calls this when a coordinator or admin adds a dog, asks for availability or posts an update,
+// when a coordinator asks for a post to be removed, and when someone asks to join.
 // It checks who is asking, works out who should be told, and sends the notification to their phones.
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
@@ -60,15 +61,15 @@ exports.notify = onCall(async request => {
     return sendTo(await peopleWithRole(['admin']), 'Join request', name + ' has asked to join.', SITE + '#members', 'join');
   }
 
-  // Everything else is for admins only.
-  if (role !== 'admin') throw new HttpsError('permission-denied', 'Admins only.');
+  // Everything else is for coordinators and admins only.
+  if (role !== 'admin' && role !== 'coordinator') throw new HttpsError('permission-denied', 'Coordinators and admins only.');
   const dogId = String((request.data && request.data.dogId) || '');
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(dogId)) throw new HttpsError('invalid-argument', 'Which dog?');
   const dogSnap = await db.collection('dogs').doc(dogId).get();
   if (!dogSnap.exists) throw new HttpsError('not-found', 'That dog is not listed.');
   const dog = dogSnap.data();
   const where = String(dog.name || 'Unnamed dog').slice(0, 60) + (dog.lastSeenPlace ? ', ' + String(dog.lastSeenPlace).slice(0, 80) : '');
-  const everyoneElse = (await peopleWithRole(['member', 'admin'])).filter(id => id !== uid);
+  const everyoneElse = (await peopleWithRole(['member', 'coordinator', 'admin'])).filter(id => id !== uid);
   const link = SITE + '#dog/' + dogId;
 
   if (type === 'dog') {
@@ -78,7 +79,13 @@ exports.notify = onCall(async request => {
   if (type === 'availability') {
     return sendTo(everyoneElse, 'Availability needed', where + '. Can you help with this search?', link, 'availability');
   }
-  // An admin has posted an update on a dog's page.
+  // A coordinator has asked for a dog's post to be removed: tell the admins.
+  if (type === 'removal') {
+    const admins = (await peopleWithRole(['admin'])).filter(id => id !== uid);
+    const who = String(me.data().name || 'A coordinator').slice(0, 60);
+    return sendTo(admins, 'Removal request', who + ' has asked to remove ' + String(dog.name || 'a dog').slice(0, 60) + '.', link, 'removal');
+  }
+  // A coordinator or admin has posted an update on a dog's page.
   if (type === 'update') {
     const updateId = String((request.data && request.data.updateId) || '');
     if (!/^[A-Za-z0-9_-]{1,64}$/.test(updateId)) throw new HttpsError('invalid-argument', 'Which update?');
