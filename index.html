@@ -792,6 +792,8 @@
 .signed-when { margin-top: 10px; font-size: .85rem; font-weight: 600; color: #555; }
 #agreement .agreement-text { margin-top: 4px; }
 #agree-done .btn { margin-bottom: 16px; }
+
+.status-by { margin: -4px 0 12px; text-align: center; font-size: .9rem; font-weight: 700; color: var(--yellow); }
 </style>
 </head>
 <body>
@@ -899,7 +901,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 2.2 · 10 Oct 2026</p>
+  <p class="version">Version 2.3 · 10 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1161,7 +1163,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 2.2 · 10 Oct 2026</p>
+  <p class="version">Version 2.3 · 10 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1848,6 +1850,15 @@ function showHome() {
 let dogFilter = 'active';
 $$('[data-dog-filter]').forEach(b => b.addEventListener('click', () => { dogFilter = b.getAttribute('data-dog-filter'); render(); }));
 
+// Every status change records who made it and when, and adds a line to the dog's updates.
+const statusStamp = () => ({ statusBy: state.profile.name || '', statusByUid: state.user.uid, statusAt: state.fb.serverTimestamp() });
+function logStatusChange(dogId, from, to) {
+  const fb = state.fb, name = s => (STATUSES[s] || { label: s || 'Unknown' }).label;
+  return fb.addDoc(fb.collection(fb.db, 'dogs', dogId, 'updates'),
+    { kind: 'status', from: from || '', to, text: 'Status changed from ' + name(from) + ' to ' + name(to) + '.', byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() })
+    .catch(err => console.warn('Status change not logged:', err && err.message));
+}
+
 function statusBadge(status) {
   const s = STATUSES[status] || { label: status || 'Unknown', active: true };
   return h('span', { class: 'badge ' + (s.active ? 'live' : 'closed') }, s.label);
@@ -1943,6 +1954,8 @@ function showDog(id) {
 
     root.appendChild(h('h2', { class: 'page-title' }, d.name || 'Unnamed dog'));
     root.appendChild(h('p', { class: 'status-line' }, statusBadge(d.status)));
+    if (d.statusBy) root.appendChild(h('p', { class: 'status-by' },
+      (st.active === false ? 'Closed by ' : 'Status set by ') + d.statusBy + (d.statusAt ? ', ' + when(d.statusAt) : '')));
 
     if (photo) root.appendChild(h('img', { class: 'full-image', alt: 'Photo of ' + (d.name || 'the dog'), src: photo.data }));
     else if (d.thumb) root.appendChild(h('img', { class: 'full-image', alt: 'Photo of ' + (d.name || 'the dog'), src: d.thumb }));
@@ -2012,7 +2025,9 @@ function showDog(id) {
     // --- Coordinator and admin controls
     if (isCoord()) {
       const select = h('select', { id: 'status-select', onchange: async e => {
-        try { await fb.updateDoc(dogRef, { status: e.target.value, updatedAt: fb.serverTimestamp() }); }
+        const to = e.target.value, from = d.status;
+        if (to === from) return;
+        try { await fb.updateDoc(dogRef, { status: to, ...statusStamp(), updatedAt: fb.serverTimestamp() }); logStatusChange(id, from, to); }
         catch (err) { alert(friendlyError(err)); }
       } }, Object.entries(STATUSES).map(([k, v]) => h('option', { value: k, selected: k === d.status }, v.label)));
       const box = h('div', { class: 'admin-box' },
@@ -2179,11 +2194,11 @@ function showDog(id) {
       root.appendChild(h('ul', { class: 'card feed' }, live.updates.map(u => h('li', null,
         h('span', { class: 'feed-when' }, when(u.createdAt) + (u.byName ? ' · ' + u.byName : '')),
         h('span', { class: 'feed-text' }, u.text),
-        isCoord() && h('button', { class: 'link danger', onclick: () => fb.deleteDoc(fb.doc(fb.db, 'dogs', id, 'updates', u.id)) }, 'Remove')))));
+        isCoord() && u.kind !== 'status' && h('button', { class: 'link danger', onclick: () => fb.deleteDoc(fb.doc(fb.db, 'dogs', id, 'updates', u.id)) }, 'Remove')))));
     } else {
       root.appendChild(h('p', { class: 'empty' }, 'No updates yet.'));
     }
-    root.appendChild(h('p', { class: 'hint' }, 'Added ' + when(d.createdAt)));
+    root.appendChild(h('p', { class: 'hint' }, 'Added ' + when(d.createdAt) + (d.createdBy ? ' by ' + d.createdBy : '')));
   }
 }
 
@@ -2239,6 +2254,7 @@ function showDogEdit(id) {
       const d = snap.data();
       for (const k of ['name', 'status', 'breed', 'colour', 'sex', 'age', 'lastSeenPlace', 'lastSeenAt', 'description', 'notes'])
         if (form.elements[k]) form.elements[k].value = d[k] || (k === 'status' ? 'missing' : '');
+      edit.oldStatus = d.status || 'missing';
       $('#dog-ask').checked = !!d.askAvailability;
       edit.wasAsking = !!d.askAvailability;
       edit.existingThumb = d.thumb || null;
@@ -2295,7 +2311,9 @@ function showDogEdit(id) {
           { ...data, thumb: edit.thumb || null, createdAt: fb.serverTimestamp(), createdBy: state.profile.name || '', createdByUid: state.user.uid });
         dogId = ref.id;
       } else {
-        await fb.updateDoc(fb.doc(fb.db, 'dogs', id), data);
+        const changed = edit.oldStatus && data.status !== edit.oldStatus;
+        await fb.updateDoc(fb.doc(fb.db, 'dogs', id), changed ? { ...data, ...statusStamp() } : data);
+        if (changed) logStatusChange(id, edit.oldStatus, data.status);
       }
       // The full-size photo lives in its own record so the list stays quick to load.
       if (edit.photo) await fb.setDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'main'),
