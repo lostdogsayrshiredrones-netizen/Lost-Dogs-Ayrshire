@@ -850,7 +850,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 1.7 · 10 Oct 2026</p>
+  <p class="version">Version 1.8 · 10 Oct 2026</p>
 </main>
 
 <!-- ================= POSTERS MENU ================= -->
@@ -1111,7 +1111,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 1.7 · 10 Oct 2026</p>
+  <p class="version">Version 1.8 · 10 Oct 2026</p>
 </section>
 
 <!-- ================= WAITING FOR APPROVAL ================= -->
@@ -1939,15 +1939,21 @@ function showDog(id) {
       const ta = h('textarea', { id: 'update-text', rows: '3', placeholder: 'Write an update for the team' });
       ta.value = draft;
       const msg = h('p', { class: 'form-msg' });
-      root.appendChild(h('div', { class: 'admin-box' }, ta, msg,
+      const tell = h('input', { type: 'checkbox', id: 'update-notify' });
+      tell.checked = live.notifyUpdates !== false;                  // ticked unless the admin unticked it
+      tell.addEventListener('change', () => { live.notifyUpdates = tell.checked; });
+      root.appendChild(h('div', { class: 'admin-box form' }, ta,
+        h('label', { class: 'check' }, tell, " Notify members' phones"), msg,
         h('button', { class: 'btn', onclick: async () => {
           const text = ta.value.trim();
           if (!text) { msg.textContent = 'Write something first.'; return; }
+          const notify = tell.checked;
           ta.value = '';
           try {
-            await fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'),
+            const ref = await fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'),
               { text, byName: state.profile.name || '', createdAt: fb.serverTimestamp() });
             if ($('#update-text')) $('#update-text').value = '';
+            if (notify) sendPush({ type: 'update', dogId: id, updateId: ref.id });
           } catch (err) { msg.textContent = friendlyError(err); }
         } }, 'Post update')));
     }
@@ -2903,6 +2909,13 @@ async function loadPushKit() {
     const m = await import(FIREBASE + 'firebase-messaging.js');
     const registration = await navigator.serviceWorker.register('firebase-messaging-sw.js');
     pushKit = { ...m, messaging: m.getMessaging(state.fb.app), registration };
+    // While the app is open the phone does not show notifications itself, so show updates as a banner.
+    // (New dogs, availability and join requests already have their own banners.)
+    m.onMessage(pushKit.messaging, payload => {
+      if (!payload || !payload.data || payload.data.type !== 'update') return;
+      const n = payload.notification || {}, link = String((payload.fcmOptions && payload.fcmOptions.link) || payload.data.link || '');
+      showAlert(n.title || 'Update', n.body || '', link.includes('#') ? link.split('#')[1] : null);
+    });
   }
   return pushKit;
 }

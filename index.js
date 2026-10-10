@@ -14,7 +14,7 @@ const SITE = 'https://lostdogsayrshiredrones-netizen.github.io/Lost-Dogs-Ayrshir
 const STATUS = { missing: 'Missing', loose: 'Loose dog', found: 'Found' };
 
 // Send one notification to every phone belonging to the given people.
-async function sendTo(uids, title, body, link) {
+async function sendTo(uids, title, body, link, type) {
   const wanted = new Set(uids);
   if (!wanted.size) return { sent: 0, failed: 0 };
   const db = admin.firestore();
@@ -24,6 +24,7 @@ async function sendTo(uids, title, body, link) {
   const result = await admin.messaging().sendEachForMulticast({
     tokens: phones.map(d => d.data().token),
     notification: { title, body },
+    data: { type: String(type || ''), link },
     webpush: {
       notification: { icon: SITE + 'icon-192.png', badge: SITE + 'icon-192.png' },
       fcmOptions: { link }
@@ -56,7 +57,7 @@ exports.notify = onCall(async request => {
     if (role !== 'pending' || me.data().joinNotified) return { sent: 0, failed: 0 };
     await me.ref.update({ joinNotified: true });
     const name = String(me.data().name || 'Someone').slice(0, 60);
-    return sendTo(await peopleWithRole(['admin']), 'Join request', name + ' has asked to join.', SITE + '#members');
+    return sendTo(await peopleWithRole(['admin']), 'Join request', name + ' has asked to join.', SITE + '#members', 'join');
   }
 
   // Everything else is for admins only.
@@ -72,10 +73,19 @@ exports.notify = onCall(async request => {
 
   if (type === 'dog') {
     const label = STATUS[dog.status] || 'Missing';
-    return sendTo(everyoneElse, 'New dog: ' + label, where + (dog.askAvailability ? '. Can you help? Please give your availability.' : ''), link);
+    return sendTo(everyoneElse, 'New dog: ' + label, where + (dog.askAvailability ? '. Can you help? Please give your availability.' : ''), link, 'dog');
   }
   if (type === 'availability') {
-    return sendTo(everyoneElse, 'Availability needed', where + '. Can you help with this search?', link);
+    return sendTo(everyoneElse, 'Availability needed', where + '. Can you help with this search?', link, 'availability');
+  }
+  // An admin has posted an update on a dog's page.
+  if (type === 'update') {
+    const updateId = String((request.data && request.data.updateId) || '');
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(updateId)) throw new HttpsError('invalid-argument', 'Which update?');
+    const update = await db.collection('dogs').doc(dogId).collection('updates').doc(updateId).get();
+    if (!update.exists) throw new HttpsError('not-found', 'That update is not there.');
+    const text = String(update.data().text || '').replace(/\s+/g, ' ').trim();
+    return sendTo(everyoneElse, 'Update: ' + String(dog.name || 'Unnamed dog').slice(0, 60), text.length > 160 ? text.slice(0, 157) + '...' : text, link, 'update');
   }
   throw new HttpsError('invalid-argument', 'Unknown request.');
 });
