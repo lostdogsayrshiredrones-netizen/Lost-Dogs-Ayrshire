@@ -751,6 +751,15 @@
   .push-card .btn { background: var(--purple); color: var(--yellow); padding: 12px 20px; }
   .push-card .btn.ghost { background: none; color: var(--purple); box-shadow: inset 0 0 0 3px var(--purple); }
   .push-card .form-msg { color: var(--purple); min-height: 0; }
+
+/* ---- SOP reader ---- */
+.read-bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:0 -16px 12px;padding:calc(8px + env(safe-area-inset-top)) 16px 8px;background:#5220c4;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+.read-bar .back{margin:0}
+#read-count{font-weight:700;font-size:.9rem;color:#fdf90f}
+.read-page{display:block;width:100%;height:auto;margin:0 0 12px;border-radius:8px;background:#fff;box-shadow:0 3px 12px rgba(0,0,0,.35)}
+#read-end{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+#read-end[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -850,7 +859,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 1.8 · 10 Oct 2026</p>
+  <p class="version">Version 2.0 · 10 Oct 2026</p>
 </main>
 
 <!-- ================= POSTERS MENU ================= -->
@@ -1043,7 +1052,7 @@
 <section class="screen" id="highway-sop" data-sop>
   <button class="back" data-go="sops">&larr; SOPs</button>
   <h2 class="page-title">Highway SOP</h2>
-  <a class="save" href="highway-sop.pdf" target="_blank" rel="noopener">Open SOP</a>
+  <button class="save" data-go="read/highway-sop">Open SOP</button>
   <button class="save outline" data-url="highway-sop.pdf" data-filename="highway-sop.pdf">Save to device</button>
   <p class="hint">Cover page shown below. Open the SOP to read it in full.</p>
   <img class="full-image page" id="highway-sop-img" alt="Highways Standard Operating Procedure, cover page"
@@ -1056,7 +1065,7 @@
 <section class="screen" id="railway-sop" data-sop>
   <button class="back" data-go="sops">&larr; SOPs</button>
   <h2 class="page-title">Railway SOP</h2>
-  <a class="save" href="railway-sop.pdf" target="_blank" rel="noopener">Open SOP</a>
+  <button class="save" data-go="read/railway-sop">Open SOP</button>
   <button class="save outline" data-url="railway-sop.pdf" data-filename="railway-sop.pdf">Save to device</button>
   <p class="hint">Cover page shown below. Open the SOP to read it in full.</p>
   <img class="full-image page" id="railway-sop-img" alt="Railways Standard Operating Procedure, cover page"
@@ -1069,7 +1078,7 @@
 <section class="screen" id="water-sop" data-sop>
   <button class="back" data-go="sops">&larr; SOPs</button>
   <h2 class="page-title">Water SOP</h2>
-  <a class="save" href="water-sop.pdf" target="_blank" rel="noopener">Open SOP</a>
+  <button class="save" data-go="read/water-sop">Open SOP</button>
   <button class="save outline" data-url="water-sop.pdf" data-filename="water-sop.pdf">Save to device</button>
   <p class="hint">Cover page shown below. Open the SOP to read it in full.</p>
   <img class="full-image page" id="water-sop-img" alt="Water Standard Operating Procedure, cover page"
@@ -1111,7 +1120,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 1.8 · 10 Oct 2026</p>
+  <p class="version">Version 2.0 · 10 Oct 2026</p>
 </section>
 
 <!-- ================= WAITING FOR APPROVAL ================= -->
@@ -1279,6 +1288,22 @@
   <p class="hint"></p>
 </section>
 
+<!-- ================= SOP READER ================= -->
+<section class="screen" id="read">
+  <div class="read-bar">
+    <button class="back" id="read-back" data-go="sops">&larr; Back</button>
+    <span id="read-count"></span>
+  </div>
+  <h2 class="page-title" id="read-title"></h2>
+  <p class="form-msg" id="read-msg" role="status"></p>
+  <div id="read-pages"></div>
+  <div id="read-end" hidden>
+    <button class="btn wide" id="read-done"></button>
+    <button class="btn wide ghost" data-go="sops">All SOPs</button>
+    <button class="btn wide ghost" data-go="home">Home</button>
+  </div>
+</section>
+
 <!-- Shared paw shape -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -1312,6 +1337,7 @@ const FIREBASE = 'https://www.gstatic.com/firebasejs/10.14.1/';
 const VAPID_KEY = 'BJMQdVWQJwp5eKgFjPXH8AHzeNm1XWgkqUNFtoqhaAZjqmLvfuXJhwfW7kZJaeXjH88BINJxjEMmtHQvBhuq4JQ';
 const PUSH_REGION = 'europe-west1';     // where the notification sender runs
 const LEAFLET  = 'https://unpkg.com/leaflet@1.9.4/dist/';
+const PDFJS    = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/legacy/build/';
 const AYRSHIRE = [55.46, -4.63];
 
 // Dog statuses. "poster" is the standard poster that goes with the status.
@@ -1428,6 +1454,7 @@ function render() {
   if (name === 'dog-edit')  { if (!isAdmin()) return go('dogs'); activate('dog-edit'); return showDogEdit(arg); }
   if (name === 'members')   { if (!isAdmin()) return go('home'); activate('members');  return showMembers(); }
   if (name === 'poster')    { activate('poster');   return showPoster(arg); }
+  if (name === 'read')      { activate('read');     return showReader(arg); }
   if (name === 'poster-edit') { if (!isAdmin()) return go('posters'); activate('poster-edit'); return showPosterEdit(arg); }
 
   activate(name);
@@ -2219,6 +2246,68 @@ function showMembers() {
 }
 
 // ============================================================
+//  SOP reader: shows the PDF inside the app, so there is always a way back
+// ============================================================
+let pdfLib = null;
+function loadPdfLib() {
+  if (!pdfLib) pdfLib = import(PDFJS + 'pdf.min.mjs').then(lib => {
+    lib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.mjs';
+    return lib;
+  }).catch(err => { pdfLib = null; throw err; });
+  return pdfLib;
+}
+
+async function showReader(id) {
+  const section = document.getElementById(id);
+  if (!section || !section.hasAttribute('data-sop')) return go('sops');
+  const name = $('.page-title', section).textContent;
+  const box = $('#read-pages'), msg = $('#read-msg'), count = $('#read-count'), end = $('#read-end');
+  $('#read-back').setAttribute('data-go', id);
+  $('#read-back').textContent = '\u2190 ' + name;
+  $('#read-title').textContent = name;
+  $('#read-done').setAttribute('data-go', id);
+  $('#read-done').textContent = 'Finished: back to ' + name;
+  box.innerHTML = ''; count.textContent = ''; end.hidden = true;
+  msg.textContent = 'Opening the SOP\u2026';
+
+  // If they leave before it has finished, stop quietly and tidy up.
+  let open = true; const urls = []; let task = null;
+  state.subs.push(() => { open = false; urls.forEach(u => URL.revokeObjectURL(u)); box.innerHTML = ''; if (task) task.destroy(); });
+
+  try {
+    const lib = await loadPdfLib();
+    if (!open) return;
+    task = lib.getDocument({ url: new URL(id + '.pdf', location.href).href });
+    const pdf = await task.promise;
+    if (!open) return;
+    const canvas = document.createElement('canvas');
+    for (let n = 1; n <= pdf.numPages; n++) {
+      msg.textContent = 'Loading page ' + n + ' of ' + pdf.numPages + '\u2026';
+      const page = await pdf.getPage(n);
+      const base = page.getViewport({ scale: 1 });
+      const view = page.getViewport({ scale: 1400 / base.width });   // sharp enough to zoom in on
+      canvas.width = Math.round(view.width); canvas.height = Math.round(view.height);
+      await page.render({ canvas, canvasContext: canvas.getContext('2d'), viewport: view }).promise;
+      const blob = await new Promise(done => canvas.toBlob(done, 'image/jpeg', 0.85));
+      page.cleanup();
+      if (!open) return;
+      const url = URL.createObjectURL(blob); urls.push(url);
+      box.appendChild(h('img', { class: 'read-page', src: url, width: canvas.width, height: canvas.height,
+        alt: name + ', page ' + n + ' of ' + pdf.numPages }));
+      count.textContent = pdf.numPages + ' pages';
+    }
+    canvas.width = canvas.height = 0;
+    msg.textContent = '';
+    end.hidden = false;
+  } catch (err) {
+    console.warn('SOP reader:', err);
+    if (!open) return;
+    box.innerHTML = '';
+    msg.textContent = 'The SOP could not be opened here. Check your signal and try again, or go back and use "Save to device".';
+  }
+}
+
+// ============================================================
 //  SOP sign-off
 // ============================================================
 function showSopReads(section) {
@@ -2849,34 +2938,58 @@ function showPosterEdit(id) {
 // ============================================================
 //  In-app alerts: a banner and a sound while the app is open
 // ============================================================
-let audioCtx = null;
-// Phones only allow sound after the person has touched the page, so get ready on the first touch.
-function unlockAudio() {
-  try {
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-  } catch (e) {}
+// The alert sound is a short three-note chime, made here so there is no sound file to upload.
+// It plays through the phone's media channel, like a video would, so it is heard even when an
+// iPhone's ringer switch is set to silent. The "Alert sound" link switches it off.
+function makeChime() {
+  const rate = 22050, notes = [[880, 0], [1175, 0.18], [1568, 0.36]], length = Math.round(rate * 0.95);
+  const pcm = new Int16Array(length);
+  notes.forEach(([freq, start]) => {
+    for (let i = 0; i < rate * 0.5; i++) {
+      const n = Math.round(start * rate) + i;
+      if (n >= length) break;
+      const t = i / rate, envelope = Math.min(1, t / 0.01) * Math.exp(-t * 7);
+      pcm[n] = Math.max(-32767, Math.min(32767, pcm[n] + Math.sin(2 * Math.PI * freq * t) * envelope * 15000));
+    }
+  });
+  const wav = new DataView(new ArrayBuffer(44 + pcm.length * 2));
+  const text = (at, s) => { for (let i = 0; i < s.length; i++) wav.setUint8(at + i, s.charCodeAt(i)); };
+  text(0, 'RIFF'); wav.setUint32(4, 36 + pcm.length * 2, true); text(8, 'WAVE'); text(12, 'fmt ');
+  wav.setUint32(16, 16, true); wav.setUint16(20, 1, true); wav.setUint16(22, 1, true);
+  wav.setUint32(24, rate, true); wav.setUint32(28, rate * 2, true); wav.setUint16(32, 2, true); wav.setUint16(34, 16, true);
+  text(36, 'data'); wav.setUint32(40, pcm.length * 2, true);
+  pcm.forEach((v, i) => wav.setInt16(44 + i * 2, v, true));
+  return URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
 }
-document.addEventListener('pointerdown', unlockAudio, { passive: true });
-document.addEventListener('keydown', unlockAudio);
+
+let chime = null, chimeTurn = 0, chimeReady = false;
+try { chime = new Audio(makeChime()); chime.preload = 'auto'; } catch (e) {}
+
+// Phones only let a page make sound once the person has tapped it. On the first tap, play the
+// chime silently for an instant so that later alerts are allowed to sound by themselves.
+function unlockSound() {
+  if (!chime || chimeReady) return;
+  const turn = chimeTurn;
+  chime.muted = true;
+  const started = chime.play();
+  if (started && started.then) started.then(() => {
+    chimeReady = true;
+    if (turn === chimeTurn) { chime.pause(); chime.currentTime = 0; chime.muted = false; }   // unless a real alert has started meanwhile
+  }).catch(() => { chime.muted = false; });
+}
+['touchend', 'click', 'keydown'].forEach(type => document.addEventListener(type, unlockSound, true));
 
 const soundOn = () => { try { return localStorage.getItem('lda-alert-sound') !== 'off'; } catch (e) { return true; } };
 
 function playAlertSound() {
-  if (!soundOn() || !audioCtx || audioCtx.state !== 'running') return;
-  const t = audioCtx.currentTime;
-  [[880, 0], [1175, 0.18], [1568, 0.36]].forEach(([freq, delay]) => {      // three rising notes
-    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.0001, t + delay);
-    gain.gain.exponentialRampToValueAtTime(0.4, t + delay + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.4);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(t + delay);
-    osc.stop(t + delay + 0.45);
-  });
+  if (!soundOn() || !chime) return;
+  chimeTurn++;
+  try {
+    chime.muted = false;
+    chime.currentTime = 0;
+    const started = chime.play();
+    if (started && started.catch) started.catch(() => {});
+  } catch (e) {}
 }
 
 const alertBox = h('div', { id: 'alerts', 'aria-live': 'assertive' });
