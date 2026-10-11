@@ -836,6 +836,12 @@
 .vol-tabs { flex-wrap: wrap; margin-bottom: 0; }
 .vol-tabs .btn { flex: 1 1 auto; padding: 10px 12px; font-size: .85rem; }
 #vol-list .section { margin-top: 20px; }
+
+/* ---- Add to Home Screen card ---- */
+.install-steps { margin: 10px 0 0; padding-left: 24px; text-align: left; font-size: .98rem; font-weight: 700; line-height: 1.4; }
+.install-steps li { margin-top: 6px; }
+.push-card .install-help { font-size: .88rem; font-weight: 600; }
+#auth .install-card { margin: 0 0 18px; }
 </style>
 </head>
 <body>
@@ -863,6 +869,17 @@
       </svg>
     </div>
   </header>
+
+  <div class="push-card install-card" hidden>
+    <h3>Add to your Home Screen</h3>
+    <p>Use Lost Dogs Ayrshire like an app. On an iPhone this is also what lets you get alerts when the app is closed.</p>
+    <ol class="install-steps" hidden></ol>
+    <p class="install-help" hidden></p>
+    <div class="row">
+      <button class="btn install-go" type="button">Show me how</button>
+      <button class="btn ghost install-later" type="button">Not now</button>
+    </div>
+  </div>
 
   <div class="push-card" id="push-card" hidden>
     <h3 id="push-card-title">Turn on notifications</h3>
@@ -958,7 +975,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 2.5 · 11 Oct 2026</p>
+  <p class="version">Version 2.6 · 11 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1204,6 +1221,16 @@
 <!-- ================= SIGN IN ================= -->
 <section class="screen" id="auth" data-mode="signin">
   <div class="logo-row"><img class="logo" alt="Lost Dogs Ayrshire logo" data-from="logo-img"></div>
+  <div class="push-card install-card" hidden>
+    <h3>Add to your Home Screen</h3>
+    <p>Use Lost Dogs Ayrshire like an app. It opens from its own icon and can alert you when a dog goes missing.</p>
+    <ol class="install-steps" hidden></ol>
+    <p class="install-help" hidden></p>
+    <div class="row">
+      <button class="btn install-go" type="button">Show me how</button>
+      <button class="btn ghost install-later" type="button">Not now</button>
+    </div>
+  </div>
   <h2 class="page-title" id="auth-title">Sign in</h2>
   <form class="form" id="auth-form" novalidate>
     <label class="only-signup" for="auth-name">Your full name</label>
@@ -1220,7 +1247,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 2.5 · 11 Oct 2026</p>
+  <p class="version">Version 2.6 · 11 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -4116,21 +4143,56 @@ function drawPushToggle(note) {
 // after a tap, so this card is the tap.
 const cardSnoozed = () => { try { return Date.now() - Number(localStorage.getItem('lda-push-later') || 0) < 14 * 24 * 3600 * 1000; } catch (e) { return false; } };
 const openedFromHomeScreen = () => navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+// ---- "Add to your Home Screen" card, shown on the sign-in and home screens until the app is opened from its icon
+let installEvent = null, installDone = false;
+const isAndroid = () => /Android/i.test(navigator.userAgent);
+const installSnoozed = () => { try { return Date.now() - Number(localStorage.getItem('lda-install-later') || 0) < 7 * 24 * 3600 * 1000; } catch (e) { return false; } };
+const INSTALL_STEPS = {
+  iphone: ['Tap the Share button at the bottom of Safari. It is a square with an arrow pointing up.', 'Scroll down and tap \u201cAdd to Home Screen\u201d.', 'Tap \u201cAdd\u201d, then open the app from its new icon.'],
+  android: ['Tap the three dots at the top right of Chrome.', 'Tap \u201cAdd to Home screen\u201d or \u201cInstall app\u201d.', 'Tap \u201cAdd\u201d or \u201cInstall\u201d, then open the app from its new icon.']
+};
+function drawInstall() {
+  const show = !openedFromHomeScreen() && !installDone && !installSnoozed() && (!!installEvent || isIphone() || isAndroid());
+  $$('.install-card').forEach(card => {
+    card.hidden = !show;
+    if (!show) return;
+    const steps = $('.install-steps', card), list = INSTALL_STEPS[isIphone() ? 'iphone' : 'android'];
+    if (!steps.children.length) list.forEach(t => steps.appendChild(h('li', null, t)));
+    $('.install-help', card).textContent = isIphone() ? 'Cannot see it? Open this page in Safari first.' : 'Cannot see it? Open this page in Chrome first.';
+    $('.install-go', card).textContent = installEvent ? 'Add to Home Screen' : (steps.hidden ? 'Show me how' : 'Hide the steps');
+  });
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvent = e; drawInstall(); });
+window.addEventListener('appinstalled', () => { installEvent = null; installDone = true; drawInstall(); });
+$$('.install-card').forEach(card => {
+  $('.install-go', card).addEventListener('click', async () => {
+    if (installEvent) {                                  // Android: the phone's own "Add to Home screen" box
+      const ev = installEvent; installEvent = null;
+      try { ev.prompt(); const choice = await ev.userChoice; if (choice && choice.outcome === 'accepted') installDone = true; } catch (e) {}
+      if (!installDone) $$('.install-steps').forEach(s => { s.hidden = false; });
+      return drawInstall();
+    }
+    const steps = $('.install-steps', card), open = steps.hidden;      // iPhone: Apple only allows it by hand, so show how
+    $$('.install-steps').forEach(s => { s.hidden = !open; });
+    $$('.install-help').forEach(s => { s.hidden = !open; });
+    drawInstall();
+  });
+  $('.install-later', card).addEventListener('click', () => { try { localStorage.setItem('lda-install-later', String(Date.now())); } catch (e) {} drawInstall(); });
+});
+drawInstall();
+
 function drawPushCard(note) {
   const card = $('#push-card');
   let mode = null;
   if (pushReady() && isMember() && !cardSnoozed()) {
     if (pushSupported()) { if (Notification.permission === 'default' && !pushWanted()) mode = 'ask'; }
-    else if (isIphone() && !openedFromHomeScreen()) mode = 'install';
   }
   if (note && card.getAttribute('data-busy')) mode = mode || 'ask';      // keep it open to show what happened
   card.hidden = !mode;
   if (!mode) return;
-  $('#push-card-title').textContent = mode === 'install' ? 'Get alerts on this iPhone' : 'Turn on notifications';
-  $('#push-card-text').textContent = mode === 'install'
-    ? 'To be notified about missing dogs when the app is closed, add it to your Home Screen: tap the Share button, then "Add to Home Screen". Then open it from the new icon.'
-    : 'Be told straight away when a dog goes missing or your help is needed, even when the app is closed.';
-  $('#push-card-on').hidden = mode === 'install';
+  $('#push-card-title').textContent = 'Turn on notifications';
+  $('#push-card-text').textContent = 'Be told straight away when a dog goes missing or your help is needed, even when the app is closed.';
+  $('#push-card-on').hidden = false;
   $('#push-card-note').textContent = note || '';
 }
 $('#push-card-on').addEventListener('click', () => { $('#push-card').setAttribute('data-busy', '1'); $('#push-toggle').click(); });
