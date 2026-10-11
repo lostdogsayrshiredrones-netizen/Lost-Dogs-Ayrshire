@@ -975,7 +975,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 2.6 · 11 Oct 2026</p>
+  <p class="version">Version 2.8 · 11 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1247,7 +1247,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 2.6 · 11 Oct 2026</p>
+  <p class="version">Version 2.8 · 11 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -2571,6 +2571,7 @@ async function makeMap(el, points, editing) {
   setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 200);
 
   // Full-screen button in the corner of every map
+  el.querySelectorAll('.map-full-btn').forEach(old => old.remove());   // a map box that is redrawn must not collect buttons
   const fs = h('button', { class: 'map-full-btn', type: 'button' }, 'Full screen');
   const setFull = on => {
     el.classList.toggle('full', on);
@@ -4249,6 +4250,11 @@ async function sendPush(what) {
   } catch (err) { console.warn('Phone notification not sent:', err && err.message); }
 }
 
+// Alerts name the place, not the dog: many dogs are added as "Unknown". The name is only used when there is no place.
+function alertWhere(dog) {
+  const place = String(dog.lastSeenPlace || '').trim(), name = String(dog.name || '').trim();
+  return place || (/^(unknown|unnamed.*|not known|no name|n\/a|\?+)?$/i.test(name) ? '' : name);
+}
 let alertSubs = [];
 function endAlerts() {
   alertSubs.forEach(stop => { try { stop(); } catch (e) {} });
@@ -4268,19 +4274,19 @@ function startAlerts() {
     if (knownDogs) snap.docs.forEach(d => {
       const dog = d.data();
       if (!(STATUSES[dog.status] || { active: true }).active) return;
-      const where = (dog.name || 'Unnamed dog') + (dog.lastSeenPlace ? ', ' + dog.lastSeenPlace : '');
+      const where = alertWhere(dog);
       if (!knownDogs.has(d.id)) {
         if (dog.createdByUid === state.user.uid) return;                     // not for the admin who added it
         const label = (STATUSES[dog.status] || { label: 'Missing' }).label;
-        showAlert('New dog: ' + label, where + (dog.askAvailability ? '. Can you help? Please give your availability.' : ''), 'dog/' + d.id);
+        showAlert('New dog: ' + label, [where, dog.askAvailability ? 'Can you help? Please give your availability.' : ''].filter(Boolean).join('. ') || 'Open for details.', 'dog/' + d.id);
       } else if (dog.askAvailability && !knownDogs.get(d.id) && dog.availabilityAskedByUid !== state.user.uid) {
-        showAlert('Availability needed', where + '. Can you help with this search?', 'dog/' + d.id);
+        showAlert('Availability needed', [where, 'Can you help with this search?'].filter(Boolean).join('. '), 'dog/' + d.id);
       }
     });
     if (knownDogs && isAdmin()) snap.docs.forEach(d => {
       const dog = d.data();
       if (dog.removalByUid && dog.removalByUid !== state.user.uid && knownRemovals.get(d.id) !== dog.removalByUid)
-        showAlert('Removal request', (dog.removalBy || 'A coordinator') + ' has asked to remove ' + (dog.name || 'a dog') + '.', 'dog/' + d.id);
+        showAlert('Removal request', (dog.removalBy || 'A coordinator') + ' has asked to remove ' + (alertWhere(dog) ? 'the post for ' + alertWhere(dog) : 'a post') + '.', 'dog/' + d.id);
     });
     knownRemovals = new Map(snap.docs.map(d => [d.id, d.data().removalByUid || '']));
     knownDogs = new Map(snap.docs.map(d => [d.id, !!d.data().askAvailability]));

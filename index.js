@@ -68,22 +68,26 @@ exports.notify = onCall(async request => {
   const dogSnap = await db.collection('dogs').doc(dogId).get();
   if (!dogSnap.exists) throw new HttpsError('not-found', 'That dog is not listed.');
   const dog = dogSnap.data();
-  const where = String(dog.name || 'Unnamed dog').slice(0, 60) + (dog.lastSeenPlace ? ', ' + String(dog.lastSeenPlace).slice(0, 80) : '');
+  // Notifications name the place, not the dog: many dogs are added as "Unknown".
+  // The name is only used when there is no place.
+  const place = String(dog.lastSeenPlace || '').trim().slice(0, 80), name = String(dog.name || '').trim().slice(0, 60);
+  const where = place || (/^(unknown|unnamed.*|not known|no name|n\/a|\?+)?$/i.test(name) ? '' : name);
+  const say = (...parts) => parts.filter(Boolean).join('. ');
   const everyoneElse = (await peopleWithRole(['member', 'coordinator', 'admin'])).filter(id => id !== uid);
   const link = SITE + '#dog/' + dogId;
 
   if (type === 'dog') {
     const label = STATUS[dog.status] || 'Missing';
-    return sendTo(everyoneElse, 'New dog: ' + label, where + (dog.askAvailability ? '. Can you help? Please give your availability.' : ''), link, 'dog');
+    return sendTo(everyoneElse, 'New dog: ' + label, say(where, dog.askAvailability ? 'Can you help? Please give your availability.' : '') || 'Open the app for details.', link, 'dog');
   }
   if (type === 'availability') {
-    return sendTo(everyoneElse, 'Availability needed', where + '. Can you help with this search?', link, 'availability');
+    return sendTo(everyoneElse, 'Availability needed', say(where, 'Can you help with this search?'), link, 'availability');
   }
   // A coordinator has asked for a dog's post to be removed: tell the admins.
   if (type === 'removal') {
     const admins = (await peopleWithRole(['admin'])).filter(id => id !== uid);
     const who = String(me.data().name || 'A coordinator').slice(0, 60);
-    return sendTo(admins, 'Removal request', who + ' has asked to remove ' + String(dog.name || 'a dog').slice(0, 60) + '.', link, 'removal');
+    return sendTo(admins, 'Removal request', who + ' has asked to remove ' + (where ? 'the post for ' + where : 'a post') + '.', link, 'removal');
   }
   // A coordinator or admin has posted an update on a dog's page.
   if (type === 'update') {
@@ -92,7 +96,7 @@ exports.notify = onCall(async request => {
     const update = await db.collection('dogs').doc(dogId).collection('updates').doc(updateId).get();
     if (!update.exists) throw new HttpsError('not-found', 'That update is not there.');
     const text = String(update.data().text || '').replace(/\s+/g, ' ').trim();
-    return sendTo(everyoneElse, 'Update: ' + String(dog.name || 'Unnamed dog').slice(0, 60), text.length > 160 ? text.slice(0, 157) + '...' : text, link, 'update');
+    return sendTo(everyoneElse, where ? 'Update: ' + where : 'Dog update', text.length > 160 ? text.slice(0, 157) + '...' : text, link, 'update');
   }
   throw new HttpsError('invalid-argument', 'Unknown request.');
 });
