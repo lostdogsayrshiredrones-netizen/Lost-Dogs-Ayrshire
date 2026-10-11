@@ -946,19 +946,19 @@
       <span class="tile-name">Volunteer Agreement</span>
     </button>
 
-    <!-- TILE: Volunteer Map (admins only) -->
+    <!-- TILE: Members & Map (admins only): who is where, and their equipment -->
     <button class="tile admin-only" data-go="volunteers">
       <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true">
-        <path fill-rule="evenodd" d="M32 4c-10 0-18 8-18 18 0 13 18 34 18 34s18-21 18-34c0-10-8-18-18-18z M32 14a8 8 0 1 0 0 16 8 8 0 0 0 0-16z"/></svg></span>
-      <span class="tile-name">Volunteer Map</span>
+        <path fill-rule="evenodd" d="M32 2c-11 0-20 9-20 20 0 14 20 36 20 36s20-22 20-36c0-11-9-20-20-20z M32 9a6 6 0 1 0 0 12 6 6 0 0 0 0-12z M21 34c0-7 4-11 11-11s11 4 11 11z"/></svg></span>
+      <span class="tile-name">Members &amp; Map</span>
     </button>
 
-    <!-- TILE: Members (admins only) -->
+    <!-- TILE: Access & Roles (admins only): approve people and set roles -->
     <button class="tile admin-only" data-go="members">
       <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true">
-        <circle cx="32" cy="18" r="12"/><path d="M8 58c0-14 10-23 24-23s24 9 24 23z"/></svg></span>
+        <path fill-rule="evenodd" d="M18 14a16 16 0 1 0 15.500 20H44v8h8v-8h4v8h6V26H33.500A16 16 0 0 0 18 14z M18 23a7 7 0 1 1 0 14 7 7 0 0 1 0-14z"/></svg></span>
       <span class="count" id="members-count" hidden>0</span>
-      <span class="tile-name">Members</span>
+      <span class="tile-name">Access &amp; Roles</span>
     </button>
 
   </nav>
@@ -975,7 +975,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 2.8 · 11 Oct 2026</p>
+  <p class="version">Version 2.9 · 12 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1247,7 +1247,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 2.8 · 11 Oct 2026</p>
+  <p class="version">Version 2.9 · 12 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1336,7 +1336,7 @@
 <!-- ================= MEMBERS (admins) ================= -->
 <section class="screen" id="members">
   <button class="back" data-go="home">&larr; Home</button>
-  <h2 class="page-title">Members</h2>
+  <h2 class="page-title">Access &amp; Roles</h2>
   <p class="intro" id="member-total"></p>
   <ul id="member-list"></ul>
   <p class="hint"></p>
@@ -1568,7 +1568,7 @@
 <!-- ================= VOLUNTEER MAP (admins) ================= -->
 <section class="screen" id="volunteers">
   <button class="back" data-go="home">&larr; Home</button>
-  <h2 class="page-title">Volunteer Map</h2>
+  <h2 class="page-title">Members &amp; Map</h2>
   <p class="intro" id="vol-count"></p>
   <div class="form">
     <label for="vol-dog">Show distance from</label>
@@ -1588,7 +1588,7 @@
 
 <!-- ================= ONE VOLUNTEER (admins) ================= -->
 <section class="screen" id="volunteer">
-  <button class="back" data-go="volunteers">&larr; Volunteer Map</button>
+  <button class="back" data-go="volunteers">&larr; Members &amp; Map</button>
   <h2 class="page-title" id="volunteer-title">Volunteer</h2>
   <div id="volunteer-body"></div>
 </section>
@@ -2174,7 +2174,7 @@ function showDog(id) {
               h('span', { class: 'vol-sub' }, pr.town || ''),
               kitTags(pr)))))
         : h('p', { class: 'avail-none' }, 'Nobody has set where they are based yet.'));
-      box.appendChild(h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'volunteers/' + id }, 'Open the volunteer map'));
+      box.appendChild(h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'volunteers/' + id }, 'Open Members & Map'));
       root.appendChild(box);
     }
 
