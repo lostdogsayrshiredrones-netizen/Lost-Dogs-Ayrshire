@@ -794,6 +794,48 @@
 #agree-done .btn { margin-bottom: 16px; }
 
 .status-by { margin: -4px 0 12px; text-align: center; font-size: .9rem; font-weight: 700; color: var(--yellow); }
+
+/* ---- Profile and equipment ---- */
+#profile-who { margin-bottom: 14px; }
+#profile-done .btn { margin-top: 4px; }
+#profile-other { display: flex; flex-direction: column; gap: 6px; }
+#profile-other .map { margin-top: 6px; }
+#profile-devices { display: flex; flex-direction: column; }
+.kit-device { display: flex; flex-direction: column; gap: 4px; }
+.kit-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.kit-kind { margin-top: 6px; font-size: .85rem; font-weight: 800; color: var(--yellow); }
+.kit-error { margin-top: 8px; padding: 8px 12px; border-radius: 10px; background: #ffd9d9; color: #9b1010; font-size: .9rem; font-weight: 700; }
+#profile-add { margin-top: 14px; }
+.profile-consent { margin-top: 18px; padding: 10px 14px; border-radius: 12px; background: rgba(0,0,0,.22); font-size: .85rem; font-weight: 600; }
+.kit-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.kit-list li { display: flex; flex-direction: column; gap: 1px; }
+.kit-list li + li { padding-top: 10px; border-top: 1px solid #ddd; }
+.kit-type { color: var(--purple); font-size: .72rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.kit-serial { font-size: .95rem; font-weight: 600; }
+.kit-serial b { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+.kit-none { font-weight: 600; }
+.kit-tags { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.kit-tag { padding: 2px 10px; border-radius: 999px; background: #e3dcf7; color: #3e12a3; font-size: .75rem; font-weight: 800; }
+
+/* ---- Volunteer map ---- */
+.vol-people { list-style: none; padding: 2px 16px; margin-top: 12px; }
+.vol-people li + li { border-top: 1px solid #ddd; }
+.vol-person { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; width: 100%; padding: 12px 0; border: 0; background: none; color: #1a1a1a; font: inherit; text-align: left; cursor: pointer; }
+.vol-person strong { font-weight: 800; overflow-wrap: anywhere; }
+.vol-miles { font-weight: 800; color: var(--purple); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vol-sub { grid-column: 1 / -1; color: #555; font-size: .88rem; font-weight: 600; }
+.vol-pin { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 3px solid #fff; border-radius: 50%; background: #3e12a3; color: #fff; font-size: .85rem; font-weight: 900; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+.vol-pin.dim { opacity: .4; }
+.vol-pin.key { display: inline-flex; width: 22px; height: 22px; border-width: 2px; font-size: .7rem; vertical-align: middle; box-shadow: none; }
+.vol-tip { padding: 2px 8px; border: 0; border-radius: 8px; background: rgba(255,255,255,.92); color: #1c1530; font: 800 .8rem/1.3 inherit; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.vol-tip::before { display: none; }
+.vol-popup { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 140px; }
+.vol-popup strong { color: #3e12a3; font-weight: 900; }
+.vol-popup .link { color: #5220c4; font-size: 1rem; text-align: left; }
+.near-box .btn { margin-top: 12px; }
+.vol-tabs { flex-wrap: wrap; margin-bottom: 0; }
+.vol-tabs .btn { flex: 1 1 auto; padding: 10px 12px; font-size: .85rem; }
+#vol-list .section { margin-top: 20px; }
 </style>
 </head>
 <body>
@@ -871,12 +913,27 @@
     </button>
 
 
+    <!-- TILE: My Profile -->
+    <button class="tile" data-go="profile">
+      <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true">
+        <path fill-rule="evenodd" d="M6 8h52v44H6z M12 14v32h40V14z"/><circle cx="24" cy="25" r="6"/><path d="M14 42c0-7 4-10 10-10s10 3 10 10z M38 22h10v4H38z M38 30h10v4H38z M38 38h7v4h-7z"/></svg></span>
+      <span class="count" id="profile-count" hidden>!</span>
+      <span class="tile-name">My Profile</span>
+    </button>
+
     <!-- TILE: Volunteer Agreement -->
     <button class="tile" data-go="agreement">
       <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true">
         <path fill-rule="evenodd" d="M15 3h24l11 11v43H15z M22 23h21v4H22z M22 32h21v4H22z M22 42c4-5 6 3 9-1s4 2 8-2l1 3c-4 4-6-1-8 2s-6-3-9 1z"/></svg></span>
       <span class="count" id="agree-count" hidden>!</span>
       <span class="tile-name">Volunteer Agreement</span>
+    </button>
+
+    <!-- TILE: Volunteer Map (admins only) -->
+    <button class="tile admin-only" data-go="volunteers">
+      <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true">
+        <path fill-rule="evenodd" d="M32 4c-10 0-18 8-18 18 0 13 18 34 18 34s18-21 18-34c0-10-8-18-18-18z M32 14a8 8 0 1 0 0 16 8 8 0 0 0 0-16z"/></svg></span>
+      <span class="tile-name">Volunteer Map</span>
     </button>
 
     <!-- TILE: Members (admins only) -->
@@ -901,7 +958,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 2.4 · 11 Oct 2026</p>
+  <p class="version">Version 2.5 · 11 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1163,7 +1220,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 2.4 · 11 Oct 2026</p>
+  <p class="version">Version 2.5 · 11 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1449,6 +1506,66 @@
   <div id="agreements-body"></div>
 </section>
 
+<!-- ================= MY PROFILE ================= -->
+<section class="screen" id="profile">
+  <button class="back" data-go="home">&larr; Home</button>
+  <h2 class="page-title">My Profile</h2>
+  <div class="card member" id="profile-who"></div>
+  <div id="profile-done"></div>
+
+  <form class="form" id="profile-form" novalidate hidden>
+    <h3 class="section">Where I am based</h3>
+    <p class="intro" style="text-align:left">Choose the town or village you would normally set off from. This helps the team see who is closest when a dog goes missing.</p>
+    <label for="profile-town">Town or village</label>
+    <select id="profile-town"></select>
+    <div id="profile-other" hidden>
+      <label for="profile-place">Where are you based?</label>
+      <input id="profile-place" type="text" maxlength="60" autocomplete="off" placeholder="Name of the village or area">
+      <p class="field-help">Now tap the map roughly where that is. The middle of the village is close enough; it does not need to be your home.</p>
+      <div class="map" id="profile-map"></div>
+      <p class="field-help" id="profile-pin-status" role="status">No pin placed yet. Tap the map.</p>
+    </div>
+
+    <h3 class="section">My equipment</h3>
+    <p class="intro" style="text-align:left">Tell us what search equipment you have. Pick each item from the lists, then add its serial number. Leave this empty if you have none.</p>
+    <div id="profile-devices"></div>
+    <button class="btn wide ghost" id="profile-add" type="button">+ Add another device</button>
+
+    <p class="profile-consent">Only you and the admin team can see your profile. We keep your town or village, not your address. You can change it at any time.</p>
+    <p class="form-msg" id="profile-msg" role="status"></p>
+    <button class="save" id="profile-save" type="submit">Save my profile</button>
+    <button class="btn wide ghost" id="profile-cancel" type="button" hidden>Cancel</button>
+  </form>
+</section>
+
+<!-- ================= VOLUNTEER MAP (admins) ================= -->
+<section class="screen" id="volunteers">
+  <button class="back" data-go="home">&larr; Home</button>
+  <h2 class="page-title">Volunteer Map</h2>
+  <p class="intro" id="vol-count"></p>
+  <div class="form">
+    <label for="vol-dog">Show distance from</label>
+    <select id="vol-dog"></select>
+  </div>
+  <div class="map" id="vol-map"></div>
+  <p class="legend"><span class="vol-pin key">2</span> Volunteers at that place <span class="dot last"></span> Dog last seen</p>
+  <p class="hint">Tap a pin to see who is there. Distances are in a straight line, not by road.</p>
+  <h3 class="section" id="vol-list-title">Volunteers</h3>
+  <div class="tabs vol-tabs">
+    <button class="btn" type="button" data-vol-kit="">Everyone</button>
+    <button class="btn" type="button" data-vol-kit="thermal">Has a thermal</button>
+    <button class="btn" type="button" data-vol-kit="scanner">Has a scanner</button>
+  </div>
+  <div id="vol-list"></div>
+</section>
+
+<!-- ================= ONE VOLUNTEER (admins) ================= -->
+<section class="screen" id="volunteer">
+  <button class="back" data-go="volunteers">&larr; Volunteer Map</button>
+  <h2 class="page-title" id="volunteer-title">Volunteer</h2>
+  <div id="volunteer-body"></div>
+</section>
+
 <!-- Shared paw shape -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -1604,6 +1721,9 @@ function render() {
   if (name === 'poster')    { activate('poster');   return showPoster(arg); }
   if (name === 'read')      { activate('read');     return showReader(arg); }
   if (name === 'agreement') { activate('agreement'); return showAgreement(); }
+  if (name === 'profile')   { activate('profile');  return showProfile(); }
+  if (name === 'volunteers') { if (!isAdmin()) return go('home'); activate('volunteers'); return showVolunteers(arg); }
+  if (name === 'volunteer') { if (!isAdmin()) return go('home'); activate('volunteer'); return showVolunteer(arg); }
   if (name === 'agreements') { if (!isAdmin()) return go('agreement'); activate('agreements'); return showAgreements(arg); }
   if (name === 'poster-edit') { if (!isAdmin()) return go('posters'); activate('poster-edit'); return showPosterEdit(arg); }
 
@@ -1832,6 +1952,9 @@ function showHome() {
     badge.textContent = String(n);
     badge.hidden = n === 0;
   }, () => {}));
+  // A "!" on the Profile tile until this person has said where they are based.
+  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'profiles', state.user.uid),
+    snap => { $('#profile-count').hidden = snap.exists() && !!snap.data().town; }, () => { $('#profile-count').hidden = true; }));
   // A "!" on the Volunteer Agreement tile until this person has signed it.
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', state.user.uid),
     snap => { $('#agree-count').hidden = snap.exists(); }, () => { $('#agree-count').hidden = true; }));
@@ -1904,7 +2027,7 @@ function showDog(id) {
   const fb = state.fb, root = $('#dog-body');
   const dogRef = fb.doc(fb.db, 'dogs', id);
   const live = { dog: null, images: [], updates: [], sightings: [], map: null, adding: null,
-    mine: null, replies: [], members: [], pickTime: false, timeDraft: '' };
+    mine: null, replies: [], members: [], profiles: new Map(), pickTime: false, timeDraft: '' };
   root.textContent = '';
   root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
 
@@ -1928,6 +2051,8 @@ function showDog(id) {
       snap => { live.replies = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })); draw(); }, () => {}));
     state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'users'),
       snap => { live.members = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(m => ACCESS.includes(m.role)); draw(); }, () => {}));
+    state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'profiles'),
+      snap => { live.profiles = new Map(snap.docs.map(d => [d.id, d.data()])); draw(); }, () => {}));
   }
   const answer = async (status, from) => {
     try {
@@ -1987,6 +2112,7 @@ function showDog(id) {
 
       if (isAdmin()) {
         const replied = new Set(live.replies.map(r => r.id));
+        const far = uid => { const pr = live.profiles.get(uid); return hasSpot(pr) && hasSpot(d) ? milesText(milesBetween([pr.lat, pr.lng], [d.lat, d.lng])) + ' away' : ''; };
         const byName = (x, y) => String(x.name || '').localeCompare(String(y.name || ''));
         const groups = [
           ['Available now', live.replies.filter(r => r.status === 'now').sort(byName), r => 'replied ' + when(r.updatedAt)],
@@ -1998,13 +2124,31 @@ function showDog(id) {
         groups.forEach(([title, people, detail]) => {
           box.appendChild(h('h4', null, title + ' (' + people.length + ')'));
           box.appendChild(people.length
-            ? h('ul', { class: 'card feed' }, people.map(p => h('li', null,
-                h('span', { class: 'feed-text' }, p.name || 'No name'),
-                detail(p) ? h('span', { class: 'feed-when' }, detail(p)) : null)))
+            ? h('ul', { class: 'card feed' }, people.map(p => {
+                const note = [detail(p), far(p.id)].filter(Boolean).join(' \u00b7 ');
+                return h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name'), note ? h('span', { class: 'feed-when' }, note) : null);
+              }))
             : h('p', { class: 'avail-none' }, 'Nobody'));
         });
         root.appendChild(box);
       }
+    }
+
+    // --- Nearest volunteers (admins only), when the dog has a map pin
+    if (isAdmin() && hasSpot(d)) {
+      const near = live.members.map(m => ({ m, pr: live.profiles.get(m.id) })).filter(x => hasSpot(x.pr))
+        .map(x => ({ ...x, miles: milesBetween([x.pr.lat, x.pr.lng], [d.lat, d.lng]) })).sort((x, y) => x.miles - y.miles);
+      const box = h('div', { class: 'admin-box near-box' }, h('h3', null, 'Nearest volunteers (admins only)'));
+      box.appendChild(near.length
+        ? h('ul', { class: 'card vol-people' }, near.slice(0, 5).map(({ m, pr, miles }) => h('li', null,
+            h('button', { class: 'vol-person', type: 'button', 'data-go': 'volunteer/' + m.id },
+              h('strong', null, m.name || 'No name'),
+              h('span', { class: 'vol-miles' }, milesText(miles)),
+              h('span', { class: 'vol-sub' }, pr.town || ''),
+              kitTags(pr)))))
+        : h('p', { class: 'avail-none' }, 'Nobody has set where they are based yet.'));
+      box.appendChild(h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'volunteers/' + id }, 'Open the volunteer map'));
+      root.appendChild(box);
     }
 
     // --- Removal request: a coordinator asks, an admin decides
@@ -2463,10 +2607,500 @@ function showMembers() {
         h('strong', null, (m.name || 'No name') + (me ? ' (you)' : '')),
         h('span', { class: 'member-email' }, m.email || ''),
         h('span', { class: 'badge ' + (m.role === 'pending' ? 'live' : 'closed') }, label[m.role] || m.role),
+        ACCESS.includes(m.role) ? h('button', { class: 'link', type: 'button', 'data-go': 'volunteer/' + m.id }, 'Open profile') : null,
         picker,
         actions.length ? h('div', { class: 'row' }, actions) : null));
     });
   }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
+}
+
+// ============================================================
+//  Profiles: where a volunteer is based and what equipment they have
+// ============================================================
+// Town and village centres (from the free UK postcode service's place list). Add a place by adding a line.
+const TOWNS = {
+  'Alloway': [55.4310, -4.6360], 'Annbank': [55.4771, -4.5204], 'Ardrossan': [55.6406, -4.8145], 'Auchentiber': [55.6902, -4.6038],
+  'Auchinleck': [55.4719, -4.2973], 'Ayr': [55.4582, -4.6290], 'Ballantrae': [55.1017, -5.0062], 'Barassie': [55.5613, -4.6463],
+  'Barr': [55.2104, -4.7131], 'Barrhill': [55.1027, -4.7728], 'Barrmill': [55.7291, -4.6015], 'Beith': [55.7520, -4.6311],
+  'Bellsbank': [55.3119, -4.3978], 'Bonnyton': [55.6126, -4.5135], 'Bourtreehill': [55.6167, -4.6262], 'Brodick': [55.5775, -5.1512],
+  'Burnhouse': [55.7193, -4.5739], 'Catrine': [55.5044, -4.3315], 'Colmonell': [55.1330, -4.9076], 'Coylton': [55.4434, -4.5104],
+  'Craigie (near Symington)': [55.5597, -4.4920], 'Cronberry': [55.4768, -4.2113], 'Crookedholm': [55.6049, -4.4627],
+  'Crosshill (near Maybole)': [55.3246, -4.6381], 'Crosshouse': [55.6123, -4.5526], 'Cumnock': [55.4549, -4.2672],
+  'Cunninghamhead': [55.6447, -4.5813], 'Dailly': [55.2781, -4.7253], 'Dalmellington': [55.3241, -4.3969], 'Dalry': [55.7077, -4.7188],
+  'Dalrymple': [55.3980, -4.5891], 'Darvel': [55.6098, -4.2810], 'Doonfoot': [55.4310, -4.6534], 'Dreghorn': [55.6081, -4.6209],
+  'Drongan': [55.4354, -4.4588], 'Dundonald': [55.5761, -4.5936], 'Dunlop': [55.7122, -4.5364], 'Dunure': [55.4064, -4.7581],
+  'Failford': [55.5045, -4.4409], 'Fairlie': [55.7525, -4.8558], 'Fenwick': [55.6617, -4.4439], 'Galston': [55.6004, -4.3798],
+  'Gatehead': [55.5964, -4.5546], 'Gateside': [55.7479, -4.6091], 'Girdle Toll': [55.6310, -4.6358], 'Girvan': [55.2421, -4.8553],
+  'Glenbuck': [55.5369, -3.9767], 'Glengarnock': [55.7403, -4.6792], 'Heathfield': [55.4796, -4.6049], 'Hollybush': [55.3995, -4.5415],
+  'Hurlford': [55.6005, -4.4532], 'Irvine': [55.6156, -4.6649], 'Kilbirnie': [55.7555, -4.6853], 'Kilmarnock': [55.6101, -4.4945],
+  'Kilmaurs': [55.6385, -4.5271], 'Kilwinning': [55.6541, -4.6957], 'Kirkmichael': [55.3450, -4.6127], 'Kirkoswald': [55.3317, -4.7702],
+  'Knockentiber': [55.6218, -4.5444], 'Lamlash': [55.5396, -5.1233], 'Largs': [55.7943, -4.8694], 'Lendalfoot': [55.1693, -4.9334],
+  'Loans': [55.5499, -4.6224], 'Logan': [55.4584, -4.2330], 'Lugar': [55.4656, -4.2288], 'Lugton': [55.7443, -4.5284],
+  'Maidens': [55.3362, -4.8137], 'Mauchline': [55.5160, -4.3794], 'Maybole': [55.3545, -4.6811], 'Millport': [55.7531, -4.9284],
+  'Minishant': [55.3891, -4.6450], 'Monkton': [55.5166, -4.6030], 'Moscow': [55.6324, -4.4056], 'Mossblown': [55.4910, -4.5297],
+  'Muirkirk': [55.5234, -4.0642], 'Netherthird': [55.4415, -4.2531], 'New Cumnock': [55.3968, -4.1839], 'Newmilns': [55.6075, -4.3242],
+  'Ochiltree': [55.4605, -4.3658], 'Old Dailly': [55.2560, -4.7929], 'Patna': [55.3638, -4.5042], 'Pinwherry': [55.1433, -4.8286],
+  'Portencross': [55.6993, -4.9037], 'Prestwick': [55.4989, -4.6110], 'Rankinston': [55.3988, -4.4478], 'Saltcoats': [55.6343, -4.7878],
+  'Seamill': [55.6778, -4.8528], 'Sinclairston': [55.4208, -4.4188], 'Skelmorlie': [55.8677, -4.8901], 'Sorn': [55.5108, -4.2910],
+  'Springside': [55.6160, -4.5901], 'Stair': [55.4797, -4.4714], 'Stevenston': [55.6407, -4.7571], 'Stewarton': [55.6815, -4.5128],
+  'Straiton': [55.3115, -4.5515], 'Symington': [55.5524, -4.5644], 'Tarbolton': [55.5124, -4.4859], 'Torranyard': [55.6622, -4.6135],
+  'Trabboch': [55.4636, -4.4699], 'Troon': [55.5438, -4.6640], 'Turnberry': [55.3106, -4.8322], 'Waterside (near Fenwick)': [55.6626, -4.4112],
+  'Waterside (near Patna)': [55.3454, -4.4616], 'West Kilbride': [55.6953, -4.8562], 'Whiting Bay': [55.4906, -5.0952]
+};
+
+// The one equipment list. Add a make, series or model here and it appears in the dropdowns.
+const CATALOGUE = { makes: [
+  { id: 'hikmicro', name: 'Hikmicro', series: [
+    { id: 'falcon',   name: 'Falcon',     type: 'Thermal monocular', models: ['FH25', 'FH35', 'FQ35', 'FQ50'] },
+    { id: 'falcon-2', name: 'Falcon 2.0', type: 'Thermal monocular', models: ['FQ35 2.0', 'FQ50 2.0', 'FQ50L 2.0'] },
+    { id: 'lynx-2',   name: 'Lynx 2.0',   type: 'Thermal monocular', models: ['LH15 2.0', 'LH19 2.0', 'LH25 2.0', 'LH35 2.0'] },
+    { id: 'lynx-3',   name: 'Lynx 3.0',   type: 'Thermal monocular', models: ['LE10 3.0', 'LE15 3.0', 'LH15 3.0', 'LH19 3.0', 'LH25 3.0', 'LH35 3.0', 'LQ35 3.0', 'LQ35L 3.0'] },
+    { id: 'habrok',   name: 'Habrok',     type: 'Thermal binocular', models: ['Pro HX60L', 'Pro HX60LN', 'Pro HX60LS', 'Pro HQ50L', 'HQ35L', 'HH35L', 'HE25L'] }
+  ] },
+  { id: 'nocpix', name: 'Nocpix', series: [
+    { id: 'vista', name: 'Vista',   type: 'Thermal monocular', models: ['H35', 'H35R', 'H50', 'H50R', 'S50R'] },
+    { id: 'lumi',  name: 'Lumi',    type: 'Thermal monocular', models: ['P13', 'L19', 'L35', 'L35R', 'H35', 'H35R'] },
+    { id: 'quest', name: 'Quest',   type: 'Thermal binocular', models: ['L35R', 'H35R', 'H50R', 'S50R'] },
+    { id: 'dome',  name: 'MT Dome', type: 'Vehicle-mounted thermal camera', models: ['M6T25S'] }
+  ] },
+  { id: 'halo', name: 'Halo (Pet Technology Store)', series: [
+    { id: 'halo-scanner', name: 'Halo Microchip Scanner', type: 'Microchip scanner', models: ['Halo Microchip Scanner'] }
+  ] }
+] };
+
+const KIT_OTHER = '__other', KIT_UNSURE = '__unsure';
+const kitSlug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const findMake = id => CATALOGUE.makes.find(m => m.id === id);
+const findSeries = (make, id) => make && make.series.find(s => s.id === id);
+const cleanSerial = s => String(s || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
+
+// Straight-line distance in miles between two [lat, lng] points.
+function milesBetween(a, b) {
+  const rad = d => d * Math.PI / 180, R = 3958.8;
+  const dLat = rad(b[0] - a[0]), dLng = rad(b[1] - a[1]);
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+const milesText = m => m < 0.5 ? 'Same place' : m < 10 ? m.toFixed(1) + ' miles' : Math.round(m) + ' miles';
+const hasSpot = p => !!p && typeof p.lat === 'number' && typeof p.lng === 'number';
+
+// What a saved equipment record is called on screen. Records hold fixed IDs, never the display text.
+function kitName(r) {
+  if (r.makeId === 'other') return { name: r.otherText || 'Other equipment', type: '' };
+  const make = findMake(r.makeId);
+  if (!make) return { name: r.otherText || r.makeId || 'Unknown equipment', type: '' };
+  if (r.seriesId === 'not-sure') return { name: make.name + ' (series not sure)', type: '' };
+  if (r.seriesId === 'other') return { name: make.name + ' ' + (r.otherText || ''), type: '' };
+  const series = findSeries(make, r.seriesId);
+  if (!series) return { name: make.name, type: '' };
+  const short = make.series.length === 1 ? make.name : make.name + ' ' + series.name;
+  if (r.modelId === 'not-sure') return { name: short + ' (model not sure)', type: series.type };
+  if (r.modelId === 'other') return { name: short + ' ' + (r.otherText || ''), type: series.type };
+  const model = series.models.find(m => make.id + '-' + series.id + '-' + kitSlug(m) === r.modelId);
+  return { name: series.models.length === 1 || !model ? short : short + ' ' + model, type: series.type };
+}
+// Broad kinds, for the "has a thermal" style filters.
+function kitKinds(profile) {
+  const kinds = new Set();
+  ((profile && profile.equipment) || []).forEach(r => {
+    const text = (kitName(r).type + ' ' + kitName(r).name).toLowerCase();
+    kinds.add(/thermal/.test(text) ? 'thermal' : /scanner/.test(text) ? 'scanner' : 'other');
+  });
+  return [...kinds];
+}
+const KIND_LABEL = { thermal: 'Thermal', scanner: 'Microchip scanner', other: 'Other kit' };
+function kitTags(profile) {
+  const kinds = kitKinds(profile);
+  return kinds.length ? h('span', { class: 'kit-tags' }, kinds.map(k => h('span', { class: 'kit-tag' }, KIND_LABEL[k]))) : null;
+}
+function kitList(profile, emptyText) {
+  const items = (profile && profile.equipment) || [];
+  if (!items.length) return h('p', { class: 'kit-none' }, emptyText || 'None listed');
+  return h('ul', { class: 'kit-list' }, items.map(r => {
+    const k = kitName(r);
+    return h('li', null,
+      k.type ? h('span', { class: 'kit-type' }, k.type) : null,
+      h('strong', null, k.name),
+      h('span', { class: 'kit-serial' }, 'Serial: ', h('b', null, r.serial || 'not given')));
+  }));
+}
+
+// The equipment part of the profile form: Make, then Series, then Model, then serial number.
+function equipmentEditor(box, records) {
+  let nextKey = 1;
+  const blank = () => ({ key: nextKey++, make: '', makeText: '', series: '', seriesText: '', model: '', modelText: '', serial: '', error: '' });
+  const fromRecord = r => {
+    const d = blank();
+    d.serial = r.serial || '';
+    if (r.makeId === 'other' || !findMake(r.makeId)) { d.make = KIT_OTHER; d.makeText = r.otherText || ''; return d; }
+    d.make = r.makeId;
+    if (r.seriesId === 'not-sure') { d.series = KIT_UNSURE; return d; }
+    if (r.seriesId === 'other') { d.series = KIT_OTHER; d.seriesText = r.otherText || ''; return d; }
+    d.series = r.seriesId;
+    if (r.modelId === 'not-sure') { d.model = KIT_UNSURE; return d; }
+    if (r.modelId === 'other') { d.model = KIT_OTHER; d.modelText = r.otherText || ''; return d; }
+    const series = findSeries(findMake(r.makeId), r.seriesId);
+    d.model = (series && series.models.find(m => r.makeId + '-' + r.seriesId + '-' + kitSlug(m) === r.modelId)) || '';
+    return d;
+  };
+  let rows = records && records.length ? records.map(fromRecord) : [blank()];
+
+  // A make with one series, or a series with one model, skips that step.
+  const resolve = d => {
+    const make = findMake(d.make);
+    let series = null, model = '';
+    if (make) series = make.series.length === 1 ? make.series[0] : findSeries(make, d.series);
+    if (series) model = series.models.length === 1 ? series.models[0] : (series.models.includes(d.model) ? d.model : '');
+    return { make, series, model };
+  };
+  const ready = d => {
+    if (d.make === KIT_OTHER) return true;
+    const { make, series, model } = resolve(d);
+    if (!make) return false;
+    if (d.series === KIT_UNSURE || d.series === KIT_OTHER) return true;
+    if (!series) return false;
+    return !!model || d.model === KIT_UNSURE || d.model === KIT_OTHER;
+  };
+  const record = d => {
+    const { make, series, model } = resolve(d);
+    const r = { makeId: '', seriesId: '', modelId: '', otherText: '', serial: cleanSerial(d.serial) };
+    if (d.make === KIT_OTHER) { r.makeId = 'other'; r.otherText = d.makeText.trim(); return r; }
+    r.makeId = make.id;
+    if (d.series === KIT_UNSURE) { r.seriesId = 'not-sure'; return r; }
+    if (d.series === KIT_OTHER) { r.seriesId = 'other'; r.otherText = d.seriesText.trim(); return r; }
+    r.seriesId = series.id;
+    if (d.model === KIT_UNSURE) { r.modelId = 'not-sure'; return r; }
+    if (d.model === KIT_OTHER) { r.modelId = 'other'; r.otherText = d.modelText.trim(); return r; }
+    r.modelId = make.id + '-' + series.id + '-' + kitSlug(model);
+    return r;
+  };
+  const problem = d => {
+    if (!d.make) return 'Choose a make, or remove this device.';
+    if (d.make === KIT_OTHER && !d.makeText.trim()) return 'Type the make and model.';
+    if (!ready(d)) { const { make, series } = resolve(d); return make && !series ? 'Choose a series.' : 'Choose a model.'; }
+    if (d.series === KIT_OTHER && !d.seriesText.trim()) return 'Type the series and model.';
+    if (d.model === KIT_OTHER && !d.modelText.trim()) return 'Type the model.';
+    if (!cleanSerial(d.serial)) return 'Enter the serial number.';
+    return '';
+  };
+  const same = (a, b) => a.makeId === b.makeId && a.seriesId === b.seriesId && a.modelId === b.modelId
+    && a.otherText.toLowerCase() === b.otherText.toLowerCase() && a.serial === b.serial;
+
+  function draw() {
+    box.textContent = '';
+    rows.forEach((d, i) => {
+      const p = 'kit' + d.key + '-';
+      const { make, series } = resolve(d);
+      const set = (field, value) => {
+        d[field] = value;
+        if (field === 'make') { d.series = ''; d.model = ''; }
+        if (field === 'series') d.model = '';
+        d.error = '';
+        draw();
+        const next = document.getElementById(p + (field === 'make' ? 'series' : field === 'series' ? 'model' : 'serial'))
+          || document.getElementById(p + 'other') || document.getElementById(p + 'serial');
+        if (next) next.focus({ preventScroll: true });
+      };
+      // typing clears that device's red message straight away
+      const calm = e => { d.error = ''; const note = e.target.closest('.kit-device').querySelector('.kit-error'); if (note) note.remove(); };
+      const select = (field, label, options, value) => [
+        h('label', { for: p + field }, label),
+        h('select', { id: p + field, onchange: e => set(field, e.target.value) },
+          h('option', { value: '', selected: !value }, 'Choose…'),
+          options.map(([v, t]) => h('option', { value: v, selected: v === value }, t)))];
+      const other = (field, label, placeholder) => {
+        const input = h('input', { id: p + 'other', type: 'text', maxlength: '80', placeholder, autocomplete: 'off', oninput: e => { d[field] = e.target.value; calm(e); } });
+        input.value = d[field];
+        return [h('label', { for: p + 'other' }, label), input];
+      };
+      const card = h('div', { class: 'admin-box kit-device' },
+        h('div', { class: 'kit-head' },
+          h('h3', null, 'Device ' + (i + 1)),
+          rows.length > 1 ? h('button', { class: 'link danger', type: 'button', onclick: () => { rows = rows.filter(r => r !== d); draw(); } }, 'Remove') : null),
+        select('make', 'Make', CATALOGUE.makes.map(m => [m.id, m.name]).concat([[KIT_OTHER, 'Other / not listed']]), d.make));
+      const add = (...nodes) => nodes.flat().forEach(n => card.appendChild(n));
+
+      if (d.make === KIT_OTHER) add(other('makeText', 'What is it?', 'Make and model'));
+      if (make && make.series.length > 1)
+        add(select('series', 'Series', make.series.map(s => [s.id, s.name]).concat([[KIT_UNSURE, 'Not sure'], [KIT_OTHER, 'Other / not listed']]), d.series));
+      if (make && d.series === KIT_OTHER) add(other('seriesText', 'Which series and model?', 'Type the series and model'));
+      if (series && series.models.length > 1)
+        add(select('model', 'Model', series.models.map(m => [m, m]).concat([[KIT_UNSURE, 'Not sure'], [KIT_OTHER, 'Other / not listed']]), d.model));
+      if (series && d.model === KIT_OTHER) add(other('modelText', 'Which model?', 'Type the model'));
+      if (series) add(h('p', { class: 'kit-kind' }, series.type));
+
+      if (ready(d)) {
+        const serial = h('input', { id: p + 'serial', type: 'text', maxlength: '40', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false',
+          oninput: e => { const v = cleanSerial(e.target.value); if (v !== e.target.value) e.target.value = v; d.serial = v; calm(e); } });
+        serial.value = d.serial;
+        add(h('label', { for: p + 'serial' }, 'Serial number'), serial,
+          h('p', { class: 'field-help' }, 'Usually on a label on the device body or in the battery compartment.'));
+      }
+      if (d.error) add(h('p', { class: 'kit-error', role: 'alert' }, d.error));
+      box.appendChild(card);
+    });
+  }
+  draw();
+
+  return {
+    add() {
+      rows.push(blank());
+      draw();
+      const fresh = document.getElementById('kit' + rows[rows.length - 1].key + '-make');
+      if (fresh) { fresh.focus(); fresh.closest('.kit-device').scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+    },
+    // Returns the records to save, or null if something needs fixing (the device is marked on screen).
+    read() {
+      if (rows.length === 1 && !rows[0].make) return [];        // a lone untouched device means "nothing to list"
+      let bad = false;
+      rows.forEach(d => { d.error = problem(d); if (d.error) bad = true; });
+      const recs = bad ? [] : rows.map(record);
+      recs.forEach((r, i) => {
+        if (recs.findIndex(o => same(o, r)) < i) { rows[i].error = 'This is the same device and serial number as one above. Change the serial number or remove it.'; bad = true; }
+      });
+      if (!bad) return recs;
+      draw();
+      const first = box.querySelector('.kit-error');
+      if (first) first.closest('.kit-device').scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return null;
+    }
+  };
+}
+
+function profileCard(p) {
+  return h('div', { class: 'card signed-form' },
+    h('dl', { class: 'details' },
+      h('dt', null, 'Based in'), h('dd', null, p.town || 'Not set'),
+      h('dt', null, 'Equipment'), h('dd', null, kitList(p))));
+}
+
+function showProfile() {
+  const fb = state.fb, uid = state.user.uid, ref = fb.doc(fb.db, 'profiles', uid);
+  const done = $('#profile-done'), form = $('#profile-form'), msg = $('#profile-msg'), town = $('#profile-town');
+  const roleLabel = { admin: 'Admin', coordinator: 'Coordinator', member: 'Member' };
+  let saved = null, editing = false, editor = null, spot = null, map = null, marker = null;
+
+  $('#profile-who').textContent = '';
+  $('#profile-who').appendChild(h('strong', null, state.profile.name || 'No name'));
+  $('#profile-who').appendChild(h('span', { class: 'member-email' }, state.user.email || ''));
+  $('#profile-who').appendChild(h('span', { class: 'badge closed' }, roleLabel[state.profile.role] || state.profile.role));
+
+  if (town.options.length === 0) {
+    town.appendChild(h('option', { value: '' }, 'Choose…'));
+    Object.keys(TOWNS).forEach(t => town.appendChild(h('option', { value: t }, t)));
+    town.appendChild(h('option', { value: KIT_OTHER }, 'Other / not listed'));
+  }
+  const dropMap = () => { if (map) { try { map.remove(); } catch (e) {} map = null; marker = null; } };
+  state.subs.push(dropMap);
+
+  const setSpot = s => {
+    spot = s;
+    $('#profile-pin-status').textContent = s ? 'Pin placed. Tap the map again to move it.' : 'No pin placed yet. Tap the map.';
+    if (!map) return;
+    if (marker) { map.removeLayer(marker); marker = null; }
+    if (s) marker = pin(s, 'sighting').addTo(map);
+  };
+  async function showOther(on) {
+    $('#profile-other').hidden = !on;
+    dropMap();
+    if (!on) return;
+    const m = await makeMap($('#profile-map'), [], true);
+    if (!m || $('#profile-other').hidden) { if (m) m.remove(); return; }
+    map = m;
+    if (spot) { marker = pin(spot, 'sighting').addTo(map); map.setView([spot.lat, spot.lng], 12); }
+    map.on('click', e => setSpot({ lat: e.latlng.lat, lng: e.latlng.lng }));
+  }
+  town.onchange = () => { msg.textContent = ''; showOther(town.value === KIT_OTHER); };
+
+  function fill(p) {
+    msg.textContent = '';
+    const listed = p && p.town && TOWNS[p.town] && p.townListed !== false;
+    town.value = listed ? p.town : (p && p.town ? KIT_OTHER : '');
+    $('#profile-place').value = !listed && p && p.town ? p.town : '';
+    spot = !listed && hasSpot(p) ? { lat: p.lat, lng: p.lng } : null;
+    $('#profile-pin-status').textContent = spot ? 'Pin placed. Tap the map again to move it.' : 'No pin placed yet. Tap the map.';
+    editor = equipmentEditor($('#profile-devices'), (p && p.equipment) || []);
+    showOther(town.value === KIT_OTHER);
+  }
+
+  function draw() {
+    done.textContent = '';
+    if (saved && !editing) {
+      form.hidden = true; dropMap();
+      done.appendChild(profileCard(saved));
+      done.appendChild(h('button', { class: 'btn wide', type: 'button', onclick: () => { editing = true; fill(saved); draw(); } }, 'Change my profile'));
+    } else {
+      form.hidden = false;
+      $('#profile-cancel').hidden = !saved;
+    }
+  }
+  form.hidden = true;
+  done.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  $('#profile-add').onclick = () => editor && editor.add();
+  $('#profile-cancel').onclick = () => { editing = false; draw(); window.scrollTo(0, 0); };
+
+  let first = true;
+  state.subs.push(fb.onSnapshot(ref, snap => {
+    saved = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null;
+    if (first) { first = false; if (!saved) fill(null); }
+    if (!editing) draw();
+  }, err => {
+    if (first) { first = false; fill(null); }
+    draw();
+    msg.textContent = err && err.code === 'permission-denied' ? 'Not ready yet. The new security rules need pasting into Firebase first.' : friendlyError(err);
+  }));
+
+  form.onsubmit = async e => {
+    e.preventDefault();
+    msg.textContent = '';
+    const data = { uid, name: state.profile.name || '', town: '', townListed: true, lat: null, lng: null, equipment: [], updatedAt: fb.serverTimestamp() };
+    if (!town.value) { msg.textContent = 'Choose your town or village.'; town.focus(); return; }
+    if (town.value === KIT_OTHER) {
+      data.town = $('#profile-place').value.trim(); data.townListed = false;
+      if (!data.town) { msg.textContent = 'Type the name of the place you are based.'; $('#profile-place').focus(); return; }
+      if (!spot) { msg.textContent = 'Tap the map to place your pin.'; return; }
+      data.lat = spot.lat; data.lng = spot.lng;
+    } else {
+      data.town = town.value; data.lat = TOWNS[town.value][0]; data.lng = TOWNS[town.value][1];
+    }
+    const recs = editor.read();
+    if (!recs) { msg.textContent = 'Check the devices marked in red.'; return; }
+    data.equipment = recs;
+    const btn = $('#profile-save');
+    btn.disabled = true; msg.textContent = 'Saving…';
+    try {
+      await fb.setDoc(ref, data);
+      editing = false; msg.textContent = '';
+      saved = { ...data, updatedAt: new Date() };
+      draw();
+      window.scrollTo(0, 0);
+    } catch (err) {
+      msg.textContent = err && err.code === 'permission-denied' ? 'Not saved. The new security rules need pasting into Firebase first.' : friendlyError(err);
+    }
+    btn.disabled = false;
+  };
+}
+
+// ---- Admins: everyone on a map, and who is nearest to a dog
+let volKit = '';
+function showVolunteers(dogId) {
+  const fb = state.fb, list = $('#vol-list'), mapEl = $('#vol-map'), dogSelect = $('#vol-dog');
+  const live = { users: null, profiles: null, dogs: [], dog: dogId || '', map: null, turn: 0 };
+  list.textContent = '';
+  list.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  state.subs.push(() => { live.turn++; if (live.map) { try { live.map.remove(); } catch (e) {} live.map = null; } });
+  const fail = err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, err && err.code === 'permission-denied' ? 'Not ready yet. The new security rules need pasting into Firebase first.' : friendlyError(err))); };
+
+  $$('[data-vol-kit]').forEach(b => {
+    b.classList.toggle('on', b.getAttribute('data-vol-kit') === volKit);
+    b.onclick = () => { volKit = b.getAttribute('data-vol-kit'); $$('[data-vol-kit]').forEach(o => o.classList.toggle('on', o === b)); draw(); };
+  });
+  dogSelect.onchange = () => { live.dog = dogSelect.value; draw(); };
+
+  function draw() {
+    if (!live.users || !live.profiles) return;
+    const dog = live.dogs.find(d => d.id === live.dog && hasSpot(d));
+    const dogAt = dog ? [dog.lat, dog.lng] : null;
+
+    // dog picker: active dogs that have a pin
+    const options = live.dogs.filter(d => hasSpot(d) && (STATUSES[d.status] || { active: true }).active);
+    dogSelect.textContent = '';
+    dogSelect.appendChild(h('option', { value: '' }, options.length ? 'No dog selected' : 'No active dogs with a map pin'));
+    options.forEach(d => dogSelect.appendChild(h('option', { value: d.id, selected: d.id === live.dog },
+      (d.name || 'Unnamed dog') + (d.lastSeenPlace ? ', last seen ' + d.lastSeenPlace : ''))));
+
+    const people = live.users.map(u => ({ ...u, profile: live.profiles.get(u.id) || null }));
+    const placed = people.filter(p => hasSpot(p.profile));
+    const unplaced = people.filter(p => !hasSpot(p.profile));
+    $('#vol-count').textContent = placed.length + ' of ' + people.length + ' people have set where they are based.';
+
+    const match = p => !volKit || kitKinds(p.profile).includes(volKit);
+    const rows = placed.filter(match).map(p => ({ p, miles: dogAt ? milesBetween([p.profile.lat, p.profile.lng], dogAt) : null }))
+      .sort((a, b) => dogAt ? a.miles - b.miles : String(a.p.name || '').localeCompare(String(b.p.name || '')));
+
+    $('#vol-list-title').textContent = dog ? 'Nearest to ' + (dog.lastSeenPlace || dog.name || 'the dog') : 'Volunteers';
+    list.textContent = '';
+    list.appendChild(rows.length
+      ? h('ul', { class: 'card vol-people' }, rows.map(({ p, miles }) => h('li', null,
+          h('button', { class: 'vol-person', type: 'button', 'data-go': 'volunteer/' + p.id },
+            h('strong', null, p.name || 'No name'),
+            h('span', { class: 'vol-miles' }, miles === null ? 'Open ›' : milesText(miles)),
+            h('span', { class: 'vol-sub' }, p.profile.town || ''),
+            kitTags(p.profile)))))
+      : h('p', { class: 'empty' }, placed.length ? 'Nobody matches that filter.' : 'Nobody has set where they are based yet.'));
+    if (unplaced.length && !volKit) {
+      list.appendChild(h('h3', { class: 'section' }, 'Not set yet (' + unplaced.length + ')'));
+      list.appendChild(h('ul', { class: 'card feed' }, unplaced.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
+        .map(p => h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name')))));
+    }
+
+    // map: one pin per place, with first names; tapping it lists who is there
+    const turn = ++live.turn;
+    if (live.map) { try { live.map.remove(); } catch (e) {} live.map = null; }
+    const dogPoints = dog ? [{ lat: dog.lat, lng: dog.lng, kind: 'last', label: (dog.name || 'Dog') + ' last seen' + (dog.lastSeenPlace ? ': ' + dog.lastSeenPlace : '') }] : [];
+    makeMap(mapEl, dogPoints).then(map => {
+      if (!map) return;
+      if (turn !== live.turn) { try { map.remove(); } catch (e) {} return; }
+      live.map = map;
+      const groups = new Map();
+      placed.forEach(p => { const key = p.profile.lat.toFixed(4) + ',' + p.profile.lng.toFixed(4); (groups.get(key) || groups.set(key, []).get(key)).push(p); });
+      const firstName = p => String(p.name || 'No name').trim().split(/\s+/)[0];
+      const all = dogPoints.map(d => [d.lat, d.lng]);
+      groups.forEach(group => {
+        const at = [group[0].profile.lat, group[0].profile.lng];
+        all.push(at);
+        const dim = !group.some(match);
+        const m = window.L.marker(at, { icon: window.L.divIcon({ className: '', html: '<span class="vol-pin' + (dim ? ' dim' : '') + '">' + group.length + '</span>', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(map);
+        m.bindPopup(h('div', { class: 'vol-popup' },
+          h('strong', null, group[0].profile.town || 'Volunteers'),
+          group.map(p => h('button', { class: 'link', type: 'button', onclick: () => go('volunteer/' + p.id) }, (p.name || 'No name') + ' ›'))));
+        if (m.bindTooltip) m.bindTooltip(h('span', null, group.length > 2 ? firstName(group[0]) + ' +' + (group.length - 1) : group.map(firstName).join(', ')),
+          { permanent: true, direction: 'right', offset: [14, 0], className: 'vol-tip' });
+      });
+      if (all.length === 1) map.setView(all[0], 11);
+      else if (all.length > 1) map.fitBounds(all, { padding: [40, 40], maxZoom: 13 });
+    });
+  }
+
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'users'),
+    snap => { live.users = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(u => ACCESS.includes(u.role)); draw(); }, fail));
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'profiles'),
+    snap => { live.profiles = new Map(snap.docs.map(d => [d.id, d.data()])); draw(); }, fail));
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'dogs'),
+    snap => { live.dogs = snap.docs.map(d => ({ id: d.id, ...d.data() })); draw(); }, () => {}));
+}
+
+// ---- Admins: one volunteer's profile
+function showVolunteer(uid) {
+  const fb = state.fb, root = $('#volunteer-body');
+  const live = { user: undefined, profile: undefined, signed: false };
+  const roleLabel = { admin: 'Admin', coordinator: 'Coordinator', member: 'Member', pending: 'Waiting for approval', blocked: 'Access removed' };
+  root.textContent = '';
+  root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  const fail = err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, err && err.code === 'permission-denied' ? 'Not ready yet. The new security rules need pasting into Firebase first.' : friendlyError(err))); };
+  function draw() {
+    if (live.user === undefined || live.profile === undefined) return;
+    root.textContent = '';
+    if (!live.user) { root.appendChild(h('p', { class: 'empty' }, 'This person is no longer a member.')); return; }
+    const u = live.user, p = live.profile;
+    $('#volunteer-title').textContent = u.name || 'No name';
+    root.appendChild(h('div', { class: 'card member' },
+      h('strong', null, u.name || 'No name'),
+      h('span', { class: 'member-email' }, u.email || ''),
+      h('span', { class: 'badge closed' }, roleLabel[u.role] || u.role)));
+    if (!p) { root.appendChild(h('p', { class: 'empty' }, 'This person has not filled in their profile yet.')); }
+    else {
+      root.appendChild(profileCard(p));
+      if (p.updatedAt) root.appendChild(h('p', { class: 'hint' }, 'Profile last changed ' + when(p.updatedAt)));
+      if (hasSpot(p)) root.appendChild(h('a', { class: 'btn wide ghost', href: 'https://www.google.com/maps?q=' + p.lat + ',' + p.lng, target: '_blank', rel: 'noopener' }, 'Open ' + (p.town || 'location') + ' in Maps'));
+    }
+    root.appendChild(live.signed
+      ? h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'agreements/' + uid }, 'Open signed volunteer agreement')
+      : h('p', { class: 'hint' }, 'Volunteer agreement not signed yet.'));
+  }
+  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'users', uid), snap => { live.user = snap.exists() ? snap.data() : null; draw(); }, fail));
+  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'profiles', uid), snap => { live.profile = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null; draw(); }, fail));
+  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', uid), snap => { live.signed = snap.exists(); draw(); }, () => {}));
 }
 
 // ============================================================
