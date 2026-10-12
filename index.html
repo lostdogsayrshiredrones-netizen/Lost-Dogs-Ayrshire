@@ -861,10 +861,17 @@
 
 /* ---- Home: initials button for My Profile, and full-width tiles ---- */
 #home .header { position: relative; }
-.me-btn { position: absolute; top: calc(env(safe-area-inset-top) + 12px); right: 4px; z-index: 5; display: flex; align-items: center; justify-content: center;
-  width: 56px; height: 56px; padding: 0; border: 4px solid var(--white); border-radius: 50%; background: var(--yellow); color: var(--purple);
-  font: 900 1.25rem/1 inherit; letter-spacing: .02em; box-shadow: 0 4px 10px rgba(0,0,0,.35); cursor: pointer; }
-.me-btn:active { transform: translateY(2px); }
+/* Sits where the right-hand paw print was, level with the left one. "top" is measured from the header,
+   which already sits below the phone's status bar, so no extra safe-area space is added here. */
+#home .paw.right { display: none; }
+.me-btn { position: absolute; top: 0; right: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 0; border: 0; background: none; font-family: inherit; cursor: pointer; }
+.me-circle { position: relative; display: flex; align-items: center; justify-content: center; width: 56px; height: 56px;
+  border: 4px solid var(--white); border-radius: 50%; background: var(--yellow); color: var(--purple);
+  font-family: inherit; font-size: 1.25rem; font-weight: 900; line-height: 1; letter-spacing: .02em; box-shadow: 0 4px 10px rgba(0,0,0,.35); }
+.me-label { padding: 2px 8px; border-radius: 999px; background: var(--yellow); color: var(--purple);
+  font-family: inherit; font-size: .68rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.me-btn:active .me-circle { transform: translateY(2px); }
 .me-count { position: absolute; top: -8px; right: -8px; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;
   border: 3px solid var(--white); border-radius: 50%; background: #e11d2e; color: var(--white); font-size: .8rem; font-weight: 900; }
 .tile.home-wide { grid-column: 1 / -1; }
@@ -899,8 +906,8 @@
 
     <!-- My profile: initials in the top corner, with a ! until the profile and agreement are done -->
     <button class="me-btn" id="me-btn" type="button" data-go="profile" aria-label="My profile">
-      <span id="me-initials"></span>
-      <span class="me-count" id="me-count" hidden>!</span>
+      <span class="me-circle"><span id="me-initials"></span><span class="me-count" id="me-count" hidden>!</span></span>
+      <span class="me-label">Profile</span>
     </button>
 
     <div class="logo-row">
@@ -1017,7 +1024,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 3.7 · 12 Oct 2026</p>
+  <p class="version">Version 3.8 · 12 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1289,7 +1296,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 3.7 · 12 Oct 2026</p>
+  <p class="version">Version 3.8 · 12 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
