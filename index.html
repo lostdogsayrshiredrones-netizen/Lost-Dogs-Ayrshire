@@ -844,6 +844,9 @@
 #auth .install-card { margin: 0 0 18px; }
 
 .closed-note { grid-column: 1 / -1; margin: 0 0 6px; font-size: .9rem; }
+
+#whatsapp-body .save { display: block; text-align: center; text-decoration: none; margin-top: 14px; }
+#whatsapp-body .admin-box { margin-top: 24px; }
 </style>
 </head>
 <body>
@@ -932,6 +935,13 @@
     </button>
 
 
+    <!-- TILE: WhatsApp Community -->
+    <button class="tile" data-go="whatsapp">
+      <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true">
+        <path fill-rule="evenodd" d="M32 4C17 4 5 14 5 27c0 7 3.500 13 9 17l-3 12 13-7c2.500.6 5 1 8 1 15 0 27-10 27-23S47 4 32 4z M19 23a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M32 23a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M45 23a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg></span>
+      <span class="tile-name">WhatsApp Community</span>
+    </button>
+
     <!-- TILE: My Profile -->
     <button class="tile" data-go="profile">
       <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true">
@@ -977,7 +987,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 3.0 · 12 Oct 2026</p>
+  <p class="version">Version 3.1 · 12 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1249,7 +1259,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 3.0 · 12 Oct 2026</p>
+  <p class="version">Version 3.1 · 12 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1595,6 +1605,13 @@
   <div id="volunteer-body"></div>
 </section>
 
+<!-- ================= WHATSAPP COMMUNITY ================= -->
+<section class="screen" id="whatsapp">
+  <button class="back" data-go="home">&larr; Home</button>
+  <h2 class="page-title">WhatsApp Community</h2>
+  <div id="whatsapp-body"></div>
+</section>
+
 <!-- Shared paw shape -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -1751,6 +1768,7 @@ function render() {
   if (name === 'read')      { activate('read');     return showReader(arg); }
   if (name === 'agreement') { activate('agreement'); return showAgreement(); }
   if (name === 'profile')   { activate('profile');  return showProfile(); }
+  if (name === 'whatsapp')  { activate('whatsapp'); return showWhatsApp(); }
   if (name === 'volunteers') { if (!isAdmin()) return go('home'); activate('volunteers'); return showVolunteers(arg); }
   if (name === 'volunteer') { if (!isAdmin()) return go('home'); activate('volunteer'); return showVolunteer(arg); }
   if (name === 'agreements') { if (!isAdmin()) return go('agreement'); activate('agreements'); return showAgreements(arg); }
@@ -3138,6 +3156,55 @@ function showVolunteer(uid) {
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'users', uid), snap => { live.user = snap.exists() ? snap.data() : null; draw(); }, fail));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'profiles', uid), snap => { live.profile = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null; draw(); }, fail));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', uid), snap => { live.signed = snap.exists(); draw(); }, () => {}));
+}
+
+// ============================================================
+//  WhatsApp Community: the invite link is kept in Firebase so only approved members ever see it
+// ============================================================
+const WHATSAPP_LINK = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{10,40}$/;
+function showWhatsApp() {
+  const fb = state.fb, ref = fb.doc(fb.db, 'settings', 'whatsapp'), root = $('#whatsapp-body');
+  root.textContent = '';
+  root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  let typed = null;     // keep what an admin is typing if the page refreshes underneath them
+  const draw = (link, err) => {
+    if ($('#wa-link')) typed = $('#wa-link').value;
+    root.textContent = '';
+    if (err) root.appendChild(h('p', { class: 'form-msg' }, err));
+    if (link) {
+      root.appendChild(h('p', { class: 'intro' }, 'Chat with the rest of the team in the Lost Dogs Ayrshire WhatsApp Community.'));
+      root.appendChild(h('a', { class: 'save', id: 'wa-open', href: link, target: '_blank', rel: 'noopener' }, 'Open the WhatsApp Community'));
+      root.appendChild(h('p', { class: 'hint' }, 'If you are not in the community yet, WhatsApp will ask you to join. You need the WhatsApp app on this phone.'));
+    } else if (!err) {
+      root.appendChild(h('p', { class: 'empty' }, isAdmin() ? 'No link added yet. Paste the community invite link below.' : 'The link has not been added yet. Ask an admin.'));
+    }
+    if (!isAdmin()) return;
+    const input = h('input', { id: 'wa-link', type: 'url', inputmode: 'url', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: 'https://chat.whatsapp.com/…' });
+    input.value = typed !== null ? typed : (link || '');
+    const msg = h('p', { class: 'form-msg', role: 'status' });
+    const save = async value => {
+      try {
+        await fb.setDoc(ref, { link: value, updatedBy: state.profile.name || '', updatedAt: fb.serverTimestamp() });
+        typed = null; msg.textContent = value ? 'Saved.' : 'Link removed.';
+      } catch (e) { msg.textContent = e && e.code === 'permission-denied' ? 'Not saved. The new security rules need pasting into Firebase first.' : friendlyError(e); }
+    };
+    root.appendChild(h('div', { class: 'admin-box' },
+      h('h3', null, 'Admin'),
+      h('label', { for: 'wa-link' }, 'Community invite link'), input,
+      h('p', { class: 'field-help' }, 'In WhatsApp, open the community, tap its name, then "Invite members" and copy the link. If you ever reset the link in WhatsApp, paste the new one here.'),
+      msg,
+      h('div', { class: 'row' },
+        h('button', { class: 'btn', type: 'button', onclick: () => {
+          const value = input.value.trim().replace(/[?#].*$/, '').replace(/\/+$/, '');
+          if (!WHATSAPP_LINK.test(value)) { msg.textContent = 'That does not look like a WhatsApp invite link. It should start https://chat.whatsapp.com/'; return; }
+          save(value);
+        } }, 'Save link'),
+        link ? h('button', { class: 'btn danger', type: 'button', onclick: () => { if (confirm('Remove the WhatsApp link? Members will not be able to open the community from the app until a new one is added.')) save(''); } }, 'Remove link') : null)));
+  };
+  state.subs.push(fb.onSnapshot(ref, snap => {
+    const link = snap.exists() ? String(snap.data().link || '') : '';
+    draw(WHATSAPP_LINK.test(link) ? link : '');
+  }, err => draw('', err && err.code === 'permission-denied' ? 'Not ready yet. The new security rules need pasting into Firebase first.' : friendlyError(err))));
 }
 
 // ============================================================
