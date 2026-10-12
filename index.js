@@ -2,6 +2,7 @@
 // The app calls this when a coordinator or admin adds a dog, asks for availability or posts an update,
 // when a coordinator asks for a post to be removed, and when someone asks to join.
 // It checks who is asking, works out who should be told, and sends the notification to their phones.
+// It also tidies away closed cases each night, and deletes a removed volunteer when an admin asks.
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
@@ -121,4 +122,33 @@ exports.tidyClosedDogs = onSchedule({ schedule: 'every day 03:00', timeZone: 'Eu
     if (closedAt && closedAt < cutoff) { await db.recursiveDelete(dog.ref); removed++; }
   }
   console.log('Closed cases removed:', removed);
+});
+
+// ---- Delete a volunteer for good ----
+// Only an admin (or the developer) can do this, and only for someone whose access has already been removed.
+// It deletes their member record, profile, signed agreement, SOP sign-offs, availability replies,
+// registered phones and their sign-in, so the email address can sign up afresh if they ever return.
+// Names written into dog updates and sightings stay, as a record of the searches they helped with.
+exports.deleteVolunteer = onCall(async request => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in first.');
+  const db = admin.firestore();
+  const me = await db.collection('users').doc(request.auth.uid).get();
+  if (!me.exists || !['admin', 'developer'].includes(me.data().role)) throw new HttpsError('permission-denied', 'Admins only.');
+  const uid = String((request.data && request.data.uid) || '');
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(uid) || uid === request.auth.uid) throw new HttpsError('invalid-argument', 'Which volunteer?');
+  const user = await db.collection('users').doc(uid).get();
+  if (!user.exists) throw new HttpsError('not-found', 'That person is not on the members list.');
+  if (user.data().role !== 'blocked') throw new HttpsError('failed-precondition', 'Remove their access first.');
+
+  const gone = [];
+  const drop = async ref => { await ref.delete(); gone.push(ref.path); };
+  await drop(db.collection('profiles').doc(uid));
+  await drop(db.collection('agreements').doc(uid));
+  for (const d of (await db.collection('sopReads').where('uid', '==', uid).get()).docs) await drop(d.ref);
+  for (const d of (await db.collection('devices').where('uid', '==', uid).get()).docs) await drop(d.ref);
+  for (const dog of (await db.collection('dogs').get()).docs) await drop(dog.ref.collection('availability').doc(uid));
+  await drop(user.ref);
+  try { await admin.auth().deleteUser(uid); }
+  catch (e) { if (!e || e.code !== 'auth/user-not-found') throw new HttpsError('internal', 'Their records were deleted but their sign-in could not be. Try again.'); }
+  return { deleted: true };
 });
