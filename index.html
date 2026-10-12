@@ -851,6 +851,13 @@
 /* WhatsApp tile: the official logo must stay unchanged, so it sits on white */
 .tile .art.wa-art { display: flex; align-items: center; justify-content: center; background: #ffffff; }
 .tile .art.wa-art img { width: 52%; height: auto; }
+
+/* ---- Equipment list (admins) ---- */
+#equip-body .save { margin: 4px 0 6px; }
+.equip-card { margin-top: 14px; }
+.equip-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 3px solid var(--yellow); }
+.equip-head .link { padding: 0; font-size: 1.15rem; font-weight: 900; text-align: left; overflow-wrap: anywhere; }
+.equip-head span { color: #555; font-weight: 700; font-size: .9rem; text-align: right; }
 </style>
 </head>
 <body>
@@ -991,7 +998,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 3.4 · 12 Oct 2026</p>
+  <p class="version">Version 3.5 · 12 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1263,7 +1270,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 3.4 · 12 Oct 2026</p>
+  <p class="version">Version 3.5 · 12 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1586,6 +1593,7 @@
   <button class="back" data-go="home">&larr; Home</button>
   <h2 class="page-title">Members &amp; Map</h2>
   <p class="intro" id="vol-count"></p>
+  <button class="btn wide" type="button" data-go="equipment" style="margin:0 0 16px">Equipment list</button>
   <div class="form">
     <label for="vol-dog">Show distance from</label>
     <select id="vol-dog"></select>
@@ -1597,6 +1605,7 @@
   <div class="tabs vol-tabs">
     <button class="btn" type="button" data-vol-kit="">Everyone</button>
     <button class="btn" type="button" data-vol-kit="thermal">Has a thermal</button>
+    <button class="btn" type="button" data-vol-kit="drone">Has a drone</button>
     <button class="btn" type="button" data-vol-kit="scanner">Has a scanner</button>
   </div>
   <div id="vol-list"></div>
@@ -1614,6 +1623,13 @@
   <button class="back" data-go="home">&larr; Home</button>
   <h2 class="page-title">WhatsApp Community</h2>
   <div id="whatsapp-body"></div>
+</section>
+
+<!-- ================= EQUIPMENT LIST (admins) ================= -->
+<section class="screen" id="equipment">
+  <button class="back" data-go="volunteers">&larr; Members &amp; Map</button>
+  <h2 class="page-title">Equipment List</h2>
+  <div id="equip-body"></div>
 </section>
 
 <!-- Shared paw shape -->
@@ -1775,6 +1791,7 @@ function render() {
   if (name === 'profile')   { activate('profile');  return showProfile(); }
   if (name === 'whatsapp')  { activate('whatsapp'); return showWhatsApp(); }
   if (name === 'volunteers') { if (!isAdmin()) return go('home'); activate('volunteers'); return showVolunteers(arg); }
+  if (name === 'equipment') { if (!isAdmin()) return go('home'); activate('equipment'); return showEquipment(); }
   if (name === 'volunteer') { if (!isAdmin()) return go('home'); activate('volunteer'); return showVolunteer(arg); }
   if (name === 'agreements') { if (!isAdmin()) return go('agreement'); activate('agreements'); return showAgreements(arg); }
   if (name === 'poster-edit') { if (!isAdmin()) return go('posters'); activate('poster-edit'); return showPosterEdit(arg); }
@@ -2746,6 +2763,11 @@ const CATALOGUE = { makes: [
     { id: 'quest', name: 'Quest',   type: 'Thermal binocular', models: ['L35R', 'H35R', 'H50R', 'S50R'] },
     { id: 'dome',  name: 'MT Dome', type: 'Vehicle-mounted thermal camera', models: ['M6T25S'] }
   ] },
+  { id: 'dji', name: 'DJI', series: [
+    { id: 'matrice-30t', name: 'Matrice 30T', type: 'Drone', models: ['Matrice 30T'] },
+    { id: 'matrice-4t',  name: 'Matrice 4T',  type: 'Drone', models: ['Matrice 4T'] },
+    { id: 'mavic-3t',    name: 'Mavic 3T',    type: 'Drone', models: ['Mavic 3T'] }
+  ] },
   { id: 'halo', name: 'Halo (Pet Technology Store)', series: [
     { id: 'halo-scanner', name: 'Halo Microchip Scanner', type: 'Microchip scanner', models: ['Halo Microchip Scanner'] }
   ] }
@@ -2787,11 +2809,11 @@ function kitKinds(profile) {
   const kinds = new Set();
   ((profile && profile.equipment) || []).forEach(r => {
     const text = (kitName(r).type + ' ' + kitName(r).name).toLowerCase();
-    kinds.add(/thermal/.test(text) ? 'thermal' : /scanner/.test(text) ? 'scanner' : 'other');
+    kinds.add(/drone/.test(text) ? 'drone' : /thermal/.test(text) ? 'thermal' : /scanner/.test(text) ? 'scanner' : 'other');
   });
   return [...kinds];
 }
-const KIND_LABEL = { thermal: 'Thermal', scanner: 'Microchip scanner', other: 'Other kit' };
+const KIND_LABEL = { thermal: 'Thermal', drone: 'Drone', scanner: 'Microchip scanner', other: 'Other kit' };
 function kitTags(profile) {
   const kinds = kitKinds(profile);
   return kinds.length ? h('span', { class: 'kit-tags' }, kinds.map(k => h('span', { class: 'kit-tag' }, KIND_LABEL[k]))) : null;
@@ -3151,6 +3173,147 @@ function showVolunteers(dogId) {
     snap => { live.profiles = new Map(snap.docs.map(d => [d.id, d.data()])); draw(); }, fail));
   state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'dogs'),
     snap => { live.dogs = snap.docs.map(d => ({ id: d.id, ...d.data() })); draw(); }, () => {}));
+}
+
+// ---- Admins: everyone's equipment on one page, and as a PDF to save or share
+function showEquipment() {
+  const fb = state.fb, root = $('#equip-body');
+  const live = { users: null, profiles: null };
+  root.textContent = '';
+  root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  const fail = err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, err && err.code === 'permission-denied' ? 'Not ready yet. The new security rules need pasting into Firebase first.' : friendlyError(err))); };
+  const byName = (x, y) => String(x.name || '').localeCompare(String(y.name || ''));
+
+  function gather() {
+    const people = live.users.map(u => ({ ...u, profile: live.profiles.get(u.id) || null })).sort(byName);
+    const withKit = people.filter(p => p.profile && (p.profile.equipment || []).length);
+    const without = people.filter(p => !(p.profile && (p.profile.equipment || []).length));
+    const counts = { thermal: 0, drone: 0, scanner: 0, other: 0 };
+    withKit.forEach(p => p.profile.equipment.forEach(r => counts[kitKinds({ equipment: [r] })[0]]++));
+    const items = withKit.reduce((n, p) => n + p.profile.equipment.length, 0);
+    return { people, withKit, without, counts, items };
+  }
+  const summary = g => [g.items + (g.items === 1 ? ' item' : ' items') + ' held by ' + g.withKit.length + (g.withKit.length === 1 ? ' volunteer' : ' volunteers'),
+    ['thermal', 'drone', 'scanner', 'other'].filter(k => g.counts[k]).map(k => g.counts[k] + ' ' + KIND_LABEL[k].toLowerCase() + (g.counts[k] === 1 ? '' : 's')).join(', ')].filter(Boolean).join(': ');
+
+  function draw() {
+    if (!live.users || !live.profiles) return;
+    const g = gather();
+    root.textContent = '';
+    root.appendChild(h('p', { class: 'intro' }, summary(g) + '.'));
+    const msg = h('p', { class: 'form-msg', role: 'status' });
+    root.appendChild(h('button', { class: 'save', type: 'button', onclick: async () => {
+      msg.textContent = 'Making the PDF…';
+      try {
+        const file = await equipmentPdf(gather(), summary(gather()));
+        const url = URL.createObjectURL(file);
+        await saveFile(url, 'lda-equipment-' + new Date().toISOString().slice(0, 10) + '.pdf');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        msg.textContent = '';
+      } catch (e) { msg.textContent = 'The PDF could not be made. Please try again.'; }
+    } }, 'Save as PDF'));
+    root.appendChild(msg);
+    if (!g.withKit.length) root.appendChild(h('p', { class: 'empty' }, 'Nobody has listed any equipment yet.'));
+    g.withKit.forEach(p => root.appendChild(h('div', { class: 'card equip-card' },
+      h('div', { class: 'equip-head' },
+        h('button', { class: 'link', type: 'button', 'data-go': 'volunteer/' + p.id }, p.name || 'No name'),
+        h('span', null, p.profile.town || '')),
+      kitList(p.profile))));
+    if (g.without.length) {
+      root.appendChild(h('h3', { class: 'section' }, 'No equipment listed (' + g.without.length + ')'));
+      root.appendChild(h('ul', { class: 'card feed' }, g.without.map(p => h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name')))));
+    }
+  }
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'users'),
+    snap => { live.users = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(u => ACCESS.includes(u.role)); draw(); }, fail));
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'profiles'),
+    snap => { live.profiles = new Map(snap.docs.map(d => [d.id, d.data()])); draw(); }, fail));
+}
+
+// Draw the equipment list onto A4 pages and wrap them in a PDF.
+async function equipmentPdf(g, summaryText) {
+  const W = A4.pxW, H = A4.pxH, M = 90, PURPLE = '#5220c4', DEEP = '#3e12a3', YELLOW = '#fdf90f', INK = '#1c1530', GREY = '#5b4f80';
+  try { await document.fonts.load('900 40px Inter'); await document.fonts.load('600 26px Inter'); } catch (e) {}
+  const font = (w, s) => w + ' ' + s + 'px Inter, "Helvetica Neue", Arial, sans-serif';
+  const mono = s => '600 ' + s + 'px ui-monospace, Menlo, Consolas, monospace';
+  const scratch = document.createElement('canvas').getContext('2d');
+  const fit = (text, f, max) => { scratch.font = f; let t = String(text || ''); if (scratch.measureText(t).width <= max) return t; while (t.length && scratch.measureText(t + '…').width > max) t = t.slice(0, -1); return t + '…'; };
+
+  // Lay out blocks first so each volunteer stays on one page where possible.
+  const blocks = g.withKit.map(p => ({ kind: 'person', p, h: 74 + p.profile.equipment.length * 80 + 30 }));
+  if (g.without.length) blocks.push({ kind: 'none', names: g.without.map(p => p.name || 'No name'), h: 70 + Math.ceil(g.without.length / 2) * 40 + 20 });
+  const pages = [[]], top1 = 330, top = 160, bottom = H - 110;
+  let y = top1;
+  blocks.forEach(b => { if (y + b.h > bottom && pages[pages.length - 1].length) { pages.push([]); y = top; } b.y = y; pages[pages.length - 1].push(b); y += b.h; });
+
+  const jpegs = [];
+  for (let n = 0; n < pages.length; n++) {
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+    if (n === 0) {
+      x.fillStyle = PURPLE; x.fillRect(0, 0, W, 250); x.fillStyle = YELLOW; x.fillRect(0, 250, W, 14);
+      x.fillStyle = YELLOW; x.font = font(800, 26); x.fillText('LOST DOGS AYRSHIRE', M, 92);
+      x.fillStyle = '#ffffff'; x.font = font(900, 64); x.fillText('Equipment list', M, 162);
+      x.font = font(600, 28); x.fillText(fit(summaryText, font(600, 28), W - 2 * M), M, 214);
+      x.textAlign = 'right'; x.fillStyle = YELLOW; x.font = font(700, 26);
+      x.fillText(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), W - M, 92); x.textAlign = 'left';
+    } else {
+      x.fillStyle = PURPLE; x.font = font(900, 34); x.fillText('Equipment list (continued)', M, 100);
+      x.fillStyle = YELLOW; x.fillRect(M, 118, W - 2 * M, 8);
+    }
+    pages[n].forEach(b => {
+      let yy = b.y;
+      if (b.kind === 'person') {
+        x.fillStyle = '#f3eefc'; x.fillRect(M, yy, W - 2 * M, 54);
+        x.fillStyle = DEEP; x.font = font(900, 30); x.fillText(fit(b.p.name || 'No name', font(900, 30), 640), M + 18, yy + 37);
+        x.textAlign = 'right'; x.fillStyle = GREY; x.font = font(700, 24); x.fillText(fit(b.p.profile.town || '', font(700, 24), 360), W - M - 18, yy + 36); x.textAlign = 'left';
+        yy += 74;
+        b.p.profile.equipment.forEach(r => {
+          const k = kitName(r);
+          x.fillStyle = PURPLE; x.font = font(800, 19); x.fillText((k.type || 'Other').toUpperCase(), M + 18, yy + 24);
+          x.fillStyle = INK; x.font = font(700, 28); x.fillText(fit(k.name, font(700, 28), 620), M + 18, yy + 60);
+          x.textAlign = 'right'; x.fillStyle = GREY; x.font = font(700, 17); x.fillText('SERIAL', W - M - 18, yy + 24);
+          x.fillStyle = INK; x.font = mono(27); x.fillText(fit(r.serial || 'not given', mono(27), 380), W - M - 18, yy + 60); x.textAlign = 'left';
+          x.fillStyle = '#e3dcf7'; x.fillRect(M + 18, yy + 76, W - 2 * M - 36, 2);
+          yy += 80;
+        });
+      } else {
+        x.fillStyle = DEEP; x.font = font(900, 28); x.fillText('No equipment listed (' + b.names.length + ')', M, yy + 40);
+        x.fillStyle = INK; x.font = font(600, 24);
+        b.names.forEach((nm, i) => x.fillText(fit(nm, font(600, 24), (W - 2 * M) / 2 - 20), M + (i % 2) * (W - 2 * M) / 2, yy + 84 + Math.floor(i / 2) * 40));
+      }
+    });
+    x.fillStyle = '#c9bdf0'; x.fillRect(M, H - 80, W - 2 * M, 2);
+    x.fillStyle = GREY; x.font = font(600, 20);
+    x.fillText('Lost Dogs Ayrshire · Equipment list · For admin use only, do not share', M, H - 46);
+    x.textAlign = 'right'; x.fillText('Page ' + (n + 1) + ' of ' + pages.length, W - M, H - 46); x.textAlign = 'left';
+    jpegs.push(new Uint8Array(await (await new Promise(done => c.toBlob(done, 'image/jpeg', 0.9))).arrayBuffer()));
+  }
+
+  // A plain PDF with one full-page picture per page.
+  const enc = new TextEncoder(), parts = [], offsets = [];
+  let len = 0;
+  const push = d => { const bytes = typeof d === 'string' ? enc.encode(d) : d; parts.push(bytes); len += bytes.length; };
+  const obj = (num, body) => { offsets[num] = len; push(num + ' 0 obj\n' + body + '\nendobj\n'); };
+  const n = jpegs.length, pageObj = i => 3 + i * 3;
+  push('%PDF-1.4\n');
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, '<< /Type /Pages /Kids [' + jpegs.map((_, i) => pageObj(i) + ' 0 R').join(' ') + '] /Count ' + n + ' >>');
+  jpegs.forEach((jpg, i) => {
+    const p = pageObj(i);
+    obj(p, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 ' + (p + 1) + ' 0 R >> >> /Contents ' + (p + 2) + ' 0 R >>');
+    offsets[p + 1] = len;
+    push((p + 1) + ' 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + W + ' /Height ' + H + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpg.length + ' >>\nstream\n');
+    push(jpg); push('\nendstream\nendobj\n');
+    const content = 'q 595.28 0 0 841.89 0 0 cm /Im0 Do Q';
+    obj(p + 2, '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream');
+  });
+  const total = 3 + n * 3, xref = len;
+  push('xref\n0 ' + total + '\n0000000000 65535 f \n');
+  for (let i = 1; i < total; i++) push(String(offsets[i]).padStart(10, '0') + ' 00000 n \n');
+  push('trailer\n<< /Size ' + total + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
+  return new Blob(parts, { type: 'application/pdf' });
 }
 
 // ---- Admins: one volunteer's profile
