@@ -991,7 +991,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 3.3 · 12 Oct 2026</p>
+  <p class="version">Version 3.4 · 12 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1263,7 +1263,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 3.3 · 12 Oct 2026</p>
+  <p class="version">Version 3.4 · 12 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1723,10 +1723,11 @@ function friendlyError(err) {
 // ============================================================
 const state = { fb: null, user: null, profile: null, route: '', subs: [] };
 
-const ACCESS = ['member', 'coordinator', 'admin'];   // roles that can use the app
+const ACCESS = ['member', 'coordinator', 'admin', 'developer'];   // roles that can use the app
 const isMember = () => !!state.profile && ACCESS.includes(state.profile.role);
-const isCoord  = () => !!state.profile && (state.profile.role === 'coordinator' || state.profile.role === 'admin');
-const isAdmin  = () => !!state.profile && state.profile.role === 'admin';
+const isCoord  = () => !!state.profile && ['coordinator', 'admin', 'developer'].includes(state.profile.role);
+const isAdmin  = () => !!state.profile && (state.profile.role === 'admin' || state.profile.role === 'developer');   // a developer can do everything an admin can
+const isDev    = () => !!state.profile && state.profile.role === 'developer';   // plus app settings such as the WhatsApp link
 
 function activate(id) {
   const target = document.getElementById(id) || document.getElementById('home');
@@ -1791,12 +1792,12 @@ window.addEventListener('hashchange', render);
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-go]');
   if (!el) return;
-  if (el.id === 'wa-tile' && !isAdmin() && waLink) return openWhatsAppNow();
+  if (el.id === 'wa-tile' && !isDev() && waLink) return openWhatsAppNow();
   go(el.getAttribute('data-go'));
 });
 
-// The WhatsApp tile: one press straight into the WhatsApp app for everyone except admins
-// (admins get the screen, where the link is managed). If WhatsApp does not open, show the screen instead.
+// The WhatsApp tile: one press straight into the WhatsApp app for everyone except the developer
+// (who gets the screen, where the link is managed). If WhatsApp does not open, show the screen instead.
 let waLink = '', waSub = null;
 function watchWhatsAppLink() {
   if (waSub) { try { waSub(); } catch (e) {} waSub = null; }
@@ -2008,7 +2009,7 @@ function showPending() {
 
 function drawAccount() {
   const p = state.profile || {};
-  $('#account-name').textContent = (p.name || '') + (isAdmin() ? ' (admin)' : isCoord() ? ' (coordinator)' : '');
+  $('#account-name').textContent = (p.name || '') + (isDev() ? ' (developer)' : isAdmin() ? ' (admin)' : isCoord() ? ' (coordinator)' : '');
 }
 
 // ============================================================
@@ -2646,12 +2647,13 @@ function showMembers() {
   const fb = state.fb, list = $('#member-list');
   list.textContent = '';
   list.appendChild(h('p', { class: 'empty' }, 'Loading…'));
-  const order = { pending: 0, admin: 1, coordinator: 2, member: 3, blocked: 4 };
-  const label = { pending: 'Waiting for approval', admin: 'Admin', coordinator: 'Coordinator', member: 'Member', blocked: 'Access removed' };
+  const order = { pending: 0, developer: 1, admin: 2, coordinator: 3, member: 4, blocked: 5 };
+  const label = { pending: 'Waiting for approval', developer: 'Developer', admin: 'Admin', coordinator: 'Coordinator', member: 'Member', blocked: 'Access removed' };
   const can = {
     member: 'Members can see everything, send their availability and sign the volunteer agreement.',
     coordinator: 'Coordinators can also add and update missing dogs, add sightings, send notifications, and ask for a post to be removed.',
-    admin: 'Admins can do everything, including deleting posts, adding posters, seeing availability and signed forms, and managing members.'
+    admin: 'Admins can do everything, including deleting posts, adding posters, seeing availability and signed forms, and managing members.',
+    developer: 'Developers can do everything an admin can, and also manage app settings such as the WhatsApp link. Only a developer can make or change a developer.'
   };
 
   const setRole = async (m, role, question) => {
@@ -2673,16 +2675,17 @@ function showMembers() {
       if (m.role === 'blocked') actions.push(h('button', { class: 'btn', onclick: () => setRole(m, 'member') }, 'Give access back'));
       // Approved people (other than yourself) get a role picker.
       let picker = null;
-      if (ACCESS.includes(m.role) && !me) {
+      const locked = m.role === 'developer' && !isDev();      // only a developer can change a developer
+      if (ACCESS.includes(m.role) && !me && !locked) {
         const id = 'role-' + m.id;
         const select = h('select', { id, onchange: async e => {
           const role = e.target.value;
-          if (!confirm('Make ' + (m.name || 'this person') + ' ' + (role === 'admin' ? 'an admin' : 'a ' + role) + '?\n\n' + can[role])) { e.target.value = m.role; return; }
+          if (!confirm('Make ' + (m.name || 'this person') + ' ' + (role === 'admin' ? 'an admin' : 'a ' + label[role].toLowerCase()) + '?\n\n' + can[role])) { e.target.value = m.role; return; }
           await setRole(m, role);
-        } }, ACCESS.map(r => h('option', { value: r, selected: r === m.role }, label[r])));
+        } }, ACCESS.filter(r => r !== 'developer' || isDev()).map(r => h('option', { value: r, selected: r === m.role }, label[r])));
         picker = h('div', { class: 'role-pick' }, h('label', { for: id }, 'Role'), select);
       }
-      if (m.role !== 'blocked' && !me) actions.push(h('button', { class: 'btn danger', onclick: () => setRole(m, 'blocked', 'Remove access for ' + (m.name || 'this person') + '?') }, m.role === 'pending' ? 'Decline' : 'Remove access'));
+      if (m.role !== 'blocked' && !me && !locked) actions.push(h('button', { class: 'btn danger', onclick: () => setRole(m, 'blocked', 'Remove access for ' + (m.name || 'this person') + '?') }, m.role === 'pending' ? 'Decline' : 'Remove access'));
       list.appendChild(h('li', { class: 'card member ' + m.role },
         h('strong', null, (m.name || 'No name') + (me ? ' (you)' : '')),
         h('span', { class: 'member-email' }, m.email || ''),
@@ -3205,9 +3208,9 @@ function showWhatsApp() {
       root.appendChild(h('p', { class: 'hint' }, 'If you are not in the community yet, WhatsApp will ask you to join. You need the WhatsApp app on this phone.'));
       root.appendChild(h('a', { class: 'link center', id: 'wa-web', href: link, target: '_blank', rel: 'noopener' }, 'Not opening? Use the WhatsApp web page instead'));
     } else if (!err) {
-      root.appendChild(h('p', { class: 'empty' }, isAdmin() ? 'No link added yet. Paste the community invite link below.' : 'The link has not been added yet. Ask an admin.'));
+      root.appendChild(h('p', { class: 'empty' }, isDev() ? 'No link added yet. Paste the community invite link below.' : 'The link has not been added yet.'));
     }
-    if (!isAdmin()) return;
+    if (!isDev()) return;
     const input = h('input', { id: 'wa-link', type: 'url', inputmode: 'url', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: 'https://chat.whatsapp.com/…' });
     input.value = typed !== null ? typed : (link || '');
     const msg = h('p', { class: 'form-msg', role: 'status' });
@@ -3218,7 +3221,7 @@ function showWhatsApp() {
       } catch (e) { msg.textContent = e && e.code === 'permission-denied' ? 'Not saved. The new security rules need pasting into Firebase first.' : friendlyError(e); }
     };
     root.appendChild(h('div', { class: 'admin-box' },
-      h('h3', null, 'Admin'),
+      h('h3', null, 'Developer'),
       h('label', { for: 'wa-link' }, 'Community invite link'), input,
       h('p', { class: 'field-help' }, 'In WhatsApp, open the community, tap its name, then "Invite members" and copy the link. If you ever reset the link in WhatsApp, paste the new one here.'),
       msg,

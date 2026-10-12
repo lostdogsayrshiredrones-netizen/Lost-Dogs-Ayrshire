@@ -59,11 +59,11 @@ exports.notify = onCall(async request => {
     if (role !== 'pending' || me.data().joinNotified) return { sent: 0, failed: 0 };
     await me.ref.update({ joinNotified: true });
     const name = String(me.data().name || 'Someone').slice(0, 60);
-    return sendTo(await peopleWithRole(['admin']), 'Join request', name + ' has asked to join.', SITE + '#members', 'join');
+    return sendTo(await peopleWithRole(['admin', 'developer']), 'Join request', name + ' has asked to join.', SITE + '#members', 'join');
   }
 
   // Everything else is for coordinators and admins only.
-  if (role !== 'admin' && role !== 'coordinator') throw new HttpsError('permission-denied', 'Coordinators and admins only.');
+  if (!['admin', 'developer', 'coordinator'].includes(role)) throw new HttpsError('permission-denied', 'Coordinators and admins only.');
   const dogId = String((request.data && request.data.dogId) || '');
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(dogId)) throw new HttpsError('invalid-argument', 'Which dog?');
   const dogSnap = await db.collection('dogs').doc(dogId).get();
@@ -74,7 +74,7 @@ exports.notify = onCall(async request => {
   const place = String(dog.lastSeenPlace || '').trim().slice(0, 80), name = String(dog.name || '').trim().slice(0, 60);
   const where = place || (/^(unknown|unnamed.*|not known|no name|n\/a|\?+)?$/i.test(name) ? '' : name);
   const say = (...parts) => parts.filter(Boolean).join('. ');
-  const everyoneElse = (await peopleWithRole(['member', 'coordinator', 'admin'])).filter(id => id !== uid);
+  const everyoneElse = (await peopleWithRole(['member', 'coordinator', 'admin', 'developer'])).filter(id => id !== uid);
   const link = SITE + '#dog/' + dogId;
 
   if (type === 'dog') {
@@ -86,7 +86,7 @@ exports.notify = onCall(async request => {
   }
   // A coordinator has asked for a dog's post to be removed: tell the admins.
   if (type === 'removal') {
-    const admins = (await peopleWithRole(['admin'])).filter(id => id !== uid);
+    const admins = (await peopleWithRole(['admin', 'developer'])).filter(id => id !== uid);
     const who = String(me.data().name || 'A coordinator').slice(0, 60);
     return sendTo(admins, 'Removal request', who + ' has asked to remove ' + (where ? 'the post for ' + where : 'a post') + '.', link, 'removal');
   }
