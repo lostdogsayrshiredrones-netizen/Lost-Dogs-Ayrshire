@@ -4,6 +4,7 @@
 // It checks who is asking, works out who should be told, and sends the notification to their phones.
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const admin = require('firebase-admin');
 
 admin.initializeApp();
@@ -99,4 +100,25 @@ exports.notify = onCall(async request => {
     return sendTo(everyoneElse, where ? 'Update: ' + where : 'Dog update', text.length > 160 ? text.slice(0, 157) + '...' : text, link, 'update');
   }
   throw new HttpsError('invalid-argument', 'Unknown request.');
+});
+
+// ---- Closed cases tidy themselves away ----
+// Once a day, any dog that has been closed (Reunited, Home safe, No further sightings, Paws down)
+// for more than 30 days is deleted, together with its photos, posters, updates, sightings and availability.
+// Reopening a dog (changing it back to Missing, Loose dog or Found) stops the clock.
+const CLOSED = ['reunited', 'home-safe', 'no-further-sightings', 'paws-down'];
+const KEEP_DAYS = 30;
+const millis = ts => (ts && typeof ts.toMillis === 'function') ? ts.toMillis() : 0;
+
+exports.tidyClosedDogs = onSchedule({ schedule: 'every day 03:00', timeZone: 'Europe/London' }, async () => {
+  const db = admin.firestore();
+  const cutoff = Date.now() - KEEP_DAYS * 24 * 3600 * 1000;
+  const closed = await db.collection('dogs').where('status', 'in', CLOSED).get();
+  let removed = 0;
+  for (const dog of closed.docs) {
+    const d = dog.data();
+    const closedAt = millis(d.statusAt) || millis(d.updatedAt) || millis(d.createdAt);   // older dogs have no closing date, so use the last change
+    if (closedAt && closedAt < cutoff) { await db.recursiveDelete(dog.ref); removed++; }
+  }
+  console.log('Closed cases removed:', removed);
 });

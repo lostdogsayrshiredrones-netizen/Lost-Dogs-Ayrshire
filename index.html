@@ -842,6 +842,8 @@
 .install-steps li { margin-top: 6px; }
 .push-card .install-help { font-size: .88rem; font-weight: 600; }
 #auth .install-card { margin: 0 0 18px; }
+
+.closed-note { grid-column: 1 / -1; margin: 0 0 6px; font-size: .9rem; }
 </style>
 </head>
 <body>
@@ -975,7 +977,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 2.9 · 12 Oct 2026</p>
+  <p class="version">Version 3.0 · 12 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1247,7 +1249,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 2.9 · 12 Oct 2026</p>
+  <p class="version">Version 3.0 · 12 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -2025,8 +2027,9 @@ function showDogs() {
       .filter(d => !!(STATUSES[d.status] || { active: true }).active === (dogFilter === 'active'))
       .sort((a, b) => millis(b.createdAt) - millis(a.createdAt));
     list.textContent = '';
+    if (dogFilter !== 'active') list.appendChild(h('p', { class: 'empty closed-note' }, 'Closed cases are removed automatically 30 days after closing.'));
     if (!dogs.length) {
-      list.appendChild(h('p', { class: 'empty' }, dogFilter === 'active' ? 'No active dogs at the moment.' : 'No closed cases yet.'));
+      list.appendChild(h('p', { class: 'empty' }, dogFilter === 'active' ? 'No active dogs at the moment.' : 'No closed cases at the moment.'));
       return;
     }
     dogs.forEach(d => list.appendChild(
@@ -2370,6 +2373,12 @@ function showDog(id) {
       root.appendChild(h('p', { class: 'empty' }, 'No updates yet.'));
     }
     root.appendChild(h('p', { class: 'hint' }, 'Added ' + when(d.createdAt) + (d.createdBy ? ' by ' + d.createdBy : '')));
+    if (st.active === false) {
+      const ms = ts => ts ? millis(ts) : 0;   // millis() treats a missing time as "now"; here a missing one must be skipped
+      const closedAt = ms(d.statusAt) || ms(d.updatedAt) || ms(d.createdAt);
+      if (closedAt) root.appendChild(h('p', { class: 'hint' }, 'Closed cases are removed automatically 30 days after closing. This one will be removed on '
+        + new Date(closedAt + 31 * 24 * 3600 * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + '.'));
+    }
   }
 }
 
