@@ -900,6 +900,30 @@
 
 #volunteer-body { display: flex; flex-direction: column; gap: 14px; }
 #volunteer-body > * { margin-top: 0; margin-bottom: 0; }
+
+/* ---- Documents ---- */
+.review-box { margin: 0 0 18px; }
+.review-card { margin-top: 10px; text-align: left; }
+.review-card strong { font-size: 1.05rem; }
+.review-meta { margin-top: 2px; color: #555; font-size: .88rem; font-weight: 600; }
+.review-desc { margin-top: 6px; font-weight: 600; }
+.review-warn { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: #fff3c4; color: #6b4e00; font-size: .88rem; font-weight: 700; }
+#docview-pages .review-warn { margin: 0 0 12px; }
+.review-card .btn { background: var(--purple); color: var(--white); }
+.review-card .btn.ok { background: #1c7a36; }
+.review-card .btn.danger { background: #ffd9d9; color: #9b1010; }
+.doc-list { list-style: none; padding: 2px 16px; text-align: left; }
+.doc-list li + li { border-top: 1px solid #ddd; }
+.doc-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%; padding: 12px 0; border: 0; background: none; color: #1a1a1a; font: inherit; text-align: left; cursor: pointer; }
+.doc-tag { display: flex; align-items: center; justify-content: center; height: 44px; border-radius: 10px; background: var(--purple); color: var(--yellow); font-size: .68rem; font-weight: 900; }
+.doc-text strong { display: block; font-size: 1.02rem; font-weight: 800; overflow-wrap: anywhere; }
+.doc-text span { color: #555; font-size: .85rem; font-weight: 600; }
+.doc-go { color: var(--purple); font-size: 1.5rem; font-weight: 900; }
+.doc-del { margin: -4px 0 10px 64px; color: #b01515; }
+.cat-pick { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.cat-pick .check { margin-top: 4px; }
+.form input[type="radio"] { width: 24px; height: 24px; accent-color: var(--yellow); }
+#docview .read-bar .btn { margin: 0; padding: 8px 16px; }
 </style>
 </head>
 <body>
@@ -991,13 +1015,20 @@
     </button>
 
     <!-- TILE: SOPs -->
-    <button class="tile home-wide" data-go="sops">
+    <button class="tile" data-go="sops">
       <span class="art fan">
         <img alt="" data-from="highway-sop-img">
         <img alt="" data-from="water-sop-img">
         <img alt="" data-from="railway-sop-img">
       </span>
       <span class="tile-name">Lost Dogs Ayrshire SOPs</span>
+    </button>
+
+    <!-- TILE: Documents (Training, Forms, Guidance) -->
+    <button class="tile" data-go="documents">
+      <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true"><path d="M4 12c0-3 2-5 5-5h14l6 6h26c3 0 5 2 5 5v31c0 3-2 5-5 5H9c-3 0-5-2-5-5z"/></svg></span>
+      <span class="count" id="docs-count" hidden>0</span>
+      <span class="tile-name">Documents</span>
     </button>
 
 
@@ -1030,7 +1061,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 4.0 · 12 Oct 2026</p>
+  <p class="version">Version 4.1 · 14 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1302,7 +1333,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 4.0 · 12 Oct 2026</p>
+  <p class="version">Version 4.1 · 14 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1670,6 +1701,54 @@
   <div id="equip-body"></div>
 </section>
 
+<!-- ================= DOCUMENTS ================= -->
+<section class="screen" id="documents">
+  <button class="back" data-go="home">&larr; Home</button>
+  <h2 class="page-title">Documents</h2>
+  <div id="docs-body"></div>
+</section>
+
+<section class="screen" id="doclist">
+  <button class="back" data-go="documents">&larr; Documents</button>
+  <h2 class="page-title" id="doclist-title"></h2>
+  <div id="doclist-body"></div>
+</section>
+
+<section class="screen" id="docview">
+  <div class="read-bar">
+    <button class="back" id="docview-back" data-go="documents">&larr; Documents</button>
+    <button class="btn" id="docview-save" type="button" hidden>Save</button>
+  </div>
+  <h2 class="page-title" id="docview-title"></h2>
+  <p class="form-msg" id="docview-msg" role="status"></p>
+  <div id="docview-pages"></div>
+</section>
+
+<section class="screen" id="doc-add">
+  <button class="back" data-go="documents">&larr; Documents</button>
+  <h2 class="page-title">Add a document</h2>
+  <form class="form" id="docadd-form" novalidate>
+    <p class="intro" style="text-align:left" id="docadd-note"></p>
+    <label>Section</label>
+    <div class="cat-pick">
+      <label class="check"><input type="radio" name="category" value="training"> Training</label>
+      <label class="check"><input type="radio" name="category" value="forms"> Forms</label>
+      <label class="check"><input type="radio" name="category" value="guidance"> Guidance</label>
+    </div>
+    <label for="docadd-file">PDF or photo</label>
+    <input id="docadd-file" type="file" accept="application/pdf,.pdf,image/*" hidden>
+    <button class="btn ghost" type="button" onclick="document.getElementById('docadd-file').click()">Choose a file</button>
+    <p class="field-help" id="docadd-info" role="status">No file chosen yet.</p>
+    <p class="field-help">PDFs up to 10 MB, or a photo. Word documents are not accepted; save them as a PDF first.</p>
+    <label for="docadd-title">Title</label>
+    <input id="docadd-title" type="text" maxlength="100" autocomplete="off">
+    <label for="docadd-desc">Short description (optional)</label>
+    <input id="docadd-desc" type="text" maxlength="200" autocomplete="off" placeholder="e.g. Using a thermal monocular at night">
+    <p class="form-msg" id="docadd-msg" role="status"></p>
+    <button class="save" id="docadd-save" type="submit">Add document</button>
+  </form>
+</section>
+
 <!-- Shared paw shape -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -1828,6 +1907,9 @@ function render() {
   if (name === 'agreement') { activate('profile'); showProfile(); return setTimeout(() => { const el = $('#profile-agreement'); if (el) el.scrollIntoView({ block: 'start' }); }, 300); }
   if (name === 'profile')   { activate('profile');  return showProfile(); }
   if (name === 'whatsapp')  { activate('whatsapp'); return showWhatsApp(); }
+  if (name === 'documents') { if (arg) { activate('doclist'); return showDocList(arg); } activate('documents'); return showDocuments(); }
+  if (name === 'document')  { activate('docview'); return showDocument(arg); }
+  if (name === 'doc-add')   { if (!isAdmin()) return go('documents'); activate('doc-add'); return showDocAdd(); }
   if (name === 'volunteers') { if (!isAdmin()) return go('home'); activate('volunteers'); return showVolunteers(arg); }
   if (name === 'equipment') { if (!isAdmin()) return go('home'); activate('equipment'); return showEquipment(); }
   if (name === 'volunteer') { if (!isAdmin()) return go('home'); activate('volunteer'); return showVolunteer(arg); }
@@ -2108,6 +2190,11 @@ function showHome() {
     snap => { todo.place = snap.exists() && !!snap.data().town; drawTodo(); }, () => { todo.place = true; drawTodo(); }));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', state.user.uid),
     snap => { todo.signed = snap.exists(); drawTodo(); }, () => { todo.signed = true; drawTodo(); }));
+  // The developer sees how many documents are waiting for review on the Documents tile.
+  if (isDev()) state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'docs'), fb.where('status', '==', 'pending')), snap => {
+    $('#docs-count').textContent = String(snap.size); $('#docs-count').hidden = snap.size === 0;
+  }, () => {}));
+  else $('#docs-count').hidden = true;
   if (isAdmin()) {
     state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'users'), fb.where('role', '==', 'pending')), snap => {
       const badge = $('#members-count');
@@ -3460,6 +3547,241 @@ function showVolunteer(uid) {
 }
 
 // ============================================================
+//  Documents: Training, Forms and Guidance. Admins add, the developer approves, everyone reads.
+// ============================================================
+const DOC_CATS = {
+  training: { label: 'Training', icon: '<path d="M32 8 2 22l30 14 24-11v17h5V22z"/><path d="M14 33v10c0 5 8 9 18 9s18-4 18-9V33l-18 8z"/>' },
+  forms:    { label: 'Forms', icon: '<path fill-rule="evenodd" d="M22 4h20v6h8c2 0 4 2 4 4v40c0 2-2 4-4 4H14c-2 0-4-2-4-4V14c0-2 2-4 4-4h8z M26 8v6h12V8z M18 24v5h28v-5z M18 34v5h28v-5z M18 44v5h18v-5z"/>' },
+  guidance: { label: 'Guidance', icon: '<path fill-rule="evenodd" d="M32 2a28 28 0 1 0 0 56 28 28 0 0 0 0-56z M28 24h8v24h-8z M32 10a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/>' }
+};
+const DOC_MAX = 10 * 1024 * 1024;                  // largest file we accept
+const docChunkSize = () => window.__docChunk || 900000;   // characters per stored piece (Firestore allows about 1 MB per record)
+const docCount = new Map();                        // live counts for the section tiles
+
+const normTitle = t => String(t || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+function similarTitle(a, b) {
+  const x = normTitle(a), y = normTitle(b);
+  if (!x || !y) return false;
+  if (x === y || x.includes(y) || y.includes(x)) return true;
+  const wa = new Set(x.split(' ').filter(w => w.length > 2)), wb = new Set(y.split(' ').filter(w => w.length > 2));
+  if (!wa.size || !wb.size) return false;
+  let same = 0; wa.forEach(w => { if (wb.has(w)) same++; });
+  return same / Math.min(wa.size, wb.size) >= 0.6;
+}
+// Possible duplicates of a document among the others (same file, or a similar title).
+function docClashes(d, all) {
+  const out = [];
+  all.forEach(o => {
+    if (o.id === d.id || o.status === 'rejected') return;
+    if (d.hash && o.hash === d.hash) out.push('The same file is already ' + (o.status === 'approved' ? 'in ' + DOC_CATS[o.category].label : 'waiting for review') + ': “' + o.title + '”');
+    else if (similarTitle(d.title, o.title)) out.push('Similar title ' + (o.status === 'approved' ? 'already in ' + DOC_CATS[o.category].label : 'waiting for review') + ': “' + o.title + '”');
+  });
+  return out;
+}
+const docTag = d => h('span', { class: 'doc-tag' }, d.kind === 'photo' ? 'PHOTO' : 'PDF');
+const docSize = n => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+
+async function deleteDocument(d) {
+  if (!confirm('Delete “' + d.title + '”? Everyone will lose access to it. This cannot be undone.')) return false;
+  const fb = state.fb;
+  try {
+    const parts = await fb.getDocs(fb.collection(fb.db, 'docs', d.id, 'chunks'));
+    await Promise.all(parts.docs.map(p => fb.deleteDoc(p.ref)));
+    await fb.deleteDoc(fb.doc(fb.db, 'docs', d.id));
+    return true;
+  } catch (err) { alert(friendlyError(err)); return false; }
+}
+
+// Approved documents for everyone; admins also get the ones waiting for review.
+function watchDocs(cb, fail) {
+  const fb = state.fb, live = { approved: [], other: [] };
+  const send = () => cb(live.approved.concat(live.other));
+  const map = snap => snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
+  state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'docs'), fb.where('status', '==', 'approved')), snap => { live.approved = map(snap); send(); }, fail));
+  if (isAdmin()) state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'docs'), snap => { live.other = map(snap).filter(d => d.status !== 'approved'); send(); }, () => {}));
+}
+
+function showDocuments() {
+  const root = $('#docs-body');
+  root.textContent = '';
+  root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  const fail = err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, err && err.code === 'permission-denied' ? 'Not ready yet. The new security rules need publishing first (run the Cloud Shell line).' : friendlyError(err))); };
+  watchDocs(all => {
+    root.textContent = '';
+    if (isAdmin()) root.appendChild(h('button', { class: 'btn wide', type: 'button', 'data-go': 'doc-add', style: 'margin:0 0 16px' }, 'Add a document'));
+    const pending = all.filter(d => d.status === 'pending'), rejected = all.filter(d => d.status === 'rejected' && (isDev() || d.addedByUid === state.user.uid));
+    if (isDev() && pending.length) {
+      const box = h('div', { class: 'admin-box review-box' }, h('h3', null, 'Waiting for review (' + pending.length + ')'));
+      pending.forEach(d => {
+        const clash = docClashes(d, all);
+        box.appendChild(h('div', { class: 'card review-card' },
+          h('strong', null, d.title),
+          h('p', { class: 'review-meta' }, DOC_CATS[d.category].label + ' · ' + (d.kind === 'photo' ? 'Photo' : 'PDF') + ' · ' + docSize(d.size || 0) + ' · added by ' + (d.addedBy || 'an admin')),
+          d.description ? h('p', { class: 'review-desc' }, d.description) : null,
+          clash.map(c => h('p', { class: 'review-warn' }, '⚠ ' + c)),
+          h('div', { class: 'row' },
+            h('button', { class: 'btn', type: 'button', 'data-go': 'document/' + d.id }, 'Open'),
+            h('button', { class: 'btn ok', type: 'button', onclick: async () => {
+              try { await state.fb.updateDoc(state.fb.doc(state.fb.db, 'docs', d.id), { status: 'approved', reviewedBy: state.profile.name || '', reviewedAt: state.fb.serverTimestamp(), rejectReason: '' });
+                sendPush({ type: 'docReview', docId: d.id }); } catch (e) { alert(friendlyError(e)); }
+            } }, 'Approve'),
+            h('button', { class: 'btn danger', type: 'button', onclick: async () => {
+              const why = prompt('Reject “' + d.title + '”? You can add a reason for ' + (d.addedBy || 'the admin') + ' (optional).', clash.length ? 'Duplicate of a document we already have.' : '');
+              if (why === null) return;
+              try { await state.fb.updateDoc(state.fb.doc(state.fb.db, 'docs', d.id), { status: 'rejected', rejectReason: why.trim().slice(0, 300), reviewedBy: state.profile.name || '', reviewedAt: state.fb.serverTimestamp() });
+                sendPush({ type: 'docReview', docId: d.id }); } catch (e) { alert(friendlyError(e)); }
+            } }, 'Reject'))));
+      });
+      root.appendChild(box);
+    }
+    const mine = isDev() ? [] : pending.filter(d => d.addedByUid === state.user.uid);
+    if (mine.length || rejected.length) {
+      const box = h('div', { class: 'admin-box review-box' }, h('h3', null, isDev() ? 'Rejected' : 'Sent for review'));
+      mine.concat(rejected).forEach(d => box.appendChild(h('div', { class: 'card review-card' },
+        h('strong', null, d.title),
+        h('p', { class: 'review-meta' }, DOC_CATS[d.category].label + ' · ' + (d.status === 'pending' ? 'waiting for the developer to approve' : 'rejected' + (d.reviewedBy ? ' by ' + d.reviewedBy : ''))),
+        d.status === 'rejected' && d.rejectReason ? h('p', { class: 'review-warn' }, 'Reason: ' + d.rejectReason) : null,
+        h('div', { class: 'row' },
+          h('button', { class: 'btn', type: 'button', 'data-go': 'document/' + d.id }, 'Open'),
+          h('button', { class: 'btn danger', type: 'button', onclick: () => deleteDocument(d) }, d.status === 'pending' ? 'Withdraw' : 'Delete')))));
+      root.appendChild(box);
+    }
+    root.appendChild(h('p', { class: 'intro' }, 'Choose a section.'));
+    const approved = all.filter(d => d.status === 'approved');
+    root.appendChild(h('nav', { class: 'tiles', 'aria-label': 'Document sections' }, Object.entries(DOC_CATS).map(([k, c], i) => {
+      const n = approved.filter(d => d.category === k).length;
+      const art = h('span', { class: 'art icon' }); art.innerHTML = '<svg viewBox="0 0 64 60" aria-hidden="true">' + c.icon + '</svg>';
+      return h('button', { class: 'tile' + (i === 2 ? ' home-wide' : ''), type: 'button', 'data-go': 'documents/' + k }, art, h('span', { class: 'tile-name' }, c.label + ' (' + n + ')'));
+    })));
+  }, fail);
+}
+
+function showDocList(cat) {
+  const c = DOC_CATS[cat];
+  if (!c) return go('documents');
+  const root = $('#doclist-body');
+  $('#doclist-title').textContent = c.label;
+  root.textContent = '';
+  root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  watchDocs(all => {
+    const list = all.filter(d => d.status === 'approved' && d.category === cat).sort((a, b) => String(a.title).localeCompare(String(b.title)));
+    root.textContent = '';
+    if (!list.length) { root.appendChild(h('p', { class: 'empty' }, 'No ' + c.label.toLowerCase() + ' documents yet.')); return; }
+    root.appendChild(h('p', { class: 'intro' }, 'Tap a document to open it.'));
+    root.appendChild(h('ul', { class: 'card doc-list' }, list.map(d => h('li', null,
+      h('button', { class: 'doc-row', type: 'button', 'data-go': 'document/' + d.id },
+        docTag(d),
+        h('span', { class: 'doc-text' }, h('strong', null, d.title), h('span', null, [d.description, 'added ' + when(d.createdAt).replace(/,.*$/, '')].filter(Boolean).join(' · '))),
+        h('span', { class: 'doc-go', 'aria-hidden': 'true' }, '›')),
+      isAdmin() ? h('button', { class: 'link danger doc-del', type: 'button', onclick: () => deleteDocument(d) }, 'Delete') : null))));
+  }, err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, friendlyError(err))); });
+}
+
+async function showDocument(id) {
+  const fb = state.fb, box = $('#docview-pages'), msg = $('#docview-msg'), back = $('#docview-back'), save = $('#docview-save');
+  box.textContent = ''; save.hidden = true; msg.textContent = 'Opening…';
+  $('#docview-title').textContent = '';
+  let open = true, task = null; const urls = [];
+  state.subs.push(() => { open = false; urls.forEach(u => URL.revokeObjectURL(u)); box.textContent = ''; if (task) task.destroy(); });
+  try {
+    const snap = await fb.getDoc(fb.doc(fb.db, 'docs', id));
+    if (!open) return;
+    if (!snap.exists()) { msg.textContent = 'This document is no longer available.'; back.setAttribute('data-go', 'documents'); return; }
+    const d = snap.data();
+    $('#docview-title').textContent = d.title;
+    back.setAttribute('data-go', d.status === 'approved' ? 'documents/' + d.category : 'documents');
+    back.textContent = '← ' + (d.status === 'approved' ? DOC_CATS[d.category].label : 'Documents');
+    if (d.status !== 'approved') box.appendChild(h('p', { class: 'review-warn' }, d.status === 'pending' ? 'Waiting for review. Only admins can see this.' : 'Rejected. Only admins can see this.'));
+    const parts = await fb.getDocs(fb.collection(fb.db, 'docs', id, 'chunks'));
+    if (!open) return;
+    const text = parts.docs.map(p => ({ n: Number(p.id), t: p.data().data })).sort((a, b) => a.n - b.n).map(p => p.t).join('');
+    if (!text || parts.docs.length < (d.chunks || 1)) { msg.textContent = 'This document has not finished uploading. Try again shortly.'; return; }
+    const blob = await (await fetch(text)).blob();
+    const url = URL.createObjectURL(blob); urls.push(url);
+    const filename = normTitle(d.title).replace(/ /g, '-').slice(0, 60) + (d.kind === 'photo' ? '.jpg' : '.pdf');
+    save.hidden = false; save.onclick = () => saveFile(url, filename);
+    if (d.kind === 'photo') { box.appendChild(h('img', { class: 'read-page', src: url, alt: d.title })); msg.textContent = ''; return; }
+    const lib = await loadPdfLib();
+    if (!open) return;
+    task = lib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) });
+    const pdf = await task.promise;
+    const canvas = document.createElement('canvas');
+    for (let n = 1; n <= pdf.numPages; n++) {
+      if (!open) return;
+      msg.textContent = 'Loading page ' + n + ' of ' + pdf.numPages + '…';
+      const page = await pdf.getPage(n);
+      const view = page.getViewport({ scale: 1400 / page.getViewport({ scale: 1 }).width });
+      canvas.width = Math.round(view.width); canvas.height = Math.round(view.height);
+      await page.render({ canvas, canvasContext: canvas.getContext('2d'), viewport: view }).promise;
+      const pageBlob = await new Promise(done => canvas.toBlob(done, 'image/jpeg', 0.85));
+      page.cleanup();
+      if (!open) return;
+      const pu = URL.createObjectURL(pageBlob); urls.push(pu);
+      box.appendChild(h('img', { class: 'read-page', src: pu, alt: d.title + ', page ' + n + ' of ' + pdf.numPages }));
+    }
+    canvas.width = canvas.height = 0;
+    msg.textContent = '';
+  } catch (err) {
+    console.warn('Document viewer:', err);
+    if (open) msg.textContent = err && err.code === 'permission-denied' ? 'You do not have access to this document.' : 'The document could not be opened here. Check your signal, or use Save to device.';
+  }
+}
+
+function showDocAdd() {
+  const fb = state.fb, form = $('#docadd-form'), msg = $('#docadd-msg'), file = $('#docadd-file'), info = $('#docadd-info');
+  form.reset(); msg.textContent = ''; info.textContent = 'No file chosen yet.';
+  $('#docadd-note').textContent = isDev() ? 'As the developer, your documents go straight in.' : 'The developer checks every document before it appears for everyone.';
+  let picked = null;
+  file.onchange = () => {
+    picked = null; msg.textContent = '';
+    const f = file.files[0];
+    if (!f) { info.textContent = 'No file chosen yet.'; return; }
+    const pdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name), photo = /^image\//.test(f.type);
+    if (!pdf && !photo) { info.textContent = 'That file cannot be added. Only PDFs and photos are accepted, not Word documents.'; file.value = ''; return; }
+    if (pdf && f.size > DOC_MAX) { info.textContent = 'That PDF is ' + docSize(f.size) + '. The largest allowed is 10 MB.'; file.value = ''; return; }
+    picked = { f, kind: pdf ? 'pdf' : 'photo' };
+    info.textContent = (pdf ? 'PDF' : 'Photo') + ': ' + f.name + ' (' + docSize(f.size) + ')';
+    if (!$('#docadd-title').value.trim()) $('#docadd-title').value = f.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').slice(0, 80);
+  };
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const title = $('#docadd-title').value.trim(), description = $('#docadd-desc').value.trim(), category = form.elements.category.value;
+    if (!title) { msg.textContent = 'Give the document a title.'; return; }
+    if (!DOC_CATS[category]) { msg.textContent = 'Choose a section: Training, Forms or Guidance.'; return; }
+    if (!picked) { msg.textContent = 'Choose a PDF or photo.'; return; }
+    const btn = $('#docadd-save'); btn.disabled = true; msg.textContent = 'Preparing the file…';
+    try {
+      const data = picked.kind === 'photo' ? await shrinkImage(picked.f, 2000, 2400000)
+        : await new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).replace(/^data:[^;]*;/, 'data:application/pdf;')); r.onerror = bad; r.readAsDataURL(picked.f); });
+      const raw = Uint8Array.from(atob(data.split(',')[1]), ch => ch.charCodeAt(0));
+      const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', raw)), b => b.toString(16).padStart(2, '0')).join('');
+      // Warn about duplicates before uploading.
+      const existing = (await fb.getDocs(isAdmin() ? fb.collection(fb.db, 'docs') : fb.query(fb.collection(fb.db, 'docs'), fb.where('status', '==', 'approved')))).docs.map(d => ({ id: d.id, ...d.data() }));
+      const clash = docClashes({ id: '', title, hash }, existing);
+      if (clash.length && !confirm(clash.join('\n') + '\n\nAdd it anyway?')) { btn.disabled = false; msg.textContent = ''; return; }
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      const size = docChunkSize(), pieces = [];
+      for (let i = 0; i < data.length; i += size) pieces.push(data.slice(i, i + size));
+      for (let i = 0; i < pieces.length; i++) {
+        msg.textContent = 'Uploading part ' + (i + 1) + ' of ' + pieces.length + '…';
+        await fb.setDoc(fb.doc(fb.db, 'docs', id, 'chunks', String(i)), { data: pieces[i] });
+      }
+      await fb.setDoc(fb.doc(fb.db, 'docs', id), {
+        title: title.slice(0, 100), description: description.slice(0, 200), category, kind: picked.kind, size: raw.length, chunks: pieces.length, hash,
+        status: isDev() ? 'approved' : 'pending', addedBy: state.profile.name || '', addedByUid: state.user.uid, createdAt: fb.serverTimestamp()
+      });
+      if (!isDev()) sendPush({ type: 'doc', docId: id });
+      btn.disabled = false;
+      alert(isDev() ? 'Added to ' + DOC_CATS[category].label + '.' : 'Sent for review. It will appear for everyone once the developer approves it.');
+      go('documents');
+    } catch (err) {
+      btn.disabled = false;
+      msg.textContent = err && err.code === 'permission-denied' ? 'Not saved. The new security rules need publishing first (run the Cloud Shell line).' : 'The document could not be added. ' + friendlyError(err);
+    }
+  };
+}
+
+// ============================================================
 //  WhatsApp Community: the invite link is kept in Firebase so only approved members ever see it
 // ============================================================
 const WHATSAPP_LINK = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{10,40}$/;
@@ -4687,6 +5009,13 @@ function startAlerts() {
     knownDogs = new Map(snap.docs.map(d => [d.id, !!d.data().askAvailability]));
   }, () => {}));
 
+  if (isDev()) {
+    let knownDocs = null;
+    alertSubs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'docs'), fb.where('status', '==', 'pending')), snap => {
+      if (knownDocs) snap.docs.forEach(d => { if (!knownDocs.has(d.id)) showAlert('Document to review', (d.data().addedBy || 'An admin') + ' added \u201c' + (d.data().title || 'a document') + '\u201d.', 'documents'); });
+      knownDocs = new Set(snap.docs.map(d => d.id));
+    }, () => {}));
+  }
   if (isAdmin()) {
     let knownRequests = null;
     alertSubs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'users'), fb.where('role', '==', 'pending')), snap => {

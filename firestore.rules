@@ -1,0 +1,169 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Who is asking? ----
+    function signedIn() {
+      return request.auth != null;
+    }
+    function hasRecord() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    function myRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    function isMember() {
+      return signedIn() && hasRecord() && myRole() in ['member', 'coordinator', 'admin', 'developer'];
+    }
+    function isCoordinator() {
+      return signedIn() && hasRecord() && myRole() in ['coordinator', 'admin', 'developer'];
+    }
+    function isAdmin() {
+      return signedIn() && hasRecord() && myRole() in ['admin', 'developer'];
+    }
+    function isDeveloper() {
+      return signedIn() && hasRecord() && myRole() == 'developer';
+    }
+
+    // ---- Members list ----
+    // People can see their own record. Only admins can see everyone.
+    // A new account can only ever be created as "pending".
+    // People can change their own name, but never their own role.
+    match /users/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create: if signedIn()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'createdAt'])
+                    && request.resource.data.role == 'pending'
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() <= 100;
+      // Admins manage everyone except a developer, and can never make anyone a developer.
+      allow update: if isDeveloper()
+                    || (isAdmin()
+                        && resource.data.role != 'developer'
+                        && request.resource.data.role != 'developer')
+                    || (signedIn()
+                        && request.auth.uid == uid
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']));
+      allow delete: if isDeveloper() || (isAdmin() && resource.data.role != 'developer');
+    }
+
+    // ---- Missing dogs ----
+    // Approved members can read. Coordinators and admins can add and change.
+    // Only admins can delete.
+    match /dogs/{dogId} {
+      allow read: if isMember();
+      allow create, update: if isCoordinator();
+      allow delete: if isAdmin();
+
+      // Photos, posters, updates and sightings saved under a dog.
+      // (Availability answers are kept separate, below, so members cannot read each other's.)
+      match /{section}/{itemId} {
+        allow read: if isMember() && section != 'availability';
+        allow write: if isCoordinator() && section != 'availability';
+      }
+
+      // Availability return: each member saves their own answer.
+      // A member can see only their own. Admins can see everyone's.
+      match /availability/{uid} {
+        allow get: if isAdmin() || (isMember() && request.auth.uid == uid);
+        allow list: if isAdmin();
+        allow create, update: if isMember()
+                              && request.auth.uid == uid
+                              && request.resource.data.uid == uid
+                              && request.resource.data.status in ['now', 'later', 'no'];
+        allow delete: if isAdmin() || (isMember() && request.auth.uid == uid);
+      }
+    }
+
+    // ---- Posters added inside the app ----
+    // Approved members can see them. Only admins can add, change or delete.
+    match /posters/{posterId} {
+      allow read: if isMember();
+      allow write: if isAdmin();
+
+      match /{section}/{itemId} {
+        allow read: if isMember();
+        allow write: if isAdmin();
+      }
+    }
+
+    // ---- Phones registered for notifications ----
+    // Each person can add and remove only their own phones. Nobody else can read them.
+    match /devices/{deviceId} {
+      allow get, delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create, update: if isMember()
+                            && request.resource.data.uid == request.auth.uid
+                            && deviceId.matches(request.auth.uid + '_[a-z0-9]+');
+    }
+
+    // ---- Volunteer agreement ----
+    // Each member signs their own. Only that member and admins can see it.
+    match /agreements/{uid} {
+      allow get: if isAdmin() || (isMember() && request.auth.uid == uid);
+      allow list: if isAdmin();
+      allow create, update: if isMember()
+                            && request.auth.uid == uid
+                            && request.resource.data.uid == uid
+                            && request.resource.data.name is string
+                            && request.resource.data.name.size() <= 100
+                            && request.resource.data.signature is string;
+      allow delete: if isAdmin();
+    }
+
+    // ---- Volunteer profiles: where someone is based and their equipment ----
+    // Each member keeps their own. Only that member and admins can see it.
+    match /profiles/{uid} {
+      allow get: if isAdmin() || (isMember() && request.auth.uid == uid);
+      allow list: if isAdmin();
+      allow create, update: if isMember()
+                            && request.auth.uid == uid
+                            && request.resource.data.uid == uid
+                            && request.resource.data.town is string
+                            && request.resource.data.town.size() <= 80
+                            && request.resource.data.equipment is list
+                            && request.resource.data.equipment.size() <= 30;
+      allow delete: if isAdmin() || (isMember() && request.auth.uid == uid);
+    }
+
+    // ---- App settings (the WhatsApp Community link) ----
+    // Approved members can read them. Only a developer can change them.
+    match /settings/{name} {
+      allow read: if isMember();
+      allow write: if isDeveloper();
+    }
+
+    // ---- Documents (Training, Forms, Guidance) ----
+    // Everyone approved can read approved documents. Admins also see ones waiting for review.
+    // Admins add documents as "pending"; only the developer can add straight in or approve/reject.
+    // Admins (and the developer) can delete. Files are stored in pieces under each document.
+    match /docs/{docId} {
+      allow read: if isAdmin() || (isMember() && resource.data.status == 'approved');
+      allow create: if isAdmin()
+                    && request.resource.data.addedByUid == request.auth.uid
+                    && request.resource.data.category in ['training', 'forms', 'guidance']
+                    && request.resource.data.kind in ['pdf', 'photo']
+                    && (request.resource.data.status == 'pending' || (isDeveloper() && request.resource.data.status == 'approved'));
+      allow update: if isDeveloper();
+      allow delete: if isAdmin();
+
+      match /chunks/{n} {
+        allow read: if isAdmin() || (isMember() && get(/databases/$(database)/documents/docs/$(docId)).data.status == 'approved');
+        allow create, delete: if isAdmin();
+      }
+    }
+
+    // ---- SOP sign-off ----
+    // Approved members can see the list and add their own name once per SOP.
+    // Nobody can edit a sign-off. Only admins can remove one.
+    match /sopReads/{readId} {
+      allow read: if isMember();
+      allow create: if isMember()
+                    && request.resource.data.uid == request.auth.uid
+                    && readId == request.auth.uid + '_' + request.resource.data.sop;
+      allow delete: if isAdmin();
+    }
+  }
+}

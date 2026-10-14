@@ -63,6 +63,24 @@ exports.notify = onCall(async request => {
     return sendTo(await peopleWithRole(['admin', 'developer']), 'Join request', name + ' has asked to join.', SITE + '#members', 'join');
   }
 
+  // An admin has sent a document for review: tell the developer.
+  // The developer has approved or rejected one: tell the admin who added it.
+  if (type === 'doc' || type === 'docReview') {
+    const docId = String((request.data && request.data.docId) || '');
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(docId)) throw new HttpsError('invalid-argument', 'Which document?');
+    const d = await db.collection('docs').doc(docId).get();
+    if (!d.exists) throw new HttpsError('not-found', 'That document is not there.');
+    const doc = d.data(), title = String(doc.title || 'a document').slice(0, 80), link = SITE + '#documents';
+    if (type === 'doc') {
+      if (!['admin', 'developer'].includes(role) || doc.addedByUid !== uid || doc.status !== 'pending') throw new HttpsError('permission-denied', 'Not allowed.');
+      const devs = (await peopleWithRole(['developer'])).filter(id => id !== uid);
+      return sendTo(devs, 'Document to review', String(me.data().name || 'An admin').slice(0, 60) + ' added \u201c' + title + '\u201d.', link, 'doc');
+    }
+    if (role !== 'developer' || !['approved', 'rejected'].includes(doc.status) || !doc.addedByUid || doc.addedByUid === uid) return { sent: 0, failed: 0 };
+    return sendTo([doc.addedByUid], doc.status === 'approved' ? 'Document approved' : 'Document not approved',
+      '\u201c' + title + '\u201d ' + (doc.status === 'approved' ? 'is now in the app.' : 'was not added' + (doc.rejectReason ? ': ' + String(doc.rejectReason).slice(0, 120) : '.')), link, 'docReview');
+  }
+
   // Everything else is for coordinators and admins only.
   if (!['admin', 'developer', 'coordinator'].includes(role)) throw new HttpsError('permission-denied', 'Coordinators and admins only.');
   const dogId = String((request.data && request.data.dogId) || '');
