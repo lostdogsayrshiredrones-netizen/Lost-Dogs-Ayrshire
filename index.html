@@ -1061,7 +1061,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 4.1 · 14 Oct 2026</p>
+  <p class="version">Version 4.2 · 14 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1333,7 +1333,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 4.1 · 14 Oct 2026</p>
+  <p class="version">Version 4.2 · 14 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1567,7 +1567,7 @@
   <div class="card agreement-text">
   <strong class="signed-title">Volunteer Agreement &amp; Liability Disclaimer</strong>
   <p><strong>Organization Name:</strong> LOST DOGS AYRSHIRE<br><strong>Purpose:</strong> Missing Dog Search &amp; Rescue Support</p>
-  <p class="notice"><strong>Important Notice</strong><br>This agreement is binding in honour only. It is a statement of our shared intent and values. It is not intended to be a legally binding contract of employment, and no employment relationship is created between the volunteer and the group.</p>
+  <p class="notice"><strong>Important Notice</strong><br>This agreement is <strong>binding in honour only</strong>. It is a statement of our shared intent and values. It is not intended to be a legally binding contract of employment, and no employment relationship is created between the volunteer and the group.</p>
   <h3>1. Voluntary Participation &amp; Physical Health</h3>
   <ul>
     <li>I understand that participating in outdoor search operations is completely voluntary.</li>
@@ -3459,8 +3459,11 @@ async function equipmentPdf(g, summaryText) {
     x.textAlign = 'right'; x.fillText('Page ' + (n + 1) + ' of ' + pages.length, W - M, H - 46); x.textAlign = 'left';
     jpegs.push(new Uint8Array(await (await new Promise(done => c.toBlob(done, 'image/jpeg', 0.9))).arrayBuffer()));
   }
+  return pagesToPdf(jpegs, W, H);
+}
 
-  // A plain PDF with one full-page picture per page.
+// A plain PDF with one full-page picture per page.
+function pagesToPdf(jpegs, W, H) {
   const enc = new TextEncoder(), parts = [], offsets = [];
   let len = 0;
   const push = d => { const bytes = typeof d === 'string' ? enc.encode(d) : d; parts.push(bytes); len += bytes.length; };
@@ -3535,13 +3538,14 @@ function showVolunteer(uid) {
           h('span', { class: 'chk-name' }, s.name),
           h('span', { class: 'chk-detail' }, r ? 'Read ' + when(r.readAt) : 'Not yet'));
       }))));
-    root.appendChild(live.signed
-      ? h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'agreements/' + uid }, 'Open signed volunteer agreement')
-      : h('p', { class: 'hint' }, 'Volunteer agreement not signed yet.'));
+    if (live.signed) {
+      root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'agreements/' + uid }, 'Open signed volunteer agreement'));
+      root.appendChild(agreementPdfButton(live.signed));
+    } else root.appendChild(h('p', { class: 'hint' }, 'Volunteer agreement not signed yet.'));
   }
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'users', uid), snap => { live.user = snap.exists() ? snap.data() : null; draw(); }, fail));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'profiles', uid), snap => { live.profile = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null; draw(); }, fail));
-  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', uid), snap => { live.signed = snap.exists(); draw(); }, () => {}));
+  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', uid), snap => { live.signed = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null; draw(); }, () => {}));
   state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'sopReads'), fb.where('uid', '==', uid)),
     snap => { live.reads = snap.docs.map(d => d.data({ serverTimestamps: 'estimate' })); draw(); }, () => {}));
 }
@@ -3884,6 +3888,174 @@ function agreementCard(a) {
     h('p', { class: 'signed-when' }, 'Signed in the app' + (a.signedAt ? ' ' + when(a.signedAt) : '') + '.'));
 }
 
+// The whole signed agreement as a plain A4 PDF, laid out like the paper form.
+async function agreementPdf(a) {
+  const W = A4.pxW, H = A4.pxH, M = 190, INK = '#000000', GREY = '#666666', RULE = '#9a9a9a';
+  const font = (w, s, italic) => (italic ? 'italic ' : '') + w + ' ' + s + 'px Arial, Helvetica, "Helvetica Neue", "Liberation Sans", sans-serif';
+  const scratch = document.createElement('canvas').getContext('2d');
+  const tidy = t => String(t || '').replace(/\s+/g, ' ');
+  const SIZE = 27, LINE = 37;
+
+  // Read the agreement wording from the app itself, so the PDF always matches what was signed.
+  const runsOf = el => {
+    const runs = [];
+    const walk = (node, bold) => node.childNodes.forEach(n => {
+      if (n.nodeType === 3) runs.push({ text: tidy(n.textContent), bold });
+      else if (n.nodeName === 'BR') runs.push({ br: true });
+      else walk(n, bold || n.nodeName === 'STRONG' || n.nodeName === 'B');
+    });
+    walk(el, false);
+    return runs;
+  };
+  const blocks = [];
+  const src = $('.agreement-text');
+  if (src) Array.from(src.children).forEach(el => {
+    if (el.classList.contains('signed-title')) return;
+    if (el.nodeName === 'H3') blocks.push({ kind: 'head', text: tidy(el.textContent).trim() });
+    else if (el.nodeName === 'UL') Array.from(el.children).forEach(li => blocks.push({ kind: 'bullet', runs: runsOf(li) }));
+    else if (el.classList.contains('notice')) {
+      const runs = runsOf(el), cut = runs.findIndex(r => r.br);
+      blocks.push({ kind: 'notice-head', text: runs.slice(0, cut).map(r => r.text).join('').trim() });
+      blocks.push({ kind: 'para', runs: runs.slice(cut + 1) });
+      blocks.push({ kind: 'rule' });
+    } else {   // "Organization Name … <br> Purpose …" become two lines with a gap, like the form
+      const runs = runsOf(el); let part = [];
+      runs.concat([{ br: true }]).forEach(r => { if (r.br) { if (part.length) blocks.push({ kind: 'para', runs: part }); part = []; } else part.push(r); });
+    }
+  });
+
+  // Word-wrap mixed bold/plain text into lines of { text, f, w } pieces.
+  const wrap = (runs, size, max, italic) => {
+    const lines = [[]]; let width = 0;
+    runs.forEach(r => {
+      const f = font(r.bold ? 700 : 400, size, italic);
+      scratch.font = f;
+      String(r.text).split(/(\s+)/).forEach(word => {
+        if (!word) return;
+        const space = /^\s+$/.test(word);
+        if (space && !lines[lines.length - 1].length) return;
+        const w = scratch.measureText(space ? ' ' : word).width;
+        if (!space && width + w > max && lines[lines.length - 1].length) { lines.push([]); width = 0; }
+        if (space && width + w > max) return;
+        lines[lines.length - 1].push({ text: space ? ' ' : word, f, w }); width += w;
+      });
+    });
+    lines.forEach(l => { while (l.length && l[l.length - 1].text === ' ') l.pop(); });
+    return lines.filter(l => l.length);
+  };
+
+  const pages = [];
+  let c, x, y;
+  const TOP = 190, BOTTOM = H - 170;
+  const newPage = () => {
+    c = document.createElement('canvas'); c.width = W; c.height = H;
+    x = c.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+    pages.push(c); y = TOP;
+  };
+  const room = need => { if (y + need > BOTTOM) newPage(); };
+  const drawLine = (line, lx, ly) => { x.fillStyle = INK; let px = lx; line.forEach(p => { x.font = p.f; x.fillText(p.text, px, ly); px += p.w; }); };
+  const rule = () => { x.fillStyle = RULE; x.fillRect(M, y, W - 2 * M, 2); };
+  newPage();
+
+  // Heading, as on the paper form
+  x.fillStyle = INK; x.font = font(400, 44); x.fillText('LOST DOGS AYRSHIRE', M, y + 40); y += 76;
+  rule(); y += 50;
+  x.fillStyle = INK; x.font = font(700, 34); x.fillText('VOLUNTEER AGREEMENT & LIABILITY DISCLAIMER', M, y + 30); y += 70;
+
+  blocks.forEach(b => {
+    if (b.kind === 'head' || b.kind === 'notice-head') {
+      const size = b.kind === 'head' ? 34 : 36;
+      room(30 + 48 + LINE * 2);
+      y += 30;
+      x.fillStyle = INK; x.font = font(700, size); x.fillText(b.text, M, y + size);
+      y += size + 26;
+    } else if (b.kind === 'rule') {
+      y += 20; room(60); rule(); y += 30;
+    } else if (b.kind === 'bullet') {
+      const lines = wrap(b.runs, SIZE, W - 2 * M - 80);
+      lines.forEach((l, i) => {
+        room(LINE);
+        if (i === 0) { x.fillStyle = INK; x.beginPath(); x.arc(M + 40, y + 18, 6, 0, Math.PI * 2); x.fill(); }
+        drawLine(l, M + 80, y + 27); y += LINE;
+      });
+    } else {
+      const lines = wrap(b.runs, SIZE, W - 2 * M);
+      lines.forEach(l => { room(LINE); drawLine(l, M, y + 27); y += LINE; });
+      y += 24;
+    }
+  });
+  y += 20; room(60); rule();
+
+  // The signed declaration on its own page, filled in.
+  const load = s => new Promise(done => { if (!s) return done(null); const i = new Image(); i.onload = () => done(i); i.onerror = () => done(null); i.src = s; });
+  const [sig, gSig] = await Promise.all([load(a.signature), load(a.under18 ? a.guardianSignature : '')]);
+  newPage();
+  x.fillStyle = INK; x.font = font(700, 34); x.fillText('Volunteer Declaration & Sign-off', M, y + 34); y += 74;
+  wrap([{ text: 'By signing below, I confirm that I have read, understood, and agree to the terms of this volunteer disclaimer.' }], SIZE, W - 2 * M)
+    .forEach(l => { drawLine(l, M, y + 27); y += LINE; });
+  y += 40;
+  const label = (text, lx, ly) => { x.fillStyle = INK; x.font = font(700, SIZE); x.fillText(text, lx, ly); scratch.font = font(700, SIZE); return lx + scratch.measureText(text).width + 16; };
+  const field = (text, lx, ly, right) => {   // a filled-in blank: the answer sitting on a line
+    x.fillStyle = INK; x.font = font(400, SIZE + 2);
+    x.fillText(tidy(text) || '', lx + 6, ly - 4);
+    x.fillRect(lx, ly + 8, right - lx, 2);
+  };
+  const sigBox = (img, lx, ly, w, hgt) => {   // a signature sitting on a line
+    if (img) { const s = Math.min(w / img.width, hgt / img.height); x.drawImage(img, lx, ly - img.height * s + 6, img.width * s, img.height * s); }
+    x.fillStyle = INK; x.fillRect(lx, ly + 8, w, 2);
+  };
+  const R = W - M, GAP = 74, SIGH = 150;
+
+  y += 30; field(a.name, label('Volunteer Name (Printed):', M, y), y, R); y += GAP;
+  y += SIGH - 30;
+  const after = label('Volunteer Signature:', M, y);
+  sigBox(sig, after, y, 520, SIGH);
+  field(dayText(a.signedDate), label('Date:', after + 560, y), y, R); y += GAP;
+  field(a.emergencyName, label('Emergency Contact Name & Relationship:', M, y), y, R); y += GAP;
+  field(a.emergencyPhone, label('Emergency Contact Phone Number:', M, y), y, R); y += GAP;
+  x.fillStyle = INK; x.font = font(400, SIZE, true);
+  x.fillText('If the volunteer is under 18 years of age, a parent or legal guardian must sign below:', M, y); y += GAP;
+  if (a.under18) {
+    field(a.guardianName, label('Parent/Guardian Name:', M, y), y, R); y += GAP;
+    y += SIGH - 30;
+    sigBox(gSig, label('Parent/Guardian Signature:', M, y), y, 520, SIGH); y += GAP;
+  } else {
+    field('Not applicable', label('Parent/Guardian Name:', M, y), y, R); y += GAP;
+  }
+  y += 30;
+  x.fillStyle = GREY; x.font = font(400, 22);
+  x.fillText('Signed in the Lost Dogs Ayrshire app' + (a.signedAt ? ' ' + when(a.signedAt) : '') + '.', M, y);
+
+  // Small page numbers at the bottom.
+  const saved = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const jpegs = [];
+  for (let n = 0; n < pages.length; n++) {
+    const px = pages[n].getContext('2d');
+    px.fillStyle = GREY; px.font = font(400, 20); px.textAlign = 'left';
+    px.fillText('Saved from the app ' + saved, M, H - 90);
+    px.textAlign = 'right'; px.fillText('Page ' + (n + 1) + ' of ' + pages.length, W - M, H - 90); px.textAlign = 'left';
+    jpegs.push(new Uint8Array(await (await new Promise(done => pages[n].toBlob(done, 'image/jpeg', 0.9))).arrayBuffer()));
+  }
+  return pagesToPdf(jpegs, W, H);
+}
+
+// A "Save as PDF" button for a signed agreement.
+function agreementPdfButton(a) {
+  const msg = h('p', { class: 'form-msg', role: 'status' });
+  const btn = h('button', { class: 'save', type: 'button', onclick: async () => {
+    btn.disabled = true; msg.textContent = 'Making the PDF…';
+    try {
+      const url = URL.createObjectURL(await agreementPdf(a));
+      const safe = String(a.name || 'volunteer').trim().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'volunteer';
+      await saveFile(url, 'lda-agreement-' + safe + '-' + (a.signedDate || todayIso()) + '.pdf');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      msg.textContent = '';
+    } catch (e) { msg.textContent = 'The PDF could not be made. Please try again.'; }
+    btn.disabled = false;
+  } }, 'Save agreement as PDF');
+  return h('div', { class: 'pdf-save' }, btn, msg);
+}
+
 function showAgreement() {
   const fb = state.fb, uid = state.user.uid, ref = fb.doc(fb.db, 'agreements', uid);
   const done = $('#agree-done'), form = $('#agree-form'), msg = $('#agree-msg');
@@ -3990,6 +4162,7 @@ function showAgreements(uid) {
       if (!snap.exists()) { root.appendChild(h('p', { class: 'empty' }, 'This person has no signed form.')); return; }
       const a = snap.data({ serverTimestamps: 'estimate' });
       root.appendChild(agreementCard(a));
+      root.appendChild(agreementPdfButton(a));
       root.appendChild(h('p', { class: 'hint' }, 'Volunteer Agreement & Liability Disclaimer.'));
       root.appendChild(h('button', { class: 'link danger center', type: 'button', onclick: async () => {
         if (!confirm('Delete the signed form for ' + (a.name || 'this person') + '? They will be asked to sign again.')) return;
