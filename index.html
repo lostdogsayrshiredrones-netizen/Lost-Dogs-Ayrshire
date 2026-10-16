@@ -1061,7 +1061,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 4.2 · 14 Oct 2026</p>
+  <p class="version">Version 4.3 · 16 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1333,7 +1333,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 4.2 · 14 Oct 2026</p>
+  <p class="version">Version 4.3 · 16 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -2176,6 +2176,7 @@ function showHome() {
   const fb = state.fb;
   // Live count of active dogs on the Missing Dogs tile.
   state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'dogs'), snap => {
+    startSeenUpdates(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     const n = snap.docs.filter(d => (STATUSES[d.data().status] || {}).active).length;
     const badge = $('#dogs-count');
     badge.textContent = String(n);
@@ -2219,6 +2220,16 @@ function logStatusChange(dogId, from, to) {
     .catch(err => console.warn('Status change not logged:', err && err.message));
 }
 
+// New-update counts. Each dog keeps a running total of updates posted (updateCount).
+// This phone remembers the total it last saw for each dog, so the difference is what is new.
+const seenKey = () => 'lda-seen-updates-' + (state.user ? state.user.uid : '');
+function seenUpdates() { try { return JSON.parse(localStorage.getItem(seenKey()) || 'null'); } catch (e) { return null; } }
+function saveSeenUpdates(m) { try { localStorage.setItem(seenKey(), JSON.stringify(m)); } catch (e) {} }
+// First time on this phone: count everything already there as seen, so only new updates show.
+function startSeenUpdates(dogs) { if (seenUpdates()) return; const m = {}; dogs.forEach(d => { m[d.id] = d.updateCount || 0; }); saveSeenUpdates(m); }
+function markDogSeen(id, count) { const m = seenUpdates() || {}; if (m[id] !== (count || 0)) { m[id] = count || 0; saveSeenUpdates(m); } }
+function newUpdates(d) { const m = seenUpdates() || {}; return Math.max(0, (d.updateCount || 0) - (m[d.id] || 0)); }
+
 function statusBadge(status) {
   const s = STATUSES[status] || { label: status || 'Unknown', active: true };
   return h('span', { class: 'badge ' + (s.active ? 'live' : 'closed') }, s.label);
@@ -2240,11 +2251,15 @@ function showDogs() {
       list.appendChild(h('p', { class: 'empty' }, dogFilter === 'active' ? 'No active dogs at the moment.' : 'No closed cases at the moment.'));
       return;
     }
-    dogs.forEach(d => list.appendChild(
-      h('button', { class: 'tile', 'data-go': 'dog/' + d.id },
+    startSeenUpdates(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    dogs.forEach(d => {
+      const fresh = newUpdates(d);
+      list.appendChild(h('button', { class: 'tile', 'data-go': 'dog/' + d.id, 'aria-label': (d.name || 'Unnamed dog') + (fresh ? ', ' + fresh + (fresh === 1 ? ' new update' : ' new updates') : '') },
         d.thumb ? h('img', { alt: '', src: d.thumb }) : h('span', { class: 'art nophoto' }, pawIcon()),
         h('span', { class: 'tile-name' }, d.name || 'Unnamed dog'),
-        statusBadge(d.status))));
+        statusBadge(d.status),
+        fresh ? h('span', { class: 'count dog-new', title: 'New updates' }, String(fresh)) : null));
+    });
   }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
 }
 
@@ -2277,6 +2292,7 @@ function showDog(id) {
   state.subs.push(fb.onSnapshot(dogRef, snap => {
     if (!snap.exists()) { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, 'This dog is no longer listed.')); live.dog = null; return; }
     live.dog = { id: snap.id, ...snap.data({ serverTimestamps: 'estimate' }) };
+    markDogSeen(id, live.dog.updateCount);     // opening the dog clears its red number
     draw();
   }, err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
   state.subs.push(sub('images', 'asc'), sub('updates', 'desc'), sub('sightings', 'desc'));
@@ -2568,6 +2584,8 @@ function showDog(id) {
             const ref = await fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'),
               { text, byName: state.profile.name || '', createdAt: fb.serverTimestamp() });
             if ($('#update-text')) $('#update-text').value = '';
+            fb.updateDoc(dogRef, { updateCount: fb.increment(1), lastUpdateAt: fb.serverTimestamp() })
+              .catch(err => console.warn('Update count not saved:', err && err.message));
             if (notify) sendPush({ type: 'update', dogId: id, updateId: ref.id });
           } catch (err) { msg.textContent = friendlyError(err); }
         } }, 'Post update')));
