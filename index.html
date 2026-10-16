@@ -206,6 +206,8 @@
     text-transform: uppercase;
   }
 
+  .name-label { font-size: .72em; font-weight: 800; opacity: .8; }
+
   /* Home tiles made from several pictures */
   .tile .art {
     display: grid;
@@ -1061,7 +1063,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 4.3 · 16 Oct 2026</p>
+  <p class="version">Version 4.4 · 16 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1333,7 +1335,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 4.3 · 16 Oct 2026</p>
+  <p class="version">Version 4.4 · 16 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -2256,7 +2258,7 @@ function showDogs() {
       const fresh = newUpdates(d);
       list.appendChild(h('button', { class: 'tile', 'data-go': 'dog/' + d.id, 'aria-label': (d.name || 'Unnamed dog') + (fresh ? ', ' + fresh + (fresh === 1 ? ' new update' : ' new updates') : '') },
         d.thumb ? h('img', { alt: '', src: d.thumb }) : h('span', { class: 'art nophoto' }, pawIcon()),
-        h('span', { class: 'tile-name' }, d.name || 'Unnamed dog'),
+        h('span', { class: 'tile-name' }, h('span', { class: 'name-label' }, 'Name: '), d.name || 'Unnamed dog'),
         statusBadge(d.status),
         fresh ? h('span', { class: 'count dog-new', title: 'New updates' }, String(fresh)) : null));
     });
@@ -2331,7 +2333,7 @@ function showDog(id) {
     const posters = live.images.filter(i => i.kind === 'poster');
     root.textContent = '';
 
-    root.appendChild(h('h2', { class: 'page-title' }, d.name || 'Unnamed dog'));
+    root.appendChild(h('h2', { class: 'page-title' }, h('span', { class: 'name-label' }, 'Name: '), d.name || 'Unnamed dog'));
     root.appendChild(h('p', { class: 'status-line' }, statusBadge(d.status)));
     if (d.statusBy) root.appendChild(h('p', { class: 'status-by' },
       (st.active === false ? 'Closed by ' : 'Status set by ') + d.statusBy + (d.statusAt ? ', ' + when(d.statusAt) : '')));
