@@ -938,6 +938,13 @@
 .team-card .link.danger.center { color: #b01515; }
 .team-card .form-msg { color: #b01515; font-weight: 700; }
 .team-card .hint { text-align: left; color: #3a3152; font-size: .9rem; }
+.team-card .team-kit-title { display: block; margin-top: 12px; color: var(--purple); font-weight: 900; text-transform: uppercase; font-size: .9rem; letter-spacing: .04em; }
+.team-card .team-dups { margin: 6px 0 0; padding: 6px 10px; background: #fff7c2; border-radius: 10px; font-size: .9rem; font-weight: 700; color: #3a3152; }
+.avail-lists .kit-tags { display: block; margin-top: 4px; }
+.avail-lists .feed li { flex-wrap: wrap; }
+.avail-lists .feed li .feed-text { flex: 0 0 auto; overflow-wrap: normal; }
+.avail-lists .feed li .feed-when { flex: 1 1 140px; text-align: right; }
+.avail-lists .feed li .kit-tags { flex-basis: 100%; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -1075,7 +1082,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 4.5 · 17 Oct 2026</p>
+  <p class="version">Version 4.6 · 17 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1347,7 +1354,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 4.5 · 17 Oct 2026</p>
+  <p class="version">Version 4.6 · 17 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -2396,7 +2403,8 @@ function showDog(id) {
           box.appendChild(people.length
             ? h('ul', { class: 'card feed' }, people.map(p => {
                 const note = [detail(p), far(p.id), teamWith(p.id, byTeam, nameOf)].filter(Boolean).join(' \u00b7 ');
-                return h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name'), note ? h('span', { class: 'feed-when' }, note) : null);
+                const t = byTeam.get(p.id), kit = { equipment: mergeKit((t ? t.members : [p.id]).map(u => (live.profiles.get(u) || {}).equipment)).equipment };
+                return h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name'), note ? h('span', { class: 'feed-when' }, note) : null, kitTags(kit));
               }))
             : h('p', { class: 'avail-none' }, 'Nobody'));
         });
@@ -3005,6 +3013,18 @@ function kitTags(profile) {
 const TEAM_MAX = 4;
 function teamsByUid(teams) { const m = new Map(); (teams || []).forEach(t => (t.members || []).forEach(u => m.set(u, t))); return m; }
 const joinNames = names => names.length <= 1 ? (names[0] || '') : names.slice(0, -1).join(', ') + ' & ' + names[names.length - 1];
+// Shared kit: the same serial number on two teammates' profiles is one item, not two.
+const serialKey = r => String((r && r.serial) || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+function mergeKit(lists) {
+  const seen = new Set(), equipment = [], duplicates = [];
+  lists.forEach(list => (list || []).forEach(r => {
+    const k = serialKey(r);
+    if (k && seen.has(k)) { duplicates.push(r); return; }
+    if (k) seen.add(k);
+    equipment.push(r);
+  }));
+  return { equipment, duplicates };
+}
 // Turn a list of people ({ id, name, profile }) into "units": someone on their own, or a team as one
 // entry with its kit combined and the location of the first member who has set one.
 function teamUnits(people, byUid) {
@@ -3016,8 +3036,8 @@ function teamUnits(people, byUid) {
     group.forEach(q => seen.add(q.id));
     if (group.length < 2) { units.push({ ...p, members: [p], team: null }); return; }
     const lead = group.find(q => hasSpot(q.profile)) || group.find(q => q.profile) || group[0];
-    const equipment = group.flatMap(q => (q.profile && q.profile.equipment) || []);
-    units.push({ id: lead.id, name: joinNames(group.map(q => q.name || 'No name')), members: group, team: t,
+    const { equipment, duplicates } = mergeKit(group.map(q => q.profile && q.profile.equipment));
+    units.push({ id: lead.id, name: joinNames(group.map(q => q.name || 'No name')), members: group, team: t, duplicates: duplicates.length,
       profile: lead.profile || equipment.length ? { ...(lead.profile || {}), equipment } : null });
   });
   return units;
@@ -3613,7 +3633,8 @@ async function deleteVolunteer(m, btn) {
 // ---- Admins: one volunteer's profile
 function showVolunteer(uid) {
   const fb = state.fb, root = $('#volunteer-body');
-  const live = { user: undefined, profile: undefined, signed: false, reads: [], teams: [], users: [], picking: false, msg: '' };
+  const live = { user: undefined, profile: undefined, signed: false, reads: [], teams: [], users: [], profiles: new Map(), picking: false, msg: '' };
+  const kitOf = id => (live.profiles.get(id) || {}).equipment || [];
   const roleLabel = { developer: 'Developer', admin: 'Admin', coordinator: 'Coordinator', member: 'Member', pending: 'Waiting for approval', blocked: 'Access removed' };
   const nameOf = id => (live.users.find(x => x.id === id) || {}).name || 'No name';
 
@@ -3626,7 +3647,11 @@ function showVolunteer(uid) {
       box.appendChild(h('p', { class: 'team-line' }, 'Goes out as a team with:'));
       box.appendChild(h('ul', { class: 'team-list' }, t.members.filter(x => x !== uid).map(x =>
         h('li', null, h('button', { class: 'link', type: 'button', 'data-go': 'volunteer/' + x }, nameOf(x) + ' \u203a')))));
-      box.appendChild(h('p', { class: 'hint' }, 'Their equipment is shown together on the Volunteer Map, the nearest-volunteer lists and the Equipment list.'));
+      const merged = mergeKit(t.members.map(kitOf));
+      box.appendChild(h('strong', { class: 'team-kit-title' }, 'Team equipment (shared)'));
+      box.appendChild(kitList({ equipment: merged.equipment }, 'No equipment listed by anyone in the team'));
+      if (merged.duplicates.length) box.appendChild(h('p', { class: 'team-dups' }, merged.duplicates.length + (merged.duplicates.length === 1 ? ' duplicate item' : ' duplicate items') + ' (same serial number on more than one profile) shown once.'));
+      box.appendChild(h('p', { class: 'hint' }, 'The team\u2019s equipment is shown together, once, on the Volunteer Map, the nearest-volunteer lists, availability answers and the Equipment list.'));
     } else {
       box.appendChild(h('p', { class: 'team-line' }, 'Not in a team.'));
     }
@@ -3643,6 +3668,12 @@ function showVolunteer(uid) {
       box.appendChild(h('div', { class: 'row' },
         h('button', { class: 'btn', type: 'button', onclick: async () => {
           if (!sel.value) { say('Choose a volunteer first.'); return; }
+          // Warn about the same kit listed on both sides before linking.
+          const joining = (byUid.get(sel.value) || { members: [sel.value] }).members, mine = t ? t.members : [uid];
+          const mineKeys = new Set(mergeKit(mine.map(kitOf)).equipment.map(serialKey).filter(Boolean));
+          const dups = mergeKit(joining.map(kitOf)).equipment.filter(r => serialKey(r) && mineKeys.has(serialKey(r)));
+          if (dups.length && !confirm('The same equipment is listed by both:\n\n' + dups.map(r => '\u2022 ' + kitName(r).name + ' (serial ' + r.serial + ')').join('\n')
+            + '\n\nTeam equipment will merge and remove duplicate equipment, so each item is only counted once.\n\nOK = Link as a team.  Cancel = Stop.')) return;
           try { await linkTeam(uid, sel.value, byUid, nameOf); live.picking = false; say(''); }
           catch (err) { say(err && err.code === 'permission-denied' ? 'Not ready yet. The new security rules need pasting into Firebase first.' : (err && err.message) || friendlyError(err)); }
         } }, 'Link as a team'),
@@ -3696,6 +3727,7 @@ function showVolunteer(uid) {
   }
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'users', uid), snap => { live.user = snap.exists() ? snap.data() : null; draw(); }, fail));
   state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'users'), snap => { live.users = snap.docs.map(d => ({ id: d.id, ...d.data() })); draw(); }, () => {}));
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'profiles'), snap => { live.profiles = new Map(snap.docs.map(d => [d.id, d.data()])); draw(); }, () => {}));
   watchTeams(teams => { live.teams = teams; draw(); });
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'profiles', uid), snap => { live.profile = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null; draw(); }, fail));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', uid), snap => { live.signed = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null; draw(); }, () => {}));
