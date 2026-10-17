@@ -926,6 +926,18 @@
 .cat-pick .check { margin-top: 4px; }
 .form input[type="radio"] { width: 24px; height: 24px; accent-color: var(--yellow); }
 #docview .read-bar .btn { margin: 0; padding: 8px 16px; }
+
+/* Teams: people an admin has linked */
+.team-mine { display: block; margin-top: 8px; padding: 6px 10px; background: var(--yellow); color: var(--purple); border-radius: 10px; font-weight: 800; font-size: .95rem; }
+.team-card .team-line { margin: 6px 0 2px; font-weight: 700; }
+.team-card .team-list { list-style: none; margin: 2px 0 6px; padding: 0; }
+.team-card .team-list .link { font-size: 1.05rem; }
+.team-card label { display: block; margin-top: 12px; font-weight: 800; }
+.team-card select { width: 100%; margin-top: 4px; padding: 10px 12px; font: inherit; font-weight: 700; color: #1a1a1a; background: #fff; border: 3px solid var(--purple); border-radius: 12px; }
+.team-card .btn.ghost { color: var(--purple); box-shadow: inset 0 0 0 3px var(--purple); }
+.team-card .link.danger.center { color: #b01515; }
+.team-card .form-msg { color: #b01515; font-weight: 700; }
+.team-card .hint { text-align: left; color: #3a3152; font-size: .9rem; }
 </style>
 </head>
 <body>
@@ -1063,7 +1075,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 4.4 · 16 Oct 2026</p>
+  <p class="version">Version 4.5 · 17 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1335,7 +1347,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 4.4 · 16 Oct 2026</p>
+  <p class="version">Version 4.5 · 17 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -2282,7 +2294,7 @@ function showDog(id) {
   const fb = state.fb, root = $('#dog-body');
   const dogRef = fb.doc(fb.db, 'dogs', id);
   const live = { dog: null, images: [], updates: [], sightings: [], map: null, adding: null,
-    mine: null, replies: [], members: [], profiles: new Map(), pickTime: false, timeDraft: '' };
+    mine: null, replies: [], members: [], profiles: new Map(), teams: [], pickTime: false, timeDraft: '' };
   root.textContent = '';
   root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
 
@@ -2309,6 +2321,7 @@ function showDog(id) {
       snap => { live.members = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(m => ACCESS.includes(m.role)); draw(); }, () => {}));
     state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'profiles'),
       snap => { live.profiles = new Map(snap.docs.map(d => [d.id, d.data()])); draw(); }, () => {}));
+    watchTeams(teams => { live.teams = teams; draw(); });
   }
   const answer = async (status, from) => {
     try {
@@ -2370,6 +2383,7 @@ function showDog(id) {
         const replied = new Set(live.replies.map(r => r.id));
         const far = uid => { const pr = live.profiles.get(uid); return hasSpot(pr) && hasSpot(d) ? milesText(milesBetween([pr.lat, pr.lng], [d.lat, d.lng])) + ' away' : ''; };
         const byName = (x, y) => String(x.name || '').localeCompare(String(y.name || ''));
+        const byTeam = teamsByUid(live.teams), nameOf = u => (live.members.find(m => m.id === u) || {}).name;
         const groups = [
           ['Available now', live.replies.filter(r => r.status === 'now').sort(byName), r => 'replied ' + when(r.updatedAt)],
           ['Available later', live.replies.filter(r => r.status === 'later').sort((x, y) => String(x.from).localeCompare(String(y.from)) || byName(x, y)), r => 'from ' + (r.from || '?')],
@@ -2381,7 +2395,7 @@ function showDog(id) {
           box.appendChild(h('h4', null, title + ' (' + people.length + ')'));
           box.appendChild(people.length
             ? h('ul', { class: 'card feed' }, people.map(p => {
-                const note = [detail(p), far(p.id)].filter(Boolean).join(' \u00b7 ');
+                const note = [detail(p), far(p.id), teamWith(p.id, byTeam, nameOf)].filter(Boolean).join(' \u00b7 ');
                 return h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name'), note ? h('span', { class: 'feed-when' }, note) : null);
               }))
             : h('p', { class: 'avail-none' }, 'Nobody'));
@@ -2392,7 +2406,8 @@ function showDog(id) {
 
     // --- Nearest volunteers (admins only), when the dog has a map pin
     if (isAdmin() && hasSpot(d)) {
-      const near = live.members.map(m => ({ m, pr: live.profiles.get(m.id) })).filter(x => hasSpot(x.pr))
+      const units = teamUnits(live.members.map(m => ({ ...m, profile: live.profiles.get(m.id) || null })), teamsByUid(live.teams));
+      const near = units.map(u => ({ m: u, pr: u.profile })).filter(x => hasSpot(x.pr))
         .map(x => ({ ...x, miles: milesBetween([x.pr.lat, x.pr.lng], [d.lat, d.lng]) })).sort((x, y) => x.miles - y.miles);
       const box = h('div', { class: 'admin-box near-box' }, h('h3', null, 'Nearest volunteers (admins only)'));
       box.appendChild(near.length
@@ -2400,7 +2415,7 @@ function showDog(id) {
             h('button', { class: 'vol-person', type: 'button', 'data-go': 'volunteer/' + m.id },
               h('strong', null, m.name || 'No name'),
               h('span', { class: 'vol-miles' }, milesText(miles)),
-              h('span', { class: 'vol-sub' }, pr.town || ''),
+              h('span', { class: 'vol-sub' }, (m.team ? 'Team \u00b7 ' : '') + (pr.town || '')),
               kitTags(pr)))))
         : h('p', { class: 'avail-none' }, 'Nobody has set where they are based yet.'));
       box.appendChild(h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'volunteers/' + id }, 'Open Members & Map'));
@@ -2986,6 +3001,59 @@ function kitTags(profile) {
   const kinds = kitKinds(profile);
   return kinds.length ? h('span', { class: 'kit-tags' }, kinds.map(k => h('span', { class: 'kit-tag' }, KIND_LABEL[k]))) : null;
 }
+// ---- Teams: volunteers an admin has linked because they go out together and share kit.
+const TEAM_MAX = 4;
+function teamsByUid(teams) { const m = new Map(); (teams || []).forEach(t => (t.members || []).forEach(u => m.set(u, t))); return m; }
+const joinNames = names => names.length <= 1 ? (names[0] || '') : names.slice(0, -1).join(', ') + ' & ' + names[names.length - 1];
+// Turn a list of people ({ id, name, profile }) into "units": someone on their own, or a team as one
+// entry with its kit combined and the location of the first member who has set one.
+function teamUnits(people, byUid) {
+  const seen = new Set(), units = [];
+  people.forEach(p => {
+    if (seen.has(p.id)) return;
+    const t = byUid.get(p.id);
+    const group = t ? people.filter(q => t.members.includes(q.id)) : [p];
+    group.forEach(q => seen.add(q.id));
+    if (group.length < 2) { units.push({ ...p, members: [p], team: null }); return; }
+    const lead = group.find(q => hasSpot(q.profile)) || group.find(q => q.profile) || group[0];
+    const equipment = group.flatMap(q => (q.profile && q.profile.equipment) || []);
+    units.push({ id: lead.id, name: joinNames(group.map(q => q.name || 'No name')), members: group, team: t,
+      profile: lead.profile || equipment.length ? { ...(lead.profile || {}), equipment } : null });
+  });
+  return units;
+}
+// "team with Sarah Hunt", using live names where we have them.
+function teamWith(uid, byUid, nameOf) {
+  const t = byUid.get(uid);
+  if (!t) return '';
+  return 'team with ' + joinNames(t.members.filter(u => u !== uid).map(u => (nameOf && nameOf(u)) || (t.names || {})[u] || 'No name'));
+}
+// Admins link two people (joining an existing team if one of them is already in one).
+async function linkTeam(a, b, byUid, nameOf) {
+  const fb = state.fb, ta = byUid.get(a), tb = byUid.get(b);
+  if (ta && tb) throw new Error('Both people are already in a team. Remove one of them from their team first.');
+  const t = ta || tb, joining = ta ? b : a;
+  if (t) {
+    if (t.members.length >= TEAM_MAX) throw new Error('That team is full (' + TEAM_MAX + ' people).');
+    await fb.updateDoc(fb.doc(fb.db, 'teams', t.id), { members: [...t.members, joining], names: { ...(t.names || {}), [joining]: nameOf(joining) }, updatedAt: fb.serverTimestamp() });
+  } else {
+    await fb.addDoc(fb.collection(fb.db, 'teams'), { members: [a, b], names: { [a]: nameOf(a), [b]: nameOf(b) },
+      createdBy: state.profile.name || '', createdAt: fb.serverTimestamp(), updatedAt: fb.serverTimestamp() });
+  }
+}
+async function leaveTeam(uid, t) {
+  const fb = state.fb, ref = fb.doc(fb.db, 'teams', t.id), rest = t.members.filter(u => u !== uid);
+  if (rest.length < 2) return fb.deleteDoc(ref);           // a team of one is no team
+  const names = { ...(t.names || {}) }; delete names[uid];
+  return fb.updateDoc(ref, { members: rest, names, updatedAt: fb.serverTimestamp() });
+}
+// Admins: live list of teams (empty until the rules are in place).
+function watchTeams(cb) {
+  const fb = state.fb;
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'teams'),
+    snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => Array.isArray(t.members))), () => cb([])));
+}
+
 function kitList(profile, emptyText) {
   const items = (profile && profile.equipment) || [];
   if (!items.length) return h('p', { class: 'kit-none' }, emptyText || 'None listed');
@@ -3173,6 +3241,14 @@ function showProfile() {
   $('#profile-who').appendChild(h('strong', null, state.profile.name || 'No name'));
   $('#profile-who').appendChild(h('span', { class: 'member-email' }, state.user.email || ''));
   $('#profile-who').appendChild(h('span', { class: 'badge closed' }, roleLabel[state.profile.role] || state.profile.role));
+  const teamLine = h('span', { class: 'team-mine', hidden: true });
+  $('#profile-who').appendChild(teamLine);
+  state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'teams'), fb.where('members', 'array-contains', uid)), snap => {
+    const t = snap.docs.map(d => d.data()).find(x => Array.isArray(x.members));
+    const others = t ? t.members.filter(u => u !== uid).map(u => (t.names || {})[u] || 'a teammate') : [];
+    teamLine.textContent = others.length ? 'Team: you go out with ' + joinNames(others) + '.' : '';
+    teamLine.hidden = !others.length;
+  }, () => {}));
 
   if (town.options.length === 0) {
     town.appendChild(h('option', { value: '' }, 'Choose…'));
@@ -3303,10 +3379,11 @@ function showVolunteers(dogId) {
     options.forEach(d => dogSelect.appendChild(h('option', { value: d.id, selected: d.id === live.dog },
       (d.name || 'Unnamed dog') + (d.lastSeenPlace ? ', last seen ' + d.lastSeenPlace : ''))));
 
-    const people = live.users.map(u => ({ ...u, profile: live.profiles.get(u.id) || null }));
+    const everyone = live.users.map(u => ({ ...u, profile: live.profiles.get(u.id) || null }));
+    $('#vol-count').textContent = everyone.filter(p => hasSpot(p.profile)).length + ' of ' + everyone.length + ' people have set where they are based.';
+    const people = teamUnits(everyone, teamsByUid(live.teams));    // a team shows as one entry
     const placed = people.filter(p => hasSpot(p.profile));
     const unplaced = people.filter(p => !hasSpot(p.profile));
-    $('#vol-count').textContent = placed.length + ' of ' + people.length + ' people have set where they are based.';
 
     const match = p => !volKit || kitKinds(p.profile).includes(volKit);
     const rows = placed.filter(match).map(p => ({ p, miles: dogAt ? milesBetween([p.profile.lat, p.profile.lng], dogAt) : null }))
@@ -3319,7 +3396,7 @@ function showVolunteers(dogId) {
           h('button', { class: 'vol-person', type: 'button', 'data-go': 'volunteer/' + p.id },
             h('strong', null, p.name || 'No name'),
             h('span', { class: 'vol-miles' }, miles === null ? 'Open ›' : milesText(miles)),
-            h('span', { class: 'vol-sub' }, p.profile.town || ''),
+            h('span', { class: 'vol-sub' }, (p.team ? 'Team · ' : '') + (p.profile.town || '')),
             kitTags(p.profile)))))
       : h('p', { class: 'empty' }, placed.length ? 'Nobody matches that filter.' : 'Nobody has set where they are based yet.'));
     if (unplaced.length && !volKit) {
@@ -3347,8 +3424,9 @@ function showVolunteers(dogId) {
         const m = window.L.marker(at, { icon: window.L.divIcon({ className: '', html: '<span class="vol-pin' + (dim ? ' dim' : '') + '">' + group.length + '</span>', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(map);
         m.bindPopup(h('div', { class: 'vol-popup' },
           h('strong', null, group[0].profile.town || 'Volunteers'),
-          group.map(p => h('button', { class: 'link', type: 'button', onclick: () => go('volunteer/' + p.id) }, (p.name || 'No name') + ' ›'))));
-        if (m.bindTooltip) m.bindTooltip(h('span', null, group.length > 2 ? firstName(group[0]) + ' +' + (group.length - 1) : group.map(firstName).join(', ')),
+          group.flatMap(u => u.members).map(p => h('button', { class: 'link', type: 'button', onclick: () => go('volunteer/' + p.id) }, (p.name || 'No name') + ' ›'))));
+        const label = u => u.team ? joinNames(u.members.map(firstName)) : firstName(u);   // "Darren & Sarah"
+        if (m.bindTooltip) m.bindTooltip(h('span', null, group.length > 2 ? label(group[0]) + ' +' + (group.length - 1) : group.map(label).join(', ')),
           { permanent: true, direction: 'right', offset: [14, 0], className: 'vol-tip' });
       });
       if (all.length === 1) map.setView(all[0], 11);
@@ -3362,6 +3440,8 @@ function showVolunteers(dogId) {
     snap => { live.profiles = new Map(snap.docs.map(d => [d.id, d.data()])); draw(); }, fail));
   state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'dogs'),
     snap => { live.dogs = snap.docs.map(d => ({ id: d.id, ...d.data() })); draw(); }, () => {}));
+  live.teams = [];
+  watchTeams(teams => { live.teams = teams; draw(); });
 }
 
 // ---- Admins: everyone's equipment on one page, and as a PDF to save or share
@@ -3374,15 +3454,16 @@ function showEquipment() {
   const byName = (x, y) => String(x.name || '').localeCompare(String(y.name || ''));
 
   function gather() {
-    const people = live.users.map(u => ({ ...u, profile: live.profiles.get(u.id) || null })).sort(byName);
+    const people = teamUnits(live.users.map(u => ({ ...u, profile: live.profiles.get(u.id) || null })).sort(byName), teamsByUid(live.teams));
     const withKit = people.filter(p => p.profile && (p.profile.equipment || []).length);
     const without = people.filter(p => !(p.profile && (p.profile.equipment || []).length));
     const counts = { thermal: 0, drone: 0, scanner: 0, other: 0 };
     withKit.forEach(p => p.profile.equipment.forEach(r => counts[kitKinds({ equipment: [r] })[0]]++));
     const items = withKit.reduce((n, p) => n + p.profile.equipment.length, 0);
-    return { people, withKit, without, counts, items };
+    const holders = withKit.reduce((n, p) => n + p.members.length, 0);   // a team of two counts as two people
+    return { people, withKit, without, counts, items, holders };
   }
-  const summary = g => [g.items + (g.items === 1 ? ' item' : ' items') + ' held by ' + g.withKit.length + (g.withKit.length === 1 ? ' volunteer' : ' volunteers'),
+  const summary = g => [g.items + (g.items === 1 ? ' item' : ' items') + ' held by ' + g.holders + (g.holders === 1 ? ' volunteer' : ' volunteers'),
     ['thermal', 'drone', 'scanner', 'other'].filter(k => g.counts[k]).map(k => g.counts[k] + ' ' + KIND_LABEL[k].toLowerCase() + (g.counts[k] === 1 ? '' : 's')).join(', ')].filter(Boolean).join(': ');
 
   function draw() {
@@ -3406,7 +3487,7 @@ function showEquipment() {
     g.withKit.forEach(p => root.appendChild(h('div', { class: 'card equip-card' },
       h('div', { class: 'equip-head' },
         h('button', { class: 'link', type: 'button', 'data-go': 'volunteer/' + p.id }, p.name || 'No name'),
-        h('span', null, p.profile.town || '')),
+        h('span', null, (p.team ? 'Team \u00b7 ' : '') + (p.profile.town || ''))),
       kitList(p.profile))));
     if (g.without.length) {
       root.appendChild(h('h3', { class: 'section' }, 'No equipment listed (' + g.without.length + ')'));
@@ -3417,6 +3498,8 @@ function showEquipment() {
     snap => { live.users = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(u => ACCESS.includes(u.role)); draw(); }, fail));
   state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'profiles'),
     snap => { live.profiles = new Map(snap.docs.map(d => [d.id, d.data()])); draw(); }, fail));
+  live.teams = [];
+  watchTeams(teams => { live.teams = teams; draw(); });
 }
 
 // Draw the equipment list onto A4 pages and wrap them in a PDF.
@@ -3515,6 +3598,10 @@ async function deleteVolunteer(m, btn) {
   if (!confirm('Are you sure you want to remove ' + who + ' and all associated documents?\n\nTheir profile, equipment, signed agreement, SOP sign-offs, availability replies and sign-in will be deleted. This cannot be undone.')) return;
   btn.disabled = true; btn.textContent = 'Deleting\u2026';
   try {
+    try {      // take them out of any team first
+      const fb = state.fb, snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'teams'), fb.where('members', 'array-contains', m.id)));
+      for (const d of snap.docs) await leaveTeam(m.id, { id: d.id, ...d.data() });
+    } catch (e) { console.warn('Team not updated:', e && e.message); }
     await callFunction('deleteVolunteer', { uid: m.id });
     alert(who + ' and all their information have been deleted.');
   } catch (err) {
@@ -3526,8 +3613,51 @@ async function deleteVolunteer(m, btn) {
 // ---- Admins: one volunteer's profile
 function showVolunteer(uid) {
   const fb = state.fb, root = $('#volunteer-body');
-  const live = { user: undefined, profile: undefined, signed: false, reads: [] };
+  const live = { user: undefined, profile: undefined, signed: false, reads: [], teams: [], users: [], picking: false, msg: '' };
   const roleLabel = { developer: 'Developer', admin: 'Admin', coordinator: 'Coordinator', member: 'Member', pending: 'Waiting for approval', blocked: 'Access removed' };
+  const nameOf = id => (live.users.find(x => x.id === id) || {}).name || 'No name';
+
+  // Team: who this person goes out with. Only admins can link or unlink.
+  function teamCard() {
+    const byUid = teamsByUid(live.teams), t = byUid.get(uid);
+    const box = h('div', { class: 'card signed-form team-card' }, h('strong', { class: 'signed-title' }, 'Team'));
+    const say = text => { live.msg = text; draw(); };
+    if (t) {
+      box.appendChild(h('p', { class: 'team-line' }, 'Goes out as a team with:'));
+      box.appendChild(h('ul', { class: 'team-list' }, t.members.filter(x => x !== uid).map(x =>
+        h('li', null, h('button', { class: 'link', type: 'button', 'data-go': 'volunteer/' + x }, nameOf(x) + ' \u203a')))));
+      box.appendChild(h('p', { class: 'hint' }, 'Their equipment is shown together on the Volunteer Map, the nearest-volunteer lists and the Equipment list.'));
+    } else {
+      box.appendChild(h('p', { class: 'team-line' }, 'Not in a team.'));
+    }
+    const inTeam = new Set(t ? t.members : [uid]);
+    const options = live.users.filter(x => ACCESS.includes(x.role) && !inTeam.has(x.id))
+      .filter(x => { const o = byUid.get(x.id); return t ? !o : !o || o.members.length < TEAM_MAX; })
+      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+    const full = t && t.members.length >= TEAM_MAX;
+    if (live.picking) {
+      const sel = h('select', { id: 'team-pick', onchange: e => { live.pickValue = e.target.value; } }, h('option', { value: '' }, 'Choose a volunteer\u2026'),
+        options.map(x => h('option', { value: x.id, selected: x.id === live.pickValue }, (x.name || 'No name') + (byUid.get(x.id) ? ' (' + teamWith(x.id, byUid, nameOf) + ')' : ''))));
+      box.appendChild(h('label', { for: 'team-pick' }, t ? 'Add someone to this team' : 'Link ' + (live.user.name || 'this person') + ' with'));
+      box.appendChild(sel);
+      box.appendChild(h('div', { class: 'row' },
+        h('button', { class: 'btn', type: 'button', onclick: async () => {
+          if (!sel.value) { say('Choose a volunteer first.'); return; }
+          try { await linkTeam(uid, sel.value, byUid, nameOf); live.picking = false; say(''); }
+          catch (err) { say(err && err.code === 'permission-denied' ? 'Not ready yet. The new security rules need pasting into Firebase first.' : (err && err.message) || friendlyError(err)); }
+        } }, 'Link as a team'),
+        h('button', { class: 'btn ghost', type: 'button', onclick: () => { live.picking = false; say(''); } }, 'Cancel')));
+    } else if (!full) {
+      box.appendChild(h('button', { class: 'btn wide' + (t ? ' ghost' : ''), type: 'button', onclick: () => { live.picking = true; say(''); } },
+        t ? 'Add someone to this team' : 'Link as a team'));
+    }
+    if (t) box.appendChild(h('button', { class: 'link danger center', type: 'button', onclick: async () => {
+      if (!confirm('Remove ' + nameOf(uid) + ' from this team?' + (t.members.length === 2 ? '\n\nThe team will end, as only one person would be left.' : ''))) return;
+      try { await leaveTeam(uid, t); say(''); } catch (err) { say(friendlyError(err)); }
+    } }, 'Remove ' + nameOf(uid) + ' from this team'));
+    if (live.msg) box.appendChild(h('p', { class: 'form-msg' }, live.msg));
+    return box;
+  }
   root.textContent = '';
   root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
   const fail = err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, err && err.code === 'permission-denied' ? 'Not ready yet. The new security rules need pasting into Firebase first.' : friendlyError(err))); };
@@ -3547,6 +3677,7 @@ function showVolunteer(uid) {
       if (p.updatedAt) root.appendChild(h('p', { class: 'hint' }, 'Profile last changed ' + when(p.updatedAt)));
       if (hasSpot(p)) root.appendChild(h('a', { class: 'btn wide ghost', href: 'https://www.google.com/maps?q=' + p.lat + ',' + p.lng, target: '_blank', rel: 'noopener' }, 'Open ' + (p.town || 'location') + ' in Maps'));
     }
+    root.appendChild(teamCard());
     // SOP sign-offs, one line per SOP
     const sops = $$('section[data-sop]').map(s => ({ id: s.id, name: $('.page-title', s).textContent }));
     root.appendChild(h('div', { class: 'card signed-form' },
@@ -3564,6 +3695,8 @@ function showVolunteer(uid) {
     } else root.appendChild(h('p', { class: 'hint' }, 'Volunteer agreement not signed yet.'));
   }
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'users', uid), snap => { live.user = snap.exists() ? snap.data() : null; draw(); }, fail));
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'users'), snap => { live.users = snap.docs.map(d => ({ id: d.id, ...d.data() })); draw(); }, () => {}));
+  watchTeams(teams => { live.teams = teams; draw(); });
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'profiles', uid), snap => { live.profile = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null; draw(); }, fail));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', uid), snap => { live.signed = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null; draw(); }, () => {}));
   state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'sopReads'), fb.where('uid', '==', uid)),
