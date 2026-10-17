@@ -170,3 +170,126 @@ exports.deleteVolunteer = onCall(async request => {
   catch (e) { if (!e || e.code !== 'auth/user-not-found') throw new HttpsError('internal', 'Their records were deleted but their sign-in could not be. Try again.'); }
   return { deleted: true };
 });
+
+// ---- Facebook: post a poster to the Lost Dogs Ayrshire Page ----
+// The Page's key is kept in fbsecret/page, which the app itself can never read (the security rules
+// allow no access at all). Only these functions use it. settings/facebook holds what the app may show:
+// whether a Page is linked, its name and when.
+const GRAPH = 'https://graph.facebook.com/';
+const FB_ROLES = ['coordinator', 'admin', 'developer'];
+
+async function graph(method, path, params) {
+  const url = GRAPH + path;
+  let res;
+  if (method === 'GET') res = await fetch(url + '?' + new URLSearchParams(params));
+  else res = await fetch(url, { method, body: params });
+  let json = {};
+  try { json = await res.json(); } catch (e) {}
+  if (!res.ok || json.error) {
+    const e = json.error || {};
+    const err = new Error(e.message || ('Facebook said ' + res.status));
+    err.fb = e;
+    throw err;
+  }
+  return json;
+}
+// Turn a Facebook problem into a message a volunteer can act on.
+function fbProblem(err) {
+  const e = (err && err.fb) || {};
+  if (e.code === 190 || e.code === 102 || e.type === 'OAuthException' && /session|token|expired|password/i.test(e.message || ''))
+    return new HttpsError('failed-precondition', 'The Facebook link needs renewing. Ask the developer to link Facebook again.');
+  if (e.code === 10 || e.code === 200 || (e.code >= 200 && e.code < 300))
+    return new HttpsError('permission-denied', 'Facebook did not allow the post. Ask the developer to link Facebook again.');
+  if (e.code === 4 || e.code === 17 || e.code === 32 || e.code === 368)
+    return new HttpsError('resource-exhausted', 'Facebook is limiting posts right now. Please try again later.');
+  return new HttpsError('unavailable', 'Facebook could not be reached' + (e.message ? ': ' + String(e.message).slice(0, 200) : '.'));
+}
+async function caller(request, roles) {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in first.');
+  const me = await admin.firestore().collection('users').doc(request.auth.uid).get();
+  if (!me.exists || !roles.includes(me.data().role)) throw new HttpsError('permission-denied', 'Not allowed.');
+  return { uid: request.auth.uid, name: String(me.data().name || '').slice(0, 80) };
+}
+
+// The developer links (or unlinks) the Page. They paste the App ID and App secret from their Meta app
+// and a user token from the Graph API Explorer; this swaps it for a Page key that does not expire.
+exports.facebookLink = onCall({ timeoutSeconds: 60 }, async request => {
+  const me = await caller(request, ['developer']);
+  const db = admin.firestore(), d = request.data || {};
+  if (d.unlink) {
+    await db.collection('fbsecret').doc('page').delete();
+    await db.collection('settings').doc('facebook').set({ connected: false, unlinkedAt: admin.firestore.FieldValue.serverTimestamp(), unlinkedBy: me.name });
+    return { unlinked: true };
+  }
+  const appId = String(d.appId || '').trim(), appSecret = String(d.appSecret || '').trim(), userToken = String(d.userToken || '').trim();
+  if (!/^\d{5,25}$/.test(appId)) throw new HttpsError('invalid-argument', 'The App ID should be a long number.');
+  if (!/^[A-Za-z0-9]{16,64}$/.test(appSecret)) throw new HttpsError('invalid-argument', 'The App secret does not look right.');
+  if (userToken.length < 20 || /\s/.test(userToken)) throw new HttpsError('invalid-argument', 'The access token does not look right.');
+  let pages;
+  try {
+    const long = await graph('GET', 'oauth/access_token', { grant_type: 'fb_exchange_token', client_id: appId, client_secret: appSecret, fb_exchange_token: userToken });
+    pages = (await graph('GET', 'me/accounts', { fields: 'id,name,access_token,tasks', limit: '100', access_token: long.access_token })).data || [];
+  } catch (err) {
+    throw new HttpsError('failed-precondition', 'Facebook did not accept those details' + (err.fb && err.fb.message ? ': ' + String(err.fb.message).slice(0, 200) : '.'));
+  }
+  pages = pages.filter(p => p.access_token);
+  if (!pages.length) throw new HttpsError('failed-precondition', 'No Pages were found. Make sure you ticked your Page and the three permissions when making the token.');
+  const pageId = String(d.pageId || '');
+  const page = pageId ? pages.find(p => p.id === pageId) : (pages.length === 1 ? pages[0] : null);
+  if (!page) return { choose: pages.map(p => ({ id: p.id, name: p.name })) };
+  if (Array.isArray(page.tasks) && !page.tasks.includes('CREATE_CONTENT'))
+    throw new HttpsError('permission-denied', 'Your account cannot post on ' + page.name + '. You need full control of the Page.');
+  await db.collection('fbsecret').doc('page').set({ pageId: page.id, pageName: page.name, token: page.access_token, linkedAt: admin.firestore.FieldValue.serverTimestamp(), linkedBy: me.name });
+  await db.collection('settings').doc('facebook').set({ connected: true, pageId: page.id, pageName: page.name, linkedAt: admin.firestore.FieldValue.serverTimestamp(), linkedBy: me.name });
+  return { linked: true, pageName: page.name };
+});
+
+// Coordinators and admins post a poster (and optionally the dog's photo) with its text.
+exports.facebookPost = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async request => {
+  const me = await caller(request, FB_ROLES);
+  const db = admin.firestore(), d = request.data || {};
+  const message = String(d.message || '').trim();
+  const images = Array.isArray(d.images) ? d.images : [];
+  if (!message) throw new HttpsError('invalid-argument', 'Write the post text first.');
+  if (message.length > 5000) throw new HttpsError('invalid-argument', 'The post text is too long.');
+  if (images.length < 1 || images.length > 2 || !images.every(b => typeof b === 'string' && /^[A-Za-z0-9+/=]+$/.test(b) && b.length < 6e6))
+    throw new HttpsError('invalid-argument', 'The pictures could not be read.');
+  const dogId = d.dogId ? String(d.dogId) : '';
+  if (dogId && !/^[A-Za-z0-9_-]{1,64}$/.test(dogId)) throw new HttpsError('invalid-argument', 'Which dog?');
+  const dogRef = dogId ? db.collection('dogs').doc(dogId) : null;
+  if (dogRef && !(await dogRef.get()).exists) throw new HttpsError('not-found', 'That dog is not listed.');
+  const secret = await db.collection('fbsecret').doc('page').get();
+  if (!secret.exists || !secret.data().token) throw new HttpsError('failed-precondition', 'Facebook is not linked yet. Ask the developer to link it.');
+  const { pageId, token } = secret.data();
+
+  const photo = async (b64, published, caption) => {
+    const form = new FormData();
+    form.append('source', new Blob([Buffer.from(b64, 'base64')], { type: 'image/jpeg' }), 'poster.jpg');
+    form.append('published', published ? 'true' : 'false');
+    if (caption) form.append('caption', caption);
+    form.append('access_token', token);
+    return graph('POST', pageId + '/photos', form);
+  };
+  let postId;
+  try {
+    if (images.length === 1) {
+      const r = await photo(images[0], true, message);
+      postId = r.post_id || r.id;
+    } else {
+      const ids = [];
+      for (const b of images) ids.push((await photo(b, false)).id);
+      const form = new URLSearchParams({ message, access_token: token });
+      ids.forEach((id, i) => form.append('attached_media[' + i + ']', JSON.stringify({ media_fbid: id })));
+      postId = (await graph('POST', pageId + '/feed', form)).id;
+    }
+  } catch (err) { throw fbProblem(err); }
+
+  const parts = String(postId || '').split('_');
+  const link = parts.length === 2 ? 'https://www.facebook.com/' + parts[0] + '/posts/' + parts[1] : 'https://www.facebook.com/' + postId;
+  const what = String(d.label || 'poster').slice(0, 60);
+  if (dogRef) {
+    await dogRef.update({ fbPostId: postId, fbLink: link, fbPostedAt: admin.firestore.FieldValue.serverTimestamp(), fbPostedBy: me.name });
+    await dogRef.collection('updates').add({ kind: 'facebook', text: 'Posted to the Facebook Page (' + what + ').', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+  }
+  return { postId, link };
+});

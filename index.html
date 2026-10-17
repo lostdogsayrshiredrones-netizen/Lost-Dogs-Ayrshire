@@ -379,6 +379,8 @@
   [hidden] { display: none !important; }
   .admin-only { display: none !important; }
   body.is-admin .admin-only { display: block !important; }
+  .dev-only { display: none !important; }
+  body.is-dev .dev-only { display: block !important; }
   .coord-only { display: none !important; }
   body.is-coord .coord-only { display: block !important; }
 
@@ -945,6 +947,31 @@
 .avail-lists .feed li .feed-text { flex: 0 0 auto; overflow-wrap: normal; }
 .avail-lists .feed li .feed-when { flex: 1 1 140px; text-align: right; }
 .avail-lists .feed li .kit-tags { flex-basis: 100%; margin-top: 2px; }
+
+/* Facebook posting (5.0) */
+.fb-box { margin-top: 16px; padding: 14px; border: 3px dashed var(--yellow); border-radius: 16px; }
+.fb-box .field-help { color: #e9e2ff; margin-top: 8px; }
+.btn.fb-btn { margin-top: 0; background: var(--white); color: var(--purple-deep); box-shadow: none; }
+.fb-to { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--purple-deep); border-radius: 12px; margin-bottom: 12px; }
+.fb-to img { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--yellow); }
+.fb-to span { display: block; font-size: .85rem; font-weight: 700; color: #d9ccff; }
+.fb-to strong { font-size: 1rem; }
+.fb-pics { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 4px 0 12px; }
+.fb-pics figure { margin: 0; text-align: center; }
+.fb-pics img { width: 150px; height: 150px; object-fit: cover; border: 3px solid var(--yellow); border-radius: 10px; display: block; }
+.fb-pics figcaption { font-size: .78rem; font-weight: 800; color: #d9ccff; margin-top: 4px; }
+.fb-note { font-size: .92rem; line-height: 1.4; color: #e9e2ff; margin: 0 0 10px; }
+.fb-warn { padding: 10px 12px; background: #fff7c2; color: #3a3152; border-radius: 12px; font-weight: 700; font-size: .92rem; margin: 0 0 12px; }
+#fbpost textarea, #facebook textarea, #facebook input, #facebook select { width: 100%; box-sizing: border-box; padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; background: #fff; color: #1a1a1a; font: inherit; font-size: .95rem; line-height: 1.45; }
+#fbpost label, #facebook label { display: block; margin: 12px 0 4px; font-weight: 800; }
+.fb-done { text-align: center; padding: 10px 0; }
+.fb-done .tick { width: 96px; height: 96px; margin: 10px auto 14px; border-radius: 50%; background: var(--yellow); display: flex; align-items: center; justify-content: center; }
+.fb-done h3 { color: var(--yellow); font-size: 1.6rem; font-weight: 900; text-transform: uppercase; margin: 0 0 6px; }
+.fb-posted { display: flex; gap: 12px; align-items: center; padding: 12px 14px; margin: 12px 0; background: var(--white); color: #1c1530; border-radius: 14px; }
+.fb-posted .ok { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; background: #1d8a3a; display: flex; align-items: center; justify-content: center; }
+.fb-posted a { color: var(--purple-deep); font-weight: 800; }
+.fb-status { padding: 12px 14px; background: var(--white); color: #1c1530; border-radius: 14px; margin-bottom: 12px; line-height: 1.45; }
+.fb-steps { padding-left: 20px; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -1082,7 +1109,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 4.7 · 17 Oct 2026</p>
+  <p class="version">Version 5.0 · 17 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1354,7 +1381,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 4.7 · 17 Oct 2026</p>
+  <p class="version">Version 5.0 · 17 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1435,15 +1462,34 @@
     <label for="dog-notes">Important instructions</label>
     <textarea id="dog-notes" name="notes" rows="2" placeholder="e.g. Do not approach, call or chase. Report sightings only."></textarea>
     <button class="save" id="dog-save" type="submit">Save</button>
+    <div class="fb-box fb-only fb-new-only" hidden>
+      <button class="btn wide fb-btn" id="dog-save-fb" type="button">Save and post to Facebook</button>
+      <p class="field-help">Saves the dog as normal (the team is alerted), then shows the right poster and text for this status to check before posting.</p>
+    </div>
     <p class="form-msg" id="dog-form-msg" role="status"></p>
   </form>
   <p class="hint"></p>
+</section>
+
+<!-- ================= FACEBOOK: CHECK BEFORE POSTING ================= -->
+<section class="screen" id="fbpost">
+  <button class="back" id="fbpost-back" data-go="home">&larr; Back</button>
+  <h2 class="page-title">Check before posting</h2>
+  <div id="fbpost-body"></div>
+</section>
+
+<!-- ================= FACEBOOK PAGE LINK (developer) ================= -->
+<section class="screen" id="facebook">
+  <button class="back" data-go="members">&larr; Access &amp; Roles</button>
+  <h2 class="page-title">Facebook Page link</h2>
+  <div id="facebook-body"></div>
 </section>
 
 <!-- ================= MEMBERS (admins) ================= -->
 <section class="screen" id="members">
   <button class="back" data-go="home">&larr; Home</button>
   <h2 class="page-title">Access &amp; Roles</h2>
+  <button class="btn wide ghost dev-only" type="button" data-go="facebook" style="margin:0 0 16px">Facebook Page link</button>
   <p class="intro" id="member-total"></p>
   <ul id="member-list"></ul>
   <p class="hint"></p>
@@ -1494,6 +1540,10 @@
   </form>
   <button class="save" id="poster-save" type="button">Save to device</button>
   <p class="form-msg" id="poster-msg" role="status"></p>
+  <div class="fb-box fb-only" hidden>
+    <button class="btn wide fb-btn" id="poster-fb" type="button">Post to our Facebook Page</button>
+    <p class="field-help">Posts the square poster with ready-written text to the Page. You check it first.</p>
+  </div>
   <p class="hint">The watermark is added to the photo automatically.</p>
 </section>
 
@@ -1907,6 +1957,7 @@ function go(route) {
 function render() {
   clearSubs();
   document.body.classList.toggle('is-admin', isAdmin());
+  document.body.classList.toggle('is-dev', isDev());
   document.body.classList.toggle('is-coord', isCoord());
 
   // Not connected yet / not signed in / not approved: those screens take over.
@@ -1928,6 +1979,8 @@ function render() {
   if (name === 'agreement') { activate('profile'); showProfile(); return setTimeout(() => { const el = $('#profile-agreement'); if (el) el.scrollIntoView({ block: 'start' }); }, 300); }
   if (name === 'profile')   { activate('profile');  return showProfile(); }
   if (name === 'whatsapp')  { activate('whatsapp'); return showWhatsApp(); }
+  if (name === 'fbpost')    { if (!isCoord()) return go('home'); activate('fbpost'); return showFacebookPost(arg); }
+  if (name === 'facebook')  { if (!isDev()) return go('home'); activate('facebook'); return showFacebookLink(); }
   if (name === 'documents') { if (arg) { activate('doclist'); return showDocList(arg); } activate('documents'); return showDocuments(); }
   if (name === 'document')  { activate('docview'); return showDocument(arg); }
   if (name === 'doc-add')   { if (!isAdmin()) return go('documents'); activate('doc-add'); return showDocAdd(); }
@@ -2492,6 +2545,16 @@ function showDog(id) {
       root.appendChild(box);
     }
 
+    // --- Facebook: posted already, and a button to post (coordinators and admins, once a Page is linked)
+    if (d.fbPostId && isCoord()) {
+      root.appendChild(h('div', { class: 'fb-posted' },
+        h('span', { class: 'ok' }, tickIcon('#ffffff', 24)),
+        h('div', null, h('strong', null, 'Posted to Facebook'), h('br'),
+          [when(d.fbPostedAt), d.fbPostedBy ? 'by ' + d.fbPostedBy : ''].filter(Boolean).join(' '), h('br'),
+          d.fbLink ? h('a', { href: d.fbLink, target: '_blank', rel: 'noopener' }, 'Open the post on Facebook') : null)));
+    }
+    if (canPostFacebook()) root.appendChild(h('button', { class: 'btn wide fb-btn', type: 'button', style: 'margin:12px 0', 'data-go': 'fbpost/' + id }, d.fbPostId ? 'Post to Facebook again' : 'Post to Facebook'));
+
     // --- Details
     const rows = [
       ['Breed', d.breed], ['Colour', d.colour], ['Sex', d.sex], ['Age', d.age],
@@ -2678,9 +2741,15 @@ function showDogEdit(id) {
   const fb = state.fb, form = $('#dog-form'), msg = $('#dog-form-msg');
   const isNew = !id || id === 'new';
   const edit = { photo: null, thumb: null, spot: null, marker: null, map: null, existingThumb: null };
+  fbNewDog = isNew; fbAfterSave = false; drawFacebookButtons();
   $('#dog-edit-title').textContent = isNew ? 'Add a dog' : 'Edit details';
   $('#dog-edit-back').setAttribute('data-go', isNew ? 'dogs' : 'dog/' + id);
   form.reset();
+  // A new dog can only be Missing, Loose dog or Found; the closing statuses are for later, when editing.
+  const statusBox = form.elements.status;
+  statusBox.textContent = '';
+  Object.entries(STATUSES).filter(([, st]) => !isNew || st.active).forEach(([k, st]) => statusBox.appendChild(h('option', { value: k }, st.label)));
+  statusBox.value = 'missing';
   msg.textContent = '';
   $('#dog-photo-preview').hidden = true;
   state.subs.push(() => { if (edit.map) { edit.map.remove(); edit.map = null; } });
@@ -2746,6 +2815,8 @@ function showDogEdit(id) {
 
   form.onsubmit = async e => {
     e.preventDefault();
+    const thenFacebook = fbAfterSave && isNew && canPostFacebook();
+    fbAfterSave = false;
     const v = k => (form.elements[k] ? form.elements[k].value.trim() : '');
     if (!v('name')) { msg.textContent = 'Enter the dog\'s name (or a short description if unknown).'; return; }
     const data = {
@@ -2776,6 +2847,7 @@ function showDogEdit(id) {
       if (isNew) sendPush({ type: 'dog', dogId });
       else if (data.askAvailability && !edit.wasAsking) sendPush({ type: 'availability', dogId });
       btn.disabled = false;
+      if (thenFacebook) { fbDraft = { justSaved: dogId }; go('fbpost/' + dogId); return; }
       go('dog/' + dogId);
     } catch (err) {
       btn.disabled = false;
@@ -5044,6 +5116,248 @@ function initPosterMaker() {
 initPosterMaker();
 
 // ============================================================
+//  Facebook (5.0): post a poster and its text to the Lost Dogs Ayrshire Page.
+//  The Page key lives on the server; the app only knows whether a Page is linked.
+// ============================================================
+let fbSetting = { connected: false }, fbSub = null, fbNewDog = false, fbDraft = null, fbAfterSave = false;
+const POSTER_NAMES = { 'loose-dog': 'Loose Dog', 'found-dog': 'Found Dog', 'reunited': 'Reunited', 'home-safe': 'Home Safe', 'no-further-sightings': 'No Further Sightings', 'paws-down': 'Paws Down' };
+$('#dog-save-fb').addEventListener('click', () => { fbAfterSave = true; $('#dog-form').dispatchEvent(new Event('submit', { cancelable: true })); });
+function watchFacebook() {
+  if (fbSub) { try { fbSub(); } catch (e) {} fbSub = null; }
+  fbSetting = { connected: false };
+  drawFacebookButtons();
+  if (!state.fb || !isMember()) return;
+  const fb = state.fb;
+  fbSub = fb.onSnapshot(fb.doc(fb.db, 'settings', 'facebook'),
+    snap => { fbSetting = snap.exists() ? snap.data() : { connected: false }; drawFacebookButtons(); },
+    () => { fbSetting = { connected: false }; drawFacebookButtons(); });
+}
+const canPostFacebook = () => isCoord() && !!fbSetting.connected;
+function drawFacebookButtons() {
+  $$('.fb-only').forEach(el => { el.hidden = !canPostFacebook() || (el.classList.contains('fb-new-only') && !fbNewDog); });
+}
+let fbCallers = {};
+async function callFacebook(name, data) {
+  if (!fbCallers[name]) {
+    const f = await import(FIREBASE + 'firebase-functions.js');
+    fbCallers[name] = f.httpsCallable(f.getFunctions(state.fb.app, PUSH_REGION), name, { timeout: 150000 });
+  }
+  return fbCallers[name](data);
+}
+const fbError = err => {
+  const code = String((err && err.code) || '').replace('functions/', '');
+  if (code === 'not-found' && /function/i.test((err && err.message) || '')) return 'Facebook posting is not set up yet. Run the Cloud Shell line first.';
+  if (code === 'internal' || code === 'unavailable' && !(err && err.message)) return 'Could not reach the server. Check your signal and try again.';
+  return (err && err.message) || 'Something went wrong. Please try again.';
+};
+
+// A picture as JPEG, no wider or taller than max, for posting.
+function loadImage(src) {
+  return new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = () => reject(new Error('image')); i.src = src; });
+}
+async function asJpeg(src, max) {
+  const img = await loadImage(src);
+  const s = Math.min(1, max / Math.max(img.width, img.height));
+  const c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.88);
+}
+
+// Wording for a missing dog, in the same style as the group's other posts.
+function lostDogText(v) {
+  const sex = /^(male|female)$/i.test(v.sex || '') ? v.sex.toLowerCase() + ' ' : '';
+  const named = v.name && !/^(unknown|unnamed.*|not known|no name|n\/a|\?+)$/i.test(v.name.trim());
+  const what = (v.colour ? v.colour.trim() + ' ' : '') + sex + 'dog';
+  const lines = ['💛💜 Lost Dog - Please Share 💜💛', '',
+    (named ? v.name.trim() + ', a ' : 'A ') + what.charAt(0).toLowerCase() + what.slice(1) + (named ? ',' : '') + ' has been reported missing' + (v.area ? ' in ' + v.area.trim() : '') + (v.date ? ' since ' + v.date : '') + '.', '',
+    'Please do not shout, pursue, grab or whistle.', '',
+    'If you see this dog, please report the sighting with the time, location and direction of travel, and check your CCTV and doorbell cameras.', ''];
+  if (v.contact) lines.push('Contact: ' + v.contact.trim(), '');
+  lines.push('Thank you for caring & sharing', '', '#lostdogsayrshire #LDA #lostdog #purpleandyellowcommunity');
+  return lines.join('\n');
+}
+// Draw the Lost Dog poster with a given photo (or none), without touching what is open in the poster maker.
+function lostDogPoster(values, photo, size) {
+  const keep = { photo: poster.photo, noPhoto: poster.noPhoto, z: $('#poster-zoom').value, x: $('#poster-x').value, y: $('#poster-y').value };
+  try {
+    poster.photo = photo || null; poster.noPhoto = !photo;
+    $('#poster-zoom').value = 100; $('#poster-x').value = 50; $('#poster-y').value = 50;
+    const c = document.createElement('canvas'); c.width = c.height = size || 1080;
+    drawPoster(c, values);
+    return c.toDataURL('image/jpeg', 0.88);
+  } finally {
+    poster.photo = keep.photo; poster.noPhoto = keep.noPhoto;
+    $('#poster-zoom').value = keep.z; $('#poster-x').value = keep.x; $('#poster-y').value = keep.y;
+  }
+}
+
+// From the poster maker: the square poster as it stands, with Lost Dog wording.
+$('#poster-fb').addEventListener('click', () => {
+  const v = posterValues(), missing = [];
+  if (!poster.photo && !poster.noPhoto) missing.push('a photo (or tap "No photo available")');
+  if (!v.colour) missing.push('the colour');
+  if (!v.date) missing.push('the date missing');
+  if (!v.area) missing.push('the area');
+  if (!v.contact) missing.push('a contact number');
+  if (missing.length) { $('#poster-msg').textContent = 'Still needed: ' + missing.join(', ') + '.'; return; }
+  const c = document.createElement('canvas'); c.width = c.height = 1080;
+  drawPoster(c, v);
+  fbDraft = { from: 'poster', back: 'create-poster', label: 'Lost Dog poster',
+    images: [{ src: c.toDataURL('image/jpeg', 0.88), caption: 'The poster' }], text: lostDogText(v) };
+  go('fbpost/poster');
+});
+
+// From a dog: the right poster for its status, plus the dog's photo, with the matching wording.
+async function facebookDraftForDog(dogId) {
+  const fb = state.fb;
+  const snap = await fb.getDoc(fb.doc(fb.db, 'dogs', dogId));
+  if (!snap.exists()) throw new Error('This dog is no longer listed.');
+  const d = snap.data({ serverTimestamps: 'estimate' });
+  let photoSrc = d.thumb || '';
+  try { const p = await fb.getDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'main')); if (p.exists() && p.data().data) photoSrc = p.data().data; } catch (e) {}
+  const st = STATUSES[d.status] || {}, std = st.poster;
+  const place = String(d.lastSeenPlace || '').trim();
+  const images = [];
+  let text, label;
+  if (std && $('#' + std + '-img')) {
+    label = (POSTER_NAMES[std] || st.label) + ' poster';
+    images.push({ src: await asJpeg($('#' + std + '-img').src, 1080), caption: 'Picture 1: poster' });
+    if (photoSrc) images.push({ src: await asJpeg(photoSrc, 1400), caption: 'Picture 2: dog’s photo' });
+    const post = $('#' + std + ' .post');
+    text = post ? post.getAttribute('data-template').replace(/\{location\}/g, place || 'Ayrshire') : (st.label || '');
+  } else {
+    label = 'Lost Dog poster';
+    const when = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d.lastSeenAt || ''));
+    const v = { name: d.name || '', colour: d.colour || '', sex: /^(male|female)$/i.test(d.sex || '') ? d.sex : '', area: place,
+      date: when ? when[3] + '/' + when[2] + '/' + when[1] : '', contact: $('#poster-contact').defaultValue || '07715 950588' };
+    const photo = photoSrc ? await loadImage(photoSrc).catch(() => null) : null;
+    images.push({ src: lostDogPoster(v, photo, 1080), caption: 'The poster' });
+    text = lostDogText(v);
+  }
+  return { from: 'dog', dogId, back: 'dog/' + dogId, label, images, text, already: d.fbPostId ? { at: d.fbPostedAt, by: d.fbPostedBy || '', link: d.fbLink || '' } : null };
+}
+
+function showFacebookPost(arg) {
+  const root = $('#fbpost-body'), back = $('#fbpost-back');
+  root.textContent = '';
+  if (!canPostFacebook()) { root.appendChild(h('p', { class: 'empty' }, fbSetting.connected ? 'Only coordinators and admins can post to Facebook.' : 'Facebook is not linked yet.')); return; }
+  const draw = draft => {
+    fbDraft = draft;
+    back.setAttribute('data-go', draft.back); back.textContent = draft.from === 'dog' ? '← Back to the dog' : '← Back to poster';
+    root.textContent = '';
+    if (draft.justSaved) root.appendChild(h('p', { class: 'fb-warn', style: 'background:#1d8a3a;color:#fff' }, 'Dog saved. The team has been alerted.'));
+    root.appendChild(h('div', { class: 'fb-to' }, h('img', { src: $('#logo-img').src, alt: '' }),
+      h('div', null, h('span', null, 'Posting to'), h('strong', null, fbSetting.pageName || 'the Facebook Page'))));
+    if (draft.already) root.appendChild(h('p', { class: 'fb-warn' }, 'Already posted to Facebook' + (draft.already.by ? ' by ' + draft.already.by : '') + (draft.already.at ? ', ' + when(draft.already.at) : '') + '. Posting again makes a second post.'));
+    if (draft.from === 'dog') root.appendChild(h('p', { class: 'fb-note' }, draft.label === 'Lost Dog poster'
+      ? 'A Lost Dog poster has been made from the dog’s details and photo.'
+      : 'The ' + draft.label + ' is used for this status' + (draft.images.length > 1 ? ', with the dog’s photo as a second picture.' : '.')));
+    root.appendChild(h('div', { class: 'fb-pics' }, draft.images.map(im => h('figure', null, h('img', { src: im.src, alt: im.caption }), h('figcaption', null, im.caption)))));
+    const ta = h('textarea', { id: 'fbpost-text', rows: '12' }); ta.value = draft.text;
+    ta.addEventListener('input', () => { draft.text = ta.value; });
+    root.appendChild(h('label', { for: 'fbpost-text' }, 'Post text (you can change it)'));
+    root.appendChild(ta);
+    const msg = h('p', { class: 'form-msg', role: 'status' });
+    const post = h('button', { class: 'save', type: 'button', onclick: async () => {
+      if (!ta.value.trim()) { msg.textContent = 'Write the post text first.'; return; }
+      post.disabled = true; msg.textContent = 'Posting to Facebook…';
+      try {
+        const res = await callFacebook('facebookPost', { images: draft.images.map(im => im.src.split(',')[1]), message: ta.value.trim(), dogId: draft.dogId || '', label: draft.label });
+        const r = (res && res.data) || {};
+        if (draft.from === 'dog' && !r.practice) { go('dog/' + draft.dogId); return; }
+        root.textContent = '';
+        root.appendChild(h('div', { class: 'fb-done' },
+          h('div', { class: 'tick' }, tickIcon('#3e12a3', 56)),
+          h('h3', null, r.practice ? 'Practice only' : 'Posted to Facebook'),
+          h('p', null, r.practice ? 'This is the practice site, so nothing was posted. In the real app the post would now be live on the Page.' : 'The poster and text are now live on ' + (fbSetting.pageName || 'the Page') + '.'),
+          r.link ? h('a', { class: 'save', href: r.link, target: '_blank', rel: 'noopener', style: 'display:block;text-decoration:none;margin-top:14px' }, 'Open the post on Facebook') : null,
+          h('button', { class: 'btn wide ghost', type: 'button', 'data-go': draft.back }, draft.from === 'dog' ? 'Back to the dog' : 'Back to poster')));
+      } catch (err) {
+        post.disabled = false;
+        msg.textContent = fbError(err);
+      }
+    } }, 'Post now');
+    root.appendChild(post);
+    root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', 'data-go': draft.back }, draft.from === 'dog' ? 'Not now' : 'Cancel'));
+    root.appendChild(msg);
+    root.appendChild(h('p', { class: 'fb-note', style: 'text-align:center;margin-top:10px' }, 'Nothing is posted until you tap Post now.'));
+  };
+  if (arg === 'poster') {
+    if (!fbDraft || fbDraft.from !== 'poster') { go('create-poster'); return; }
+    draw(fbDraft);
+    return;
+  }
+  root.appendChild(h('p', { class: 'empty' }, 'Getting the poster ready…'));
+  const justSaved = fbDraft && fbDraft.justSaved === arg;
+  facebookDraftForDog(arg).then(d => { if (justSaved) d.justSaved = true; if (state.route === 'fbpost/' + arg) draw(d); })
+    .catch(err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, (err && err.message) || 'The poster could not be made.')); });
+}
+function tickIcon(colour, px) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('width', px); svg.setAttribute('height', px); svg.setAttribute('aria-hidden', 'true');
+  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  p.setAttribute('d', 'M4.5 12.5l5 5L19.5 7'); p.setAttribute('fill', 'none'); p.setAttribute('stroke', colour); p.setAttribute('stroke-width', '3');
+  p.setAttribute('stroke-linecap', 'round'); p.setAttribute('stroke-linejoin', 'round');
+  svg.appendChild(p);
+  return svg;
+}
+
+// Developer: link the Facebook Page (and see or remove the link).
+function showFacebookLink() {
+  const root = $('#facebook-body');
+  root.textContent = '';
+  if (!isDev()) { root.appendChild(h('p', { class: 'empty' }, 'Only the developer can manage the Facebook link.')); return; }
+  const draw = () => {
+    root.textContent = '';
+    root.appendChild(h('div', { class: 'fb-status' }, fbSetting.connected
+      ? [h('strong', null, '✓ Linked to ' + (fbSetting.pageName || 'the Page')), h('br'), 'Linked ' + when(fbSetting.linkedAt) + (fbSetting.linkedBy ? ' by ' + fbSetting.linkedBy : '') + '.']
+      : [h('strong', null, 'Not linked.'), h('br'), 'Coordinators and admins see the Facebook buttons once a Page is linked.']));
+    root.appendChild(h('p', { class: 'fb-note' }, (fbSetting.connected ? 'To renew the link (for example after changing your Facebook password), ' : 'To link the Page, ') + 'follow the Facebook setup guide, then paste the three details here.'));
+    const appId = h('input', { id: 'fb-app-id', inputmode: 'numeric', autocomplete: 'off', placeholder: 'e.g. 1234567890123456' });
+    const secret = h('input', { id: 'fb-app-secret', type: 'password', autocomplete: 'off' });
+    const token = h('textarea', { id: 'fb-token', rows: '4', autocomplete: 'off', placeholder: 'Starts with EAA…' });
+    const pick = h('div');
+    const msg = h('p', { class: 'form-msg', role: 'status' });
+    root.appendChild(h('label', { for: 'fb-app-id' }, 'App ID')); root.appendChild(appId);
+    root.appendChild(h('label', { for: 'fb-app-secret' }, 'App secret')); root.appendChild(secret);
+    root.appendChild(h('label', { for: 'fb-token' }, 'Access token (from the Graph API Explorer)')); root.appendChild(token);
+    root.appendChild(pick);
+    const btn = h('button', { class: 'save', type: 'button', style: 'margin-top:14px', onclick: async () => {
+      const sel = $('#fb-page', pick);
+      btn.disabled = true; msg.textContent = 'Checking with Facebook…';
+      try {
+        const res = await callFacebook('facebookLink', { appId: appId.value.trim(), appSecret: secret.value.trim(), userToken: token.value.trim(), pageId: sel ? sel.value : '' });
+        const r = (res && res.data) || {};
+        if (r.choose) {
+          pick.textContent = '';
+          pick.appendChild(h('label', { for: 'fb-page' }, 'Which Page?'));
+          pick.appendChild(h('select', { id: 'fb-page' }, r.choose.map(p => h('option', { value: p.id }, p.name))));
+          msg.textContent = 'Choose the Lost Dogs Ayrshire Page, then tap Link Facebook again.';
+        } else if (r.linked) {
+          secret.value = ''; token.value = '';
+          msg.textContent = '';
+          alert('Facebook is linked to ' + r.pageName + '. Coordinators and admins will now see the Facebook buttons.');
+        }
+      } catch (err) { msg.textContent = fbError(err); }
+      btn.disabled = false;
+    } }, 'Link Facebook');
+    root.appendChild(btn);
+    root.appendChild(msg);
+    if (fbSetting.connected) root.appendChild(h('button', { class: 'link danger center', type: 'button', onclick: async () => {
+      if (!confirm('Unlink Facebook?\n\nThe Facebook buttons will disappear until it is linked again.')) return;
+      try { await callFacebook('facebookLink', { unlink: true }); } catch (err) { alert(fbError(err)); }
+    } }, 'Unlink Facebook'));
+  };
+  draw();
+  const fb = state.fb;
+  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'settings', 'facebook'), snap => {
+    const was = fbSetting.connected; fbSetting = snap.exists() ? snap.data() : { connected: false };
+    drawFacebookButtons();
+    if (was !== fbSetting.connected || !$('#fb-app-id')) draw(); else { const s = $('.fb-status', root); if (s) { s.textContent = ''; draw(); } }
+  }, () => {}));
+}
+
+// ============================================================
 //  Posters added by admins inside the app (kept in the database)
 // ============================================================
 const slug = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'poster';
@@ -5474,6 +5788,7 @@ function endAlerts() {
 function startAlerts() {
   endAlerts();
   watchWhatsAppLink();
+  watchFacebook();
   if (!isMember()) return;
   refreshPush();
   const fb = state.fb;
