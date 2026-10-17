@@ -1082,7 +1082,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 4.6 · 17 Oct 2026</p>
+  <p class="version">Version 4.7 · 17 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1354,7 +1354,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 4.6 · 17 Oct 2026</p>
+  <p class="version">Version 4.7 · 17 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -2629,6 +2629,30 @@ function showDog(id) {
       const closedAt = ms(d.statusAt) || ms(d.updatedAt) || ms(d.createdAt);
       if (closedAt) root.appendChild(h('p', { class: 'hint' }, 'Closed cases are removed automatically 30 days after closing. This one will be removed on '
         + new Date(closedAt + 31 * 24 * 3600 * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + '.'));
+      if (isCoord()) {
+        const msg = h('p', { class: 'form-msg', role: 'status' });
+        const btn = h('button', { class: 'save', type: 'button', onclick: async () => {
+          btn.disabled = true; msg.textContent = 'Making the PDF\u2026';
+          try {
+            const photo = live.images.find(i => i.kind === 'photo');
+            const file = await caseRecordPdf(d, {
+              photo: photo ? photo.data : '',
+              posters: live.images.filter(i => i.kind === 'poster').map(i => i.data),
+              sightings: live.sightings.slice().sort((a, b) => millis(seen(a)) - millis(seen(b)))
+                .map(s => ({ when: when(seen(s)), by: s.byName || '', note: s.note || '', lat: s.lat, lng: s.lng })),
+              updates: live.updates.slice().sort((a, b) => millis(a.createdAt) - millis(b.createdAt))
+                .map(u => ({ when: when(u.createdAt), by: u.byName || '', text: u.text || '', status: u.kind === 'status' }))
+            });
+            const url = URL.createObjectURL(file);
+            const safe = String(d.name || 'dog').trim().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'dog';
+            await saveFile(url, 'lda-case-' + safe + '-' + new Date().toISOString().slice(0, 10) + '.pdf');
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            msg.textContent = '';
+          } catch (e) { console.error(e); msg.textContent = 'The PDF could not be made. Please try again.'; }
+          btn.disabled = false;
+        } }, 'Save case as PDF');
+        root.appendChild(h('div', { class: 'pdf-save' }, btn, msg));
+      }
     }
   }
 }
@@ -4220,6 +4244,117 @@ async function agreementPdf(a) {
     px.fillText('Saved from the app ' + saved, M, H - 90);
     px.textAlign = 'right'; px.fillText('Page ' + (n + 1) + ' of ' + pages.length, W - M, H - 90); px.textAlign = 'left';
     jpegs.push(new Uint8Array(await (await new Promise(done => pages[n].toBlob(done, 'image/jpeg', 0.9))).arrayBuffer()));
+  }
+  return pagesToPdf(jpegs, W, H);
+}
+
+// A closed case as a PDF record: photo, details, sightings, updates and posters.
+async function caseRecordPdf(d, data) {
+  const W = A4.pxW, H = A4.pxH, M = 110, PURPLE = '#5220c4', DEEP = '#3e12a3', YELLOW = '#fdf90f', INK = '#1c1530', GREY = '#5b4f80', LINE = '#e3dcf7';
+  try { await document.fonts.load('900 40px Inter'); await document.fonts.load('400 26px Inter'); await document.fonts.load('700 26px Inter'); } catch (e) {}
+  const font = (w, s) => w + ' ' + s + 'px Inter, "Helvetica Neue", Arial, sans-serif';
+  const scratch = document.createElement('canvas').getContext('2d');
+  const wrap = (text, f, max) => {
+    scratch.font = f; const out = [];
+    String(text || '').split(/\n/).forEach(para => {
+      let line = '';
+      para.split(/\s+/).filter(Boolean).forEach(word => {
+        const t = line ? line + ' ' + word : word;
+        if (scratch.measureText(t).width <= max || !line) line = t; else { out.push(line); line = word; }
+      });
+      out.push(line);
+    });
+    return out;
+  };
+  const load = src => new Promise(done => { if (!src) return done(null); const i = new Image(); i.onload = () => done(i); i.onerror = () => done(null); i.src = src; });
+  const st = STATUSES[d.status] || { label: d.status || 'Unknown' };
+  const pages = []; let c, x, y;
+  const BOTTOM = H - 130;
+  const newPage = () => {
+    c = document.createElement('canvas'); c.width = W; c.height = H; x = c.getContext('2d');
+    x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); pages.push(c);
+    if (pages.length === 1) {
+      x.fillStyle = PURPLE; x.fillRect(0, 0, W, 250); x.fillStyle = YELLOW; x.fillRect(0, 250, W, 14);
+      x.fillStyle = YELLOW; x.font = font(800, 26); x.fillText('LOST DOGS AYRSHIRE · CASE RECORD', M, 90);
+      x.fillStyle = '#fff'; x.font = font(900, 60); x.fillText(wrap('Name: ' + (d.name || 'Unknown'), font(900, 60), W - 2 * M)[0], M, 162);
+      x.font = font(700, 28); x.fillText((st.label || '') + (d.lastSeenPlace ? ' · ' + d.lastSeenPlace : ''), M, 212);
+      y = 320;
+    } else {
+      x.fillStyle = PURPLE; x.font = font(900, 32); x.fillText('Case record · Name: ' + (d.name || 'Unknown'), M, 96);
+      x.fillStyle = YELLOW; x.fillRect(M, 116, W - 2 * M, 8); y = 180;
+    }
+  };
+  const room = need => { if (y + need > BOTTOM) newPage(); };
+  const heading = text => { room(140); y += 24; x.fillStyle = DEEP; x.font = font(900, 36); x.fillText(text, M, y + 36); y += 52; x.fillStyle = YELLOW; x.fillRect(M, y, 160, 8); y += 30; };
+  const para = (text, f, colour, indent) => { wrap(text, f, W - 2 * M - (indent || 0)).forEach(l => { room(40); x.fillStyle = colour || INK; x.font = f; x.fillText(l, M + (indent || 0), y + 28); y += 38; }); };
+  const field = (label, value) => {
+    if (!value) return;
+    room(90); x.fillStyle = GREY; x.font = font(800, 19); x.fillText(label.toUpperCase(), M, y + 20); y += 30;
+    para(value, font(500, 27)); y += 12;
+  };
+  newPage();
+
+  // Summary and photo side by side
+  const photo = await load(data.photo || d.thumb);
+  const top = y, PW = 560, PH = 560;
+  if (photo) {
+    const s = Math.max(PW / photo.width, PH / photo.height), sw = PW / s, sh = PH / s;
+    x.save(); x.beginPath(); x.rect(W - M - PW, top, PW, PH); x.clip();
+    x.drawImage(photo, (photo.width - sw) / 2, (photo.height - sh) / 2, sw, sh, W - M - PW, top, PW, PH); x.restore();
+    x.strokeStyle = PURPLE; x.lineWidth = 6; x.strokeRect(W - M - PW, top, PW, PH);
+  }
+  const colW = photo ? W - 2 * M - PW - 50 : W - 2 * M;
+  const sumRows = [['Status', st.label], ['Closed', [when(d.statusAt), d.statusBy ? 'by ' + d.statusBy : ''].filter(Boolean).join(' ')],
+    ['Added', [when(d.createdAt), d.createdBy ? 'by ' + d.createdBy : ''].filter(Boolean).join(' ')], ['Sightings', String(data.sightings.length)], ['Updates', String(data.updates.length)]];
+  sumRows.forEach(([k, v]) => { if (!v) return; x.fillStyle = GREY; x.font = font(800, 19); x.fillText(k.toUpperCase(), M, y + 20); y += 30;
+    wrap(v, font(700, 27), colW).forEach(l => { x.fillStyle = INK; x.font = font(700, 27); x.fillText(l, M, y + 28); y += 38; }); y += 14; });
+  y = Math.max(y, photo ? top + PH : y) + 20;
+
+  heading('Details');
+  field('Breed', d.breed); field('Colour and markings', d.colour); field('Sex', d.sex); field('Age', d.age);
+  field('Last seen (place)', d.lastSeenPlace); field('Last seen (date and time)', d.lastSeenAt ? when(d.lastSeenAt) : '');
+  field('Last seen (map)', typeof d.lat === 'number' ? d.lat.toFixed(5) + ', ' + d.lng.toFixed(5) + '   maps.google.com/?q=' + d.lat.toFixed(5) + ',' + d.lng.toFixed(5) : '');
+  field('Description', d.description); field('Important instructions', d.notes);
+
+  heading('Sightings (' + data.sightings.length + ')');
+  if (!data.sightings.length) para('No sightings were logged.', font(500, 27), GREY);
+  data.sightings.forEach((s, i) => {
+    room(130);
+    x.fillStyle = PURPLE; x.font = font(900, 26); x.fillText(String(i + 1) + '.', M, y + 28);
+    para('Seen ' + s.when + (s.by ? ' · logged by ' + s.by : ''), font(800, 25), INK, 50);
+    if (s.note) para(s.note, font(500, 26), INK, 50);
+    para(s.lat.toFixed(5) + ', ' + s.lng.toFixed(5) + '   maps.google.com/?q=' + s.lat.toFixed(5) + ',' + s.lng.toFixed(5), font(500, 22), GREY, 50);
+    x.fillStyle = LINE; x.fillRect(M, y + 6, W - 2 * M, 2); y += 22;
+  });
+
+  heading('Updates (' + data.updates.length + ')');
+  if (!data.updates.length) para('No updates were posted.', font(500, 27), GREY);
+  data.updates.forEach(u => {
+    room(110);
+    para(u.when + (u.by ? ' · ' + u.by : ''), font(800, 22), GREY);
+    para(u.text, font(u.status ? 700 : 500, 26), u.status ? DEEP : INK);
+    x.fillStyle = LINE; x.fillRect(M, y + 6, W - 2 * M, 2); y += 22;
+  });
+
+  // Each poster on a page of its own
+  for (let i = 0; i < data.posters.length; i++) {
+    const img = await load(data.posters[i]);
+    if (!img) continue;
+    newPage();
+    x.fillStyle = DEEP; x.font = font(900, 36); x.fillText('Poster ' + (i + 1), M, y + 36); y += 70;
+    const maxW = W - 2 * M, maxH = BOTTOM - y, s = Math.min(maxW / img.width, maxH / img.height);
+    x.drawImage(img, M + (maxW - img.width * s) / 2, y, img.width * s, img.height * s);
+  }
+
+  const saved = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const jpegs = [];
+  for (let n = 0; n < pages.length; n++) {
+    const px = pages[n].getContext('2d');
+    px.fillStyle = '#c9bdf0'; px.fillRect(M, H - 80, W - 2 * M, 2);
+    px.fillStyle = GREY; px.font = font(600, 20); px.textAlign = 'left';
+    px.fillText('Lost Dogs Ayrshire · Case record saved ' + saved + ' · Confidential', M, H - 46);
+    px.textAlign = 'right'; px.fillText('Page ' + (n + 1) + ' of ' + pages.length, W - M, H - 46); px.textAlign = 'left';
+    jpegs.push(new Uint8Array(await (await new Promise(done => pages[n].toBlob(done, 'image/jpeg', 0.88))).arrayBuffer()));
   }
   return pagesToPdf(jpegs, W, H);
 }
