@@ -5224,7 +5224,8 @@ async function facebookDraftForDog(dogId) {
     images.push({ src: await asJpeg($('#' + std + '-img').src, 1080), caption: 'Picture 1: poster' });
     if (photoSrc) images.push({ src: await asJpeg(photoSrc, 1400), caption: 'Picture 2: dog’s photo' });
     const post = $('#' + std + ' .post');
-    text = post ? post.getAttribute('data-template').replace(/\{location\}/g, place || 'Ayrshire') : (st.label || '');
+    var template = post ? post.getAttribute('data-template') : '';
+    text = post ? (place ? template.replace(/\{location\}/g, place) : template.replace(/\{location\}/g, '[Town/Village]')) : (st.label || '');
   } else {
     label = 'Lost Dog poster';
     const when = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d.lastSeenAt || ''));
@@ -5234,7 +5235,7 @@ async function facebookDraftForDog(dogId) {
     images.push({ src: lostDogPoster(v, photo, 1080), caption: 'The poster' });
     text = lostDogText(v);
   }
-  return { from: 'dog', dogId, back: 'dog/' + dogId, label, images, text, already: d.fbPostId ? { at: d.fbPostedAt, by: d.fbPostedBy || '', link: d.fbLink || '' } : null };
+  return { from: 'dog', dogId, back: 'dog/' + dogId, label, images, text, needPlace: !place && /\{location\}/.test(template || '') ? template : '', already: d.fbPostId ? { at: d.fbPostedAt, by: d.fbPostedBy || '', link: d.fbLink || '' } : null };
 }
 
 function showFacebookPost(arg) {
@@ -5255,11 +5256,26 @@ function showFacebookPost(arg) {
     root.appendChild(h('div', { class: 'fb-pics' }, draft.images.map(im => h('figure', null, h('img', { src: im.src, alt: im.caption }), h('figcaption', null, im.caption)))));
     const ta = h('textarea', { id: 'fbpost-text', rows: '12' }); ta.value = draft.text;
     ta.addEventListener('input', () => { draft.text = ta.value; });
+    // No "Last seen (place)" on the dog: ask for it here and fill it into the wording.
+    let placeBox = null;
+    if (draft.needPlace) {
+      placeBox = h('input', { id: 'fbpost-place', type: 'text', autocomplete: 'off', autocapitalize: 'words', placeholder: 'e.g. Kilmarnock' });
+      placeBox.value = draft.place || '';
+      placeBox.addEventListener('input', () => {
+        draft.place = placeBox.value;
+        ta.value = draft.text = draft.needPlace.replace(/\{location\}/g, placeBox.value.trim() || '[Town/Village]');
+      });
+      root.appendChild(h('label', { for: 'fbpost-place' }, 'Town/Village'));
+      root.appendChild(placeBox);
+      root.appendChild(h('p', { class: 'fb-note' }, 'No Last seen (place) was entered for this dog, so add the town or village here. It is filled into the post text.'));
+    }
     root.appendChild(h('label', { for: 'fbpost-text' }, 'Post text (you can change it)'));
     root.appendChild(ta);
     const msg = h('p', { class: 'form-msg', role: 'status' });
     const post = h('button', { class: 'save', type: 'button', onclick: async () => {
       if (!ta.value.trim()) { msg.textContent = 'Write the post text first.'; return; }
+      if (placeBox && !placeBox.value.trim()) { msg.textContent = 'Enter the town or village first.'; placeBox.focus(); return; }
+      if (/\[Town\/Village\]/.test(ta.value)) { msg.textContent = 'Replace [Town/Village] in the text with the place first.'; return; }
       post.disabled = true; msg.textContent = 'Posting to Facebook…';
       try {
         const res = await callFacebook('facebookPost', { images: draft.images.map(im => im.src.split(',')[1]), message: ta.value.trim(), dogId: draft.dogId || '', label: draft.label });
