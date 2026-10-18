@@ -1109,7 +1109,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 5.1 · 17 Oct 2026</p>
+  <p class="version">Version 5.2 · 18 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1381,7 +1381,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 5.1 · 17 Oct 2026</p>
+  <p class="version">Version 5.2 · 18 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1451,7 +1451,6 @@
     <p class="field-help">Tap the map to place the pin.</p>
     <div class="map" id="edit-map"></div>
     <div class="row">
-      <button class="btn ghost" id="dog-use-location" type="button">Use my location</button>
       <button class="btn ghost" id="dog-remove-pin" type="button">Remove pin</button>
     </div>
     <p class="field-help" id="dog-pin-status" role="status">No pin placed.</p>
@@ -2813,16 +2812,6 @@ function showDogEdit(id) {
     } catch (err) { msg.textContent = 'That photo could not be read. Try another.'; }
   };
 
-  $('#dog-use-location').onclick = () => {
-    if (!navigator.geolocation) { $('#dog-pin-status').textContent = 'Location is not available on this device.'; return; }
-    $('#dog-pin-status').textContent = 'Finding your location…';
-    navigator.geolocation.getCurrentPosition(pos => {
-      const spot = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      setSpot(spot);
-      if (edit.map) edit.map.setView([spot.lat, spot.lng], 15);
-    }, () => { $('#dog-pin-status').textContent = 'Could not get your location. Tap the map instead.'; },
-    { enableHighAccuracy: true, timeout: 10000 });
-  };
   $('#dog-remove-pin').onclick = () => setSpot(null);
 
   form.onsubmit = async e => {
