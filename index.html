@@ -962,8 +962,8 @@
 .fb-pics figcaption { font-size: .78rem; font-weight: 800; color: #d9ccff; margin-top: 4px; }
 .fb-note { font-size: .92rem; line-height: 1.4; color: #e9e2ff; margin: 0 0 10px; }
 .fb-warn { padding: 10px 12px; background: #fff7c2; color: #3a3152; border-radius: 12px; font-weight: 700; font-size: .92rem; margin: 0 0 12px; }
-#fbpost textarea, #facebook textarea, #facebook input, #facebook select { width: 100%; box-sizing: border-box; padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; background: #fff; color: #1a1a1a; font: inherit; font-size: .95rem; line-height: 1.45; }
-#fbpost label, #facebook label { display: block; margin: 12px 0 4px; font-weight: 800; }
+#fbpost textarea, #fbpost input, #fbupdate textarea, #fbupdate input, #facebook textarea, #facebook input, #facebook select { width: 100%; box-sizing: border-box; padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; background: #fff; color: #1a1a1a; font: inherit; font-size: .95rem; line-height: 1.45; }
+#fbpost label, #fbupdate label, #facebook label { display: block; margin: 12px 0 4px; font-weight: 800; }
 .fb-done { text-align: center; padding: 10px 0; }
 .fb-done .tick { width: 96px; height: 96px; margin: 10px auto 14px; border-radius: 50%; background: var(--yellow); display: flex; align-items: center; justify-content: center; }
 .fb-done h3 { color: var(--yellow); font-size: 1.6rem; font-weight: 900; text-transform: uppercase; margin: 0 0 6px; }
@@ -1109,7 +1109,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 5.0 · 17 Oct 2026</p>
+  <p class="version">Version 5.1 · 17 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1381,7 +1381,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 5.0 · 17 Oct 2026</p>
+  <p class="version">Version 5.1 · 17 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1476,6 +1476,13 @@
   <button class="back" id="fbpost-back" data-go="home">&larr; Back</button>
   <h2 class="page-title">Check before posting</h2>
   <div id="fbpost-body"></div>
+</section>
+
+<!-- ================= FACEBOOK: UPDATE THE ORIGINAL POST (5.1) ================= -->
+<section class="screen" id="fbupdate">
+  <button class="back" id="fbupdate-back" data-go="dogs">&larr; Back to the dog</button>
+  <h2 class="page-title">Update the Facebook post?</h2>
+  <div id="fbupdate-body"></div>
 </section>
 
 <!-- ================= FACEBOOK PAGE LINK (developer) ================= -->
@@ -1980,6 +1987,7 @@ function render() {
   if (name === 'profile')   { activate('profile');  return showProfile(); }
   if (name === 'whatsapp')  { activate('whatsapp'); return showWhatsApp(); }
   if (name === 'fbpost')    { if (!isCoord()) return go('home'); activate('fbpost'); return showFacebookPost(arg); }
+  if (name === 'fbupdate')  { if (!isCoord()) return go('home'); activate('fbupdate'); return showFacebookUpdate(arg); }
   if (name === 'facebook')  { if (!isDev()) return go('home'); activate('facebook'); return showFacebookLink(); }
   if (name === 'documents') { if (arg) { activate('doclist'); return showDocList(arg); } activate('documents'); return showDocuments(); }
   if (name === 'document')  { activate('docview'); return showDocument(arg); }
@@ -2503,7 +2511,7 @@ function showDog(id) {
       const select = h('select', { id: 'status-select', onchange: async e => {
         const to = e.target.value, from = d.status;
         if (to === from) return;
-        try { await fb.updateDoc(dogRef, { status: to, ...statusStamp(), updatedAt: fb.serverTimestamp() }); logStatusChange(id, from, to); }
+        try { await fb.updateDoc(dogRef, { status: to, ...statusStamp(), updatedAt: fb.serverTimestamp() }); logStatusChange(id, from, to); offerFacebookUpdate(id, from, to, d); }
         catch (err) { alert(friendlyError(err)); }
       } }, Object.entries(STATUSES).map(([k, v]) => h('option', { value: k, selected: k === d.status }, v.label)));
       const box = h('div', { class: 'admin-box' },
@@ -2553,6 +2561,9 @@ function showDog(id) {
           [when(d.fbPostedAt), d.fbPostedBy ? 'by ' + d.fbPostedBy : ''].filter(Boolean).join(' '), h('br'),
           d.fbLink ? h('a', { href: d.fbLink, target: '_blank', rel: 'noopener' }, 'Open the post on Facebook') : null)));
     }
+    if (d.fbPostId && d.fbUpdateStatus && isCoord()) root.appendChild(h('p', { class: 'fb-note', style: 'margin:-4px 0 8px' },
+      'Facebook post updated to ' + ((STATUSES[d.fbUpdateStatus] || {}).label || d.fbUpdateStatus) + (d.fbUpdatedBy ? ' by ' + d.fbUpdatedBy : '') + (d.fbUpdatedAt ? ', ' + when(d.fbUpdatedAt) : '') + '.'));
+    if (canUpdateFacebook(d) && d.fbUpdateStatus !== d.status) root.appendChild(h('button', { class: 'btn wide fb-btn', type: 'button', style: 'margin:12px 0 0', 'data-go': 'fbupdate/' + id }, 'Update the Facebook post'));
     if (canPostFacebook()) root.appendChild(h('button', { class: 'btn wide fb-btn', type: 'button', style: 'margin:12px 0', 'data-go': 'fbpost/' + id }, d.fbPostId ? 'Post to Facebook again' : 'Post to Facebook'));
 
     // --- Details
@@ -2779,6 +2790,7 @@ function showDogEdit(id) {
       for (const k of ['name', 'status', 'breed', 'colour', 'sex', 'age', 'lastSeenPlace', 'lastSeenAt', 'description', 'notes'])
         if (form.elements[k]) form.elements[k].value = d[k] || (k === 'status' ? 'missing' : '');
       edit.oldStatus = d.status || 'missing';
+      edit.fbPostId = d.fbPostId || '';
       $('#dog-ask').checked = !!d.askAvailability;
       edit.wasAsking = !!d.askAvailability;
       edit.existingThumb = d.thumb || null;
@@ -2840,6 +2852,7 @@ function showDogEdit(id) {
         const changed = edit.oldStatus && data.status !== edit.oldStatus;
         await fb.updateDoc(fb.doc(fb.db, 'dogs', id), changed ? { ...data, ...statusStamp() } : data);
         if (changed) logStatusChange(id, edit.oldStatus, data.status);
+        if (changed) edit.fbOffer = { from: edit.oldStatus, to: data.status };
       }
       // The full-size photo lives in its own record so the list stays quick to load.
       if (edit.photo) await fb.setDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'main'),
@@ -2848,6 +2861,7 @@ function showDogEdit(id) {
       else if (data.askAvailability && !edit.wasAsking) sendPush({ type: 'availability', dogId });
       btn.disabled = false;
       if (thenFacebook) { fbDraft = { justSaved: dogId }; go('fbpost/' + dogId); return; }
+      if (edit.fbOffer && edit.fbPostId && offerFacebookUpdate(dogId, edit.fbOffer.from, edit.fbOffer.to, { fbPostId: edit.fbPostId })) return;
       go('dog/' + dogId);
     } catch (err) {
       btn.disabled = false;
@@ -5316,6 +5330,78 @@ function tickIcon(colour, px) {
   p.setAttribute('stroke-linecap', 'round'); p.setAttribute('stroke-linejoin', 'round');
   svg.appendChild(p);
   return svg;
+}
+
+// ---- 5.1: when a case moves on, put the news at the top of the original Facebook post ----
+const FB_UPDATE_STATUSES = ['found', 'reunited', 'home-safe', 'no-further-sightings', 'paws-down'];
+const canUpdateFacebook = d => canPostFacebook() && !!(d && d.fbPostId) && FB_UPDATE_STATUSES.includes(d.status);
+// The group's own wording for the new status (the same text as its standard poster).
+function fbUpdateTemplate(status) {
+  const std = (STATUSES[status] || {}).poster;
+  if (!std) return '';
+  const post = $('#' + std + ' .post');
+  if (post) return post.getAttribute('data-template');
+  const img = $('#' + std + '-img');
+  return img ? img.getAttribute('alt') || '' : '';
+}
+let fbUpdateJustChanged = '';
+// Called after a status change: offer the update when it applies.
+function offerFacebookUpdate(dogId, before, after, dog) {
+  if (before === after || !FB_UPDATE_STATUSES.includes(after) || !canPostFacebook() || !(dog && dog.fbPostId)) return false;
+  fbUpdateJustChanged = dogId;
+  go('fbupdate/' + dogId);
+  return true;
+}
+function showFacebookUpdate(dogId) {
+  const fb = state.fb, root = $('#fbupdate-body');
+  $('#fbupdate-back').setAttribute('data-go', 'dog/' + dogId);
+  root.textContent = '';
+  root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  const justChanged = fbUpdateJustChanged === dogId; fbUpdateJustChanged = '';
+  fb.getDoc(fb.doc(fb.db, 'dogs', dogId)).then(snap => {
+    root.textContent = '';
+    if (!snap.exists()) { root.appendChild(h('p', { class: 'empty' }, 'This dog is no longer listed.')); return; }
+    const d = snap.data({ serverTimestamps: 'estimate' }), st = STATUSES[d.status] || { label: d.status };
+    if (!canUpdateFacebook(d)) { root.appendChild(h('p', { class: 'empty' }, d.fbPostId ? 'There is no Facebook update for this status.' : 'This dog has not been posted to Facebook from the app.')); return; }
+    if (justChanged) root.appendChild(h('p', { class: 'fb-warn', style: 'background:#1d8a3a;color:#fff' }, 'Status changed to ' + st.label + '.'));
+    root.appendChild(h('div', { class: 'fb-to' }, d.thumb ? h('img', { src: d.thumb, alt: '', style: 'border-radius:8px' }) : h('img', { src: $('#logo-img').src, alt: '' }),
+      h('div', null, h('span', null, 'Original post' + (d.fbPostedAt ? ' · ' + when(d.fbPostedAt) : '')), h('strong', null, (d.name && !/^unknown$/i.test(d.name) ? d.name + ' · ' : '') + (d.lastSeenPlace || 'Facebook post')))));
+    if (d.fbUpdateStatus) root.appendChild(h('p', { class: 'fb-warn' }, 'Already updated to ' + ((STATUSES[d.fbUpdateStatus] || {}).label || d.fbUpdateStatus) + (d.fbUpdatedBy ? ' by ' + d.fbUpdatedBy : '') + (d.fbUpdatedAt ? ', ' + when(d.fbUpdatedAt) : '') + '. This replaces that update.'));
+    const template = fbUpdateTemplate(d.status), place = String(d.lastSeenPlace || '').trim();
+    const needPlace = /\{location\}/.test(template) && !place;
+    const fill = p => template.replace(/\{location\}/g, p || '[Town/Village]');
+    const ta = h('textarea', { id: 'fbupdate-text', rows: '10' }); ta.value = fill(place);
+    root.appendChild(h('label', { for: 'fbupdate-text' }, 'Added to the top of the post (your ' + st.label + ' wording; you can change it)'));
+    let placeBox = null;
+    if (needPlace) {
+      placeBox = h('input', { id: 'fbupdate-place', type: 'text', autocomplete: 'off', autocapitalize: 'words', placeholder: 'e.g. Kilwinning' });
+      placeBox.addEventListener('input', () => { ta.value = fill(placeBox.value.trim()); });
+      root.appendChild(h('label', { for: 'fbupdate-place' }, 'Town/Village'));
+      root.appendChild(placeBox);
+    }
+    root.appendChild(ta);
+    root.appendChild(h('p', { class: 'fb-note', style: 'margin-top:10px' }, 'The original text stays underneath, after a line saying Original post. The pictures stay the same (Facebook does not let apps change them).'));
+    const msg = h('p', { class: 'form-msg', role: 'status' });
+    const btn = h('button', { class: 'save', type: 'button', onclick: async () => {
+      if (!ta.value.trim()) { msg.textContent = 'Write the update first.'; return; }
+      if (placeBox && !placeBox.value.trim()) { msg.textContent = 'Enter the town or village first.'; placeBox.focus(); return; }
+      if (/\[Town\/Village\]/.test(ta.value)) { msg.textContent = 'Replace [Town/Village] in the text with the place first.'; return; }
+      btn.disabled = true; msg.textContent = 'Updating the Facebook post…';
+      try {
+        const res = await callFacebook('facebookUpdate', { dogId, text: ta.value.trim() });
+        const r = (res && res.data) || {};
+        if (!r.practice) { go('dog/' + dogId); return; }
+        root.textContent = '';
+        root.appendChild(h('div', { class: 'fb-done' }, h('div', { class: 'tick' }, tickIcon('#3e12a3', 56)), h('h3', null, 'Practice only'),
+          h('p', null, 'This is the practice site, so Facebook was not changed. In the real app the original post would now show the update at the top.'),
+          h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'dog/' + dogId }, 'Back to the dog')));
+      } catch (err) { btn.disabled = false; msg.textContent = fbError(err); }
+    } }, 'Update Facebook');
+    root.appendChild(btn);
+    root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'dog/' + dogId }, 'Not now'));
+    root.appendChild(msg);
+    root.appendChild(h('p', { class: 'fb-note', style: 'text-align:center;margin-top:10px' }, 'Not now keeps an “Update the Facebook post” button on the dog’s page.'));
+  }).catch(err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, friendlyError(err))); });
 }
 
 // Developer: link the Facebook Page (and see or remove the link).

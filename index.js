@@ -288,8 +288,51 @@ exports.facebookPost = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async r
   const link = parts.length === 2 ? 'https://www.facebook.com/' + parts[0] + '/posts/' + parts[1] : 'https://www.facebook.com/' + postId;
   const what = String(d.label || 'poster').slice(0, 60);
   if (dogRef) {
-    await dogRef.update({ fbPostId: postId, fbLink: link, fbPostedAt: admin.firestore.FieldValue.serverTimestamp(), fbPostedBy: me.name });
+    await dogRef.update({ fbPostId: postId, fbLink: link, fbMessage: message, fbPostedAt: admin.firestore.FieldValue.serverTimestamp(), fbPostedBy: me.name,
+      fbUpdateStatus: '', fbUpdatedAt: null, fbUpdatedBy: '' });
     await dogRef.collection('updates').add({ kind: 'facebook', text: 'Posted to the Facebook Page (' + what + ').', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
   }
   return { postId, link };
+});
+
+// When a dog's case moves on (Found, Reunited, Home safe and so on), put the news at the top of the
+// original Facebook post. The original text stays underneath; a later update replaces the earlier one.
+const FB_SPLIT = '\n\n\u2B07\uFE0F Original post \u2B07\uFE0F\n\n';
+const UPDATE_LABEL = { found: 'Found', reunited: 'Reunited', 'home-safe': 'Home safe', 'no-further-sightings': 'No further sightings', 'paws-down': 'Paws down' };
+exports.facebookUpdate = onCall({ timeoutSeconds: 60 }, async request => {
+  const me = await caller(request, FB_ROLES);
+  const db = admin.firestore(), d = request.data || {};
+  const dogId = String(d.dogId || '');
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(dogId)) throw new HttpsError('invalid-argument', 'Which dog?');
+  const text = String(d.text || '').trim();
+  if (!text) throw new HttpsError('invalid-argument', 'Write the update first.');
+  if (text.length > 3000) throw new HttpsError('invalid-argument', 'The update is too long.');
+  const dogRef = db.collection('dogs').doc(dogId), dogSnap = await dogRef.get();
+  if (!dogSnap.exists) throw new HttpsError('not-found', 'That dog is not listed.');
+  const dog = dogSnap.data();
+  if (!dog.fbPostId) throw new HttpsError('failed-precondition', 'This dog has not been posted to Facebook from the app.');
+  const secret = await db.collection('fbsecret').doc('page').get();
+  if (!secret.exists || !secret.data().token) throw new HttpsError('failed-precondition', 'Facebook is not linked yet. Ask the developer to link it.');
+  const token = secret.data().token;
+  let current = '';
+  try { current = String((await graph('GET', dog.fbPostId, { fields: 'message', access_token: token })).message || ''); }
+  catch (err) {
+    const e = err.fb || {};
+    if (e.code === 100 && /does not exist|cannot be loaded|Unsupported get request/i.test(e.message || ''))
+      throw new HttpsError('not-found', 'The original Facebook post could not be found. It may have been deleted on Facebook.');
+    if (!dog.fbMessage) throw fbProblem(err);
+  }
+  if (!current) current = String(dog.fbMessage || '');
+  const original = current.includes(FB_SPLIT) ? current.slice(current.indexOf(FB_SPLIT) + FB_SPLIT.length) : current;
+  const message = original ? text + FB_SPLIT + original : text;
+  try { await graph('POST', dog.fbPostId, new URLSearchParams({ message, access_token: token })); }
+  catch (err) {
+    const e = err.fb || {};
+    if (e.code === 100) throw new HttpsError('failed-precondition', 'Facebook would not let this post be edited' + (e.message ? ': ' + String(e.message).slice(0, 160) : '.'));
+    throw fbProblem(err);
+  }
+  const label = UPDATE_LABEL[dog.status] || String(dog.status || 'update');
+  await dogRef.update({ fbUpdateStatus: dog.status || '', fbUpdatedAt: admin.firestore.FieldValue.serverTimestamp(), fbUpdatedBy: me.name });
+  await dogRef.collection('updates').add({ kind: 'facebook', text: 'Facebook post updated (' + label + ').', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+  return { updated: true, link: dog.fbLink || '' };
 });
