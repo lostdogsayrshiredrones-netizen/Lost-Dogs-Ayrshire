@@ -29,7 +29,10 @@ async function sendTo(uids, title, body, link, type) {
     notification: { title, body },
     data: { type: String(type || ''), link },
     webpush: {
-      notification: { icon: SITE + 'icon-192.png', badge: SITE + 'icon-192.png' },
+      // High priority so Android delivers it straight away, even when the phone is idle (battery saving
+      // holds back normal-priority alerts). Kept for a day if the phone is off or out of signal.
+      headers: { Urgency: 'high', TTL: '86400' },
+      notification: { icon: SITE + 'icon-192.png', badge: SITE + 'icon-192.png', vibrate: [200, 100, 200, 100, 300] },
       fcmOptions: { link }
     }
   });

@@ -5880,6 +5880,15 @@ function alertWhere(dog) {
   const place = String(dog.lastSeenPlace || '').trim(), name = String(dog.name || '').trim();
   return place || (/^(unknown|unnamed.*|not known|no name|n\/a|\?+)?$/i.test(name) ? '' : name);
 }
+// ---- App badge (5.1): opening the app clears the red number on the Home Screen icon ----
+function clearAppBadge() {
+  try { if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); } catch (e) {}
+  try { if (window.caches) caches.open('lda-badge').then(c => c.put('/__badge_count', new Response('0'))).catch(() => {}); } catch (e) {}
+  try { if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: 'clear-badge' }); } catch (e) {}
+}
+clearAppBadge();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') clearAppBadge(); });
+
 let alertSubs = [];
 function endAlerts() {
   alertSubs.forEach(stop => { try { stop(); } catch (e) {} });
