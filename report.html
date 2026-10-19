@@ -48,6 +48,10 @@
   .tag { display: inline-block; margin-top: 4px; padding: 2px 8px; background: var(--yellow); color: var(--deep);
     border-radius: 999px; font-size: .72rem; font-weight: 900; text-transform: uppercase; }
   .dog .seen { margin-left: auto; font-size: .8rem; font-weight: 800; color: var(--yellow); text-align: right; }
+  .dog.safe { cursor: default; background: #1d6b33; }
+  .dog.safe img, .dog.safe .nophoto { border-color: #fff; }
+  .tag.safe { background: #fff; color: #1d6b33; }
+  .dog .seen.safe { color: #fff; }
   .foot { font-size: .82rem; color: var(--soft); text-align: center; }
   .back { align-self: flex-start; padding: 8px 18px; border: 3px solid var(--yellow); border-radius: 999px;
     background: transparent; color: var(--yellow); font: inherit; font-weight: 800; font-size: 1.05rem; cursor: pointer; }
@@ -264,7 +268,11 @@ document.addEventListener('click', e => {
 const dogPic = d => d.thumb ? '<img alt="" src="' + esc(d.thumb) + '">' : '<span class="nophoto">No photo</span>';
 function drawDogs(note) {
   $('dog-list').innerHTML = note ? '<p class="foot" style="text-align:left">' + esc(note) + '</p>'
-    : DOGS.map(d => '<button type="button" class="dog" data-dog="' + esc(d.id) + '">' + dogPic(d) +
+    : DOGS.map(d => d.safe
+      ? '<div class="dog safe">' + dogPic(d) +
+        '<span><b>Name: ' + esc(d.name) + '</b>' + (d.area ? '<small>' + esc(d.area) + '</small>' : '') + '<span class="tag safe">' + esc(d.statusLabel) + '</span></span>' +
+        '<span class="seen safe">Thank you<br>for sharing!</span></div>'
+      : '<button type="button" class="dog" data-dog="' + esc(d.id) + '">' + dogPic(d) +
         '<span><b>Name: ' + esc(d.name) + '</b>' + (d.area ? '<small>' + esc(d.area) + '</small>' : '') + '<span class="tag">' + esc(d.statusLabel) + '</span></span>' +
         '<span class="seen">Seen<br>this dog?</span></button>').join('');
 }
@@ -272,7 +280,7 @@ async function loadDogs(tries) {
   try {
     DOGS = ((await publicDogs()).data.dogs || []);
     drawDogs(DOGS.length ? '' : 'No dogs are listed at the moment. Thank you for looking.');
-    $('posts-btn').hidden = !DOGS.length;
+    $('posts-btn').hidden = !DOGS.some(d => !d.safe);
     if (!$('report').hidden && type === 'posts') fillPick($('r-pick').querySelector('input:checked') ? $('r-pick').querySelector('input:checked').value : null);
   } catch (e) {
     if ((tries || 0) < 2) return setTimeout(() => loadDogs((tries || 0) + 1), 2500);
@@ -285,7 +293,8 @@ const pad = n => String(n).padStart(2, '0');
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
 const nowTime = () => { const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
 function fillPick(dogId) {
-  $('r-pick').innerHTML = DOGS.length ? DOGS.map(d =>
+  const open = DOGS.filter(d => !d.safe);
+  $('r-pick').innerHTML = open.length ? open.map(d =>
     '<label><input type="radio" name="dog" value="' + esc(d.id) + '"' + (d.id === dogId ? ' checked' : '') + '>' + dogPic(d) +
     '<span><b>Name: ' + esc(d.name) + '</b><small>' + esc(d.statusLabel) + (d.area ? ' · ' + esc(d.area) : '') + '</small></span></label>').join('')
     : '<p class="hint">Loading the dogs…</p>';

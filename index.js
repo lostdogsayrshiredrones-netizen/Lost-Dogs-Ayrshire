@@ -358,21 +358,29 @@ const REPORT_ROLES = ['developer'];
 
 // ---- The dogs shown on the public page ----
 let publicCache = { at: 0, dogs: null };
+// Dogs that are Home safe or Reunited stay on the list for 24 hours with that good news, then drop off.
+// They cannot be picked for a sighting, so no more reports come in about them.
+const SAFE_STATUS = { 'home-safe': 'Home safe', reunited: 'Reunited' };
+const SAFE_SHOW_MS = 24 * 3600e3;
 exports.publicDogs = onCall({ cors: true }, async () => {
   if (publicCache.dogs && Date.now() - publicCache.at < 60 * 1000) return { dogs: publicCache.dogs };
-  const snap = await admin.firestore().collection('dogs').where('status', 'in', Object.keys(PUBLIC_STATUS)).get();
+  const now = Date.now();
+  const snap = await admin.firestore().collection('dogs').where('status', 'in', Object.keys(PUBLIC_STATUS).concat(Object.keys(SAFE_STATUS))).get();
   const dogs = snap.docs.map(d => {
-    const x = d.data();
+    const x = d.data(), safe = !!SAFE_STATUS[x.status];
+    if (safe && !(millis(x.statusAt) > now - SAFE_SHOW_MS)) return null;     // safe for more than a day (or no date): gone
     return {
       id: d.id,
       name: String(x.name || '').trim().slice(0, 60) || 'Unknown',
       area: String(x.lastSeenPlace || '').trim().slice(0, 80),
-      status: x.status, statusLabel: PUBLIC_STATUS[x.status],
+      status: x.status, statusLabel: safe ? SAFE_STATUS[x.status] : PUBLIC_STATUS[x.status], safe,
       thumb: typeof x.thumb === 'string' && x.thumb.startsWith('data:image/') && x.thumb.length < 120000 ? x.thumb : '',
       added: millis(x.createdAt)
     };
-  }).sort((a, b) => b.added - a.added).map(({ added, ...rest }) => rest);
-  publicCache = { at: Date.now(), dogs };
+  }).filter(Boolean)
+    .sort((a, b) => (a.safe - b.safe) || (b.added - a.added))        // dogs still being looked for come first
+    .map(({ added, ...rest }) => rest);
+  publicCache = { at: now, dogs };
   return { dogs };
 });
 
@@ -440,6 +448,7 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
     dogId = String(d.dogId || '');
     if (!/^[A-Za-z0-9_-]{1,64}$/.test(dogId)) throw bad('Please tap the dog you saw.');
     const dog = await db.collection('dogs').doc(dogId).get();
+    if (dog.exists && SAFE_STATUS[dog.data().status]) throw bad('Good news: that dog is now ' + SAFE_STATUS[dog.data().status].toLowerCase() + ', so no more sightings are needed. Thank you!');
     if (!dog.exists || !PUBLIC_STATUS[dog.data().status]) throw bad('That dog is no longer listed. Please choose "I’ve seen a loose dog" instead.');
     dogName = String(dog.data().name || '').slice(0, 60);
   } else if (type === 'lost') {
