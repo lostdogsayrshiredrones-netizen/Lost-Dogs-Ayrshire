@@ -3101,7 +3101,25 @@ function showReport(id) {
     root.appendChild(h('p', { class: 'hint', style: 'margin-top:4px' }, "The reporter's name and phone are only shown to coordinators and admins."));
 
     if (!isNew) {
-      if (r.status === 'rejected') root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', onclick: () => setStatus({ status: 'new', rejectReason: '' }) }, 'Move back to New'));
+      if (r.status === 'rejected') {
+        root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', onclick: () => setStatus({ status: 'new', rejectReason: '' }) }, 'Move back to New'));
+        // Admins (and the developer) can delete a rejected report straight away instead of waiting 30 days.
+        if (isAdmin()) {
+          const delMsg = h('p', { class: 'form-msg', role: 'status' });
+          root.appendChild(h('button', { class: 'btn wide danger', type: 'button', style: 'margin-top:12px', onclick: async e => {
+            if (!confirm('Delete this report now, including the reporter\u2019s name, phone and photo? This cannot be undone.')) return;
+            e.target.disabled = true; delMsg.textContent = 'Deleting\u2026';
+            try {
+              clearSubs();
+              await fb.deleteDoc(fb.doc(fb.db, 'reports', id, 'images', 'main')).catch(() => {});
+              await fb.deleteDoc(ref);
+              go('reports');
+            } catch (err) { e.target.disabled = false; delMsg.textContent = friendlyError(err); }
+          } }, 'Delete report now'));
+          root.appendChild(delMsg);
+          root.appendChild(h('p', { class: 'hint' }, 'Admins only. Otherwise it is deleted automatically 30 days after it was rejected.'));
+        }
+      }
       return;
     }
 
@@ -3144,7 +3162,7 @@ function showReport(id) {
     root.appendChild(h('p', { class: 'hint' }, 'Reports are deleted automatically 30 days after they are dealt with.'));
 
     async function setStatus(change) {
-      try { await fb.updateDoc(ref, change); } catch (err) { msg.textContent = friendlyError(err); }
+      try { await fb.updateDoc(ref, change); } catch (err) { try { msg.textContent = friendlyError(err); } catch (e) { alert(friendlyError(err)); } }
     }
   }
 }
