@@ -1065,7 +1065,7 @@
     </button>
 
     <!-- TILE: Public Reports (coordinators and admins): reports sent in from the public reporting page -->
-    <button class="tile coord-only" data-go="reports">
+    <button class="tile dev-only" data-go="reports">
       <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true"><path d="M8 6h48c3 0 5 2 5 5v28c0 3-2 5-5 5H26L13 55V44H8c-3 0-5-2-5-5V11c0-3 2-5 5-5z M15 18v5h34v-5z M15 29v5h22v-5z" fill-rule="evenodd"/></svg></span>
       <span class="count" id="reports-count" hidden>0</span>
       <span class="tile-name">Public Reports</span>
@@ -2038,8 +2038,8 @@ function render() {
   if (name === 'whatsapp')  { activate('whatsapp'); return showWhatsApp(); }
   if (name === 'fbpost')    { if (!isCoord()) return go('home'); activate('fbpost'); return showFacebookPost(arg); }
   if (name === 'fbupdate')  { if (!isCoord()) return go('home'); activate('fbupdate'); return showFacebookUpdate(arg); }
-  if (name === 'reports')   { if (!isCoord()) return go('home'); activate('reports'); return showReports(); }
-  if (name === 'report')    { if (!isCoord()) return go('home'); activate('report'); return showReport(arg); }
+  if (name === 'reports')   { if (!canSeeReports()) return go('home'); activate('reports'); return showReports(); }
+  if (name === 'report')    { if (!canSeeReports()) return go('home'); activate('report'); return showReport(arg); }
   if (name === 'facebook')  { if (!isDev()) return go('home'); activate('facebook'); return showFacebookLink(); }
   if (name === 'documents') { if (arg) { activate('doclist'); return showDocList(arg); } activate('documents'); return showDocuments(); }
   if (name === 'document')  { activate('docview'); return showDocument(arg); }
@@ -2325,8 +2325,8 @@ function showHome() {
     snap => { todo.place = snap.exists() && !!snap.data().town; drawTodo(); }, () => { todo.place = true; drawTodo(); }));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', state.user.uid),
     snap => { todo.signed = snap.exists(); drawTodo(); }, () => { todo.signed = true; drawTodo(); }));
-  // Coordinators and admins see how many public reports nobody has dealt with yet.
-  if (isCoord()) state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'reports'), fb.where('status', '==', 'new')), snap => {
+  // Whoever handles public reports sees how many nobody has dealt with yet.
+  if (canSeeReports()) state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'reports'), fb.where('status', '==', 'new')), snap => {
     $('#reports-count').textContent = String(snap.size); $('#reports-count').hidden = snap.size === 0;
   }, () => { $('#reports-count').hidden = true; }));
   // The developer sees how many documents are waiting for review on the Documents tile.
@@ -2985,6 +2985,9 @@ const REPORT_TYPES = {
 const REPORT_REJECT = ['Duplicate of another report', 'Dog already home', 'Not enough detail', 'Not a real report', 'Other'];
 const REPORT_STATUS_FOR = { lost: 'missing', loose: 'loose', found: 'found' };
 let reportFilter = 'new';
+// Who can see Public Reports. For now only the developer, while it is being tried out.
+// To open it to coordinators and admins later, change isDev() to isCoord() here (and REPORT_ROLES in index.js).
+const canSeeReports = () => isDev();
 let reportPrefill = null;     // a report being turned into a dog on the Add a dog screen
 $$('[data-report-filter]').forEach(b => b.addEventListener('click', () => { reportFilter = b.getAttribute('data-report-filter'); render(); }));
 
@@ -6209,7 +6212,7 @@ function startAlerts() {
     knownDogs = new Map(snap.docs.map(d => [d.id, !!d.data().askAvailability]));
   }, () => {}));
 
-  if (isCoord()) {
+  if (canSeeReports()) {
     let knownReports = null;
     alertSubs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'reports'), fb.where('status', '==', 'new')), snap => {
       if (knownReports) snap.docs.forEach(d => {

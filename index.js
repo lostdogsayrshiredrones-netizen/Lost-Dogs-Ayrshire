@@ -352,6 +352,9 @@ const crypto = require('crypto');
 const PUBLIC_STATUS = { missing: 'Missing', loose: 'Loose dog', found: 'Found' };
 const REPORT_TYPES = { lost: 'Lost dog', loose: 'Loose dog seen', found: 'Dog found', posts: 'Sighting' };
 const REPORT_LIMITS = { perHour: 5, perDay: 12, allPerDay: 300 };
+// Who is alerted to new reports. For now only the developer, while it is being tried out.
+// To open it up later: ['coordinator', 'admin', 'developer'] (and canSeeReports in the app).
+const REPORT_ROLES = ['developer'];
 
 // ---- The dogs shown on the public page ----
 let publicCache = { at: 0, dogs: null };
@@ -454,11 +457,11 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   await limitRef.set({ times: times.concat(now), updatedAt: now });
   await dayRef.set({ n: dayCount + 1, updatedAt: now });
 
-  // Tell the coordinators and admins.
+  // Tell whoever handles reports.
   const title = 'New public report: ' + (type === 'posts' ? 'sighting' : REPORT_TYPES[type].toLowerCase());
   const body = type === 'posts' ? (dogName && !/^unknown$/i.test(dogName) ? dogName + ' seen in ' : 'Listed dog seen in ') + town
     : type === 'lost' ? dogName + ' lost in ' + town : type === 'found' ? 'Found in ' + town : 'Seen in ' + town;
-  try { await sendTo(await peopleWithRole(['coordinator', 'admin', 'developer']), title, body, SITE + '#report/' + ref.id, 'report'); }
+  try { await sendTo(await peopleWithRole(REPORT_ROLES), title, body, SITE + '#report/' + ref.id, 'report'); }
   catch (e) { console.warn('Report alert not sent:', e && e.message); }
   return { ok: true };
 });
