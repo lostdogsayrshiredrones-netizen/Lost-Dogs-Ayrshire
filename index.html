@@ -972,6 +972,32 @@
 .fb-posted a { color: var(--purple-deep); font-weight: 800; }
 .fb-status { padding: 12px 14px; background: var(--white); color: #1c1530; border-radius: 14px; margin-bottom: 12px; line-height: 1.45; }
 .fb-steps { padding-left: 20px; line-height: 1.5; }
+
+/* ---- Public Reports (5.3) ---- */
+#reports-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.report-card { display: flex; gap: 12px; width: 100%; padding: 12px; border: 0; border-radius: 14px; background: var(--white); color: #1c1530;
+  font: inherit; text-align: left; cursor: pointer; box-shadow: 0 4px 0 var(--purple-deep); }
+.report-card img, .report-noimg { width: 74px; height: 74px; flex-shrink: 0; border-radius: 10px; object-fit: cover; }
+.report-noimg { display: flex; align-items: center; justify-content: center; background: #eee8fb; }
+.report-noimg svg { width: 34px; fill: var(--purple); }
+.report-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: .88rem; color: #4a3f6b; }
+.report-info strong { font-size: 1.05rem; color: var(--purple-deep); }
+.report-tag { align-self: flex-start; display: inline-block; padding: 2px 9px; border-radius: 999px; color: var(--white); font-size: .72rem; font-weight: 900; text-transform: uppercase; letter-spacing: .02em; }
+.report-tag.loose { background: #e11d2e; } .report-tag.lost { background: #b45309; } .report-tag.found { background: #1d8a3a; } .report-tag.posts { background: var(--purple); }
+.report-looking { color: var(--purple); font-weight: 800; }
+.report-outcome { color: #1d6b33; font-weight: 700; }
+.report-looking-box { margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,.14); font-weight: 700; text-align: center; }
+.report-done { margin-bottom: 12px; }
+.report-done .link { color: var(--yellow); padding: 0; }
+#report-map { margin-top: 12px; }
+.report-who { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px; border-radius: 12px; background: var(--purple-deep); }
+.report-who > div { flex: 1 1 auto; display: flex; flex-direction: column; line-height: 1.35; }
+.report-who-label { font-size: .8rem; font-weight: 700; color: #d9ccff; }
+.report-who strong { font-size: 1.1rem; }
+.btn.report-call { flex-shrink: 0; width: auto; margin: 0; padding: 12px 20px; background: #1d8a3a; color: var(--white); text-decoration: none; }
+.report-actions .row select { flex: 1 1 auto; min-width: 0; }
+.report-actions .row .btn { flex: 0 0 auto; width: auto; }
+.report-actions .hint { margin: 8px 0 14px; }
 </style>
 </head>
 <body>
@@ -1036,6 +1062,13 @@
       <span class="art icon alert"><svg viewBox="0 0 64 60" aria-hidden="true"><use href="#paw-shape"/></svg></span>
       <span class="count" id="dogs-count" hidden>0</span>
       <span class="tile-name">Missing Dogs</span>
+    </button>
+
+    <!-- TILE: Public Reports (coordinators and admins): reports sent in from the public reporting page -->
+    <button class="tile coord-only" data-go="reports">
+      <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true"><path d="M8 6h48c3 0 5 2 5 5v28c0 3-2 5-5 5H26L13 55V44H8c-3 0-5-2-5-5V11c0-3 2-5 5-5z M15 18v5h34v-5z M15 29v5h22v-5z" fill-rule="evenodd"/></svg></span>
+      <span class="count" id="reports-count" hidden>0</span>
+      <span class="tile-name">Public Reports</span>
     </button>
 
     <!-- TILE: WhatsApp Community -->
@@ -1109,7 +1142,7 @@
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 5.2 · 18 Oct 2026</p>
+  <p class="version">Version 5.3 · 19 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1381,7 +1414,7 @@
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 5.2 · 18 Oct 2026</p>
+  <p class="version">Version 5.3 · 19 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1482,6 +1515,24 @@
   <button class="back" id="fbupdate-back" data-go="dogs">&larr; Back to the dog</button>
   <h2 class="page-title">Update the Facebook post?</h2>
   <div id="fbupdate-body"></div>
+</section>
+
+<!-- ================= PUBLIC REPORTS (coordinators and admins) ================= -->
+<section class="screen" id="reports">
+  <button class="back" data-go="home">&larr; Home</button>
+  <h2 class="page-title">Public Reports</h2>
+  <div class="tabs">
+    <button class="btn" data-report-filter="new">New</button>
+    <button class="btn" data-report-filter="done">Dealt with</button>
+  </div>
+  <div id="reports-list"></div>
+  <p class="hint">Sent in from the public reporting page. Reports are deleted automatically 30 days after they are dealt with.</p>
+  <a class="btn wide ghost" id="reports-public-link" href="report.html" target="_blank" rel="noopener">Open the public reporting page</a>
+</section>
+
+<section class="screen" id="report">
+  <button class="back" data-go="reports">&larr; Public Reports</button>
+  <div id="report-body" style="margin-top:20px"></div>
 </section>
 
 <!-- ================= FACEBOOK PAGE LINK (developer) ================= -->
@@ -1987,6 +2038,8 @@ function render() {
   if (name === 'whatsapp')  { activate('whatsapp'); return showWhatsApp(); }
   if (name === 'fbpost')    { if (!isCoord()) return go('home'); activate('fbpost'); return showFacebookPost(arg); }
   if (name === 'fbupdate')  { if (!isCoord()) return go('home'); activate('fbupdate'); return showFacebookUpdate(arg); }
+  if (name === 'reports')   { if (!isCoord()) return go('home'); activate('reports'); return showReports(); }
+  if (name === 'report')    { if (!isCoord()) return go('home'); activate('report'); return showReport(arg); }
   if (name === 'facebook')  { if (!isDev()) return go('home'); activate('facebook'); return showFacebookLink(); }
   if (name === 'documents') { if (arg) { activate('doclist'); return showDocList(arg); } activate('documents'); return showDocuments(); }
   if (name === 'document')  { activate('docview'); return showDocument(arg); }
@@ -2272,6 +2325,10 @@ function showHome() {
     snap => { todo.place = snap.exists() && !!snap.data().town; drawTodo(); }, () => { todo.place = true; drawTodo(); }));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', state.user.uid),
     snap => { todo.signed = snap.exists(); drawTodo(); }, () => { todo.signed = true; drawTodo(); }));
+  // Coordinators and admins see how many public reports nobody has dealt with yet.
+  if (isCoord()) state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'reports'), fb.where('status', '==', 'new')), snap => {
+    $('#reports-count').textContent = String(snap.size); $('#reports-count').hidden = snap.size === 0;
+  }, () => { $('#reports-count').hidden = true; }));
   // The developer sees how many documents are waiting for review on the Documents tile.
   if (isDev()) state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'docs'), fb.where('status', '==', 'pending')), snap => {
     $('#docs-count').textContent = String(snap.size); $('#docs-count').hidden = snap.size === 0;
@@ -2780,6 +2837,28 @@ function showDogEdit(id) {
     edit.map.on('click', e => setSpot({ lat: e.latlng.lat, lng: e.latlng.lng }));
   };
 
+  // Accepting a public report: fill the form in from it.
+  edit.report = isNew && reportPrefill ? reportPrefill : null;
+  reportPrefill = null;
+  if (edit.report) {
+    const r = edit.report, el = form.elements;
+    el.name.value = r.type === 'lost' && r.dogName ? r.dogName : 'Unknown';
+    el.status.value = REPORT_STATUS_FOR[r.type] || 'missing';
+    el.lastSeenPlace.value = r.town || '';
+    if (r.seenDate) el.lastSeenAt.value = r.seenDate + 'T' + (r.seenTime || '12:00');
+    el.description.value = r.details || '';
+    el.notes.value = 'From a public report (' + (r.reporterName || 'no name') + '). Their phone number is in Public Reports.';
+    if (typeof r.lat === 'number') edit.spot = { lat: r.lat, lng: r.lng };
+    const pic = r.photoData || r.thumb;
+    if (pic) fetch(pic).then(res => res.blob()).then(async blob => {
+      edit.photo = await shrinkImage(blob, 1100, 700000);
+      edit.thumb = await shrinkImage(blob, 360, 60000, true);
+      $('#dog-photo-preview').src = edit.thumb; $('#dog-photo-preview').hidden = false;
+    }).catch(() => {});
+    msg.textContent = 'Filled in from a public report. Check everything, then save.';
+    $('#dog-edit-back').setAttribute('data-go', 'report/' + r.id);
+  }
+
   if (isNew) {
     startMap();
   } else {
@@ -2837,6 +2916,8 @@ function showDogEdit(id) {
         const ref = await fb.addDoc(fb.collection(fb.db, 'dogs'),
           { ...data, thumb: edit.thumb || null, createdAt: fb.serverTimestamp(), createdBy: state.profile.name || '', createdByUid: state.user.uid });
         dogId = ref.id;
+        if (edit.report) await fb.updateDoc(fb.doc(fb.db, 'reports', edit.report.id),
+          { status: 'accepted', outcomeDogId: dogId, outcomeDogName: data.name, ...reportStamp() }).catch(err => console.warn('Report not marked:', err && err.message));
       } else {
         const changed = edit.oldStatus && data.status !== edit.oldStatus;
         await fb.updateDoc(fb.doc(fb.db, 'dogs', id), changed ? { ...data, ...statusStamp() } : data);
@@ -2888,6 +2969,199 @@ function shrinkImage(file, maxSide, maxChars, square) {
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('bad image')); };
     img.src = url;
   });
+}
+
+// ============================================================
+//  Public Reports (coordinators and admins)
+//  Reports sent in from the public reporting page (report.html). They arrive through the
+//  checked "submitReport" sender; here a coordinator or admin decides what to do with each one.
+// ============================================================
+const REPORT_TYPES = {
+  lost:  { label: 'Lost my dog',              cls: 'lost',  title: 'Lost dog' },
+  loose: { label: 'Seen a loose dog',         cls: 'loose', title: 'Loose dog seen' },
+  found: { label: 'Found a dog',              cls: 'found', title: 'Dog found' },
+  posts: { label: 'Sighting of a listed dog', cls: 'posts', title: 'Sighting' }
+};
+const REPORT_REJECT = ['Duplicate of another report', 'Dog already home', 'Not enough detail', 'Not a real report', 'Other'];
+const REPORT_STATUS_FOR = { lost: 'missing', loose: 'loose', found: 'found' };
+let reportFilter = 'new';
+let reportPrefill = null;     // a report being turned into a dog on the Add a dog screen
+$$('[data-report-filter]').forEach(b => b.addEventListener('click', () => { reportFilter = b.getAttribute('data-report-filter'); render(); }));
+
+const reportType = r => REPORT_TYPES[r.type] || { label: 'Report', cls: 'loose', title: 'Report' };
+function reportSeen(r) {
+  if (!r.seenDate) return '';
+  const [y, m, d] = String(r.seenDate).split('-');
+  return d + '/' + m + '/' + y + (r.seenTime ? ' at ' + r.seenTime : '');
+}
+const prettyPhone = p => /^07\d{9}$/.test(p || '') ? p.slice(0, 5) + ' ' + p.slice(5) : (p || '');
+function reportOutcome(r) {
+  const by = r.dealtBy ? ' by ' + r.dealtBy : '', at = r.dealtAt ? ', ' + when(r.dealtAt) : '';
+  if (r.status === 'accepted') return 'Dog created' + (r.outcomeDogName ? ' (' + r.outcomeDogName + ')' : '') + by + at + '.';
+  if (r.status === 'sighting') return 'Added to ' + (r.outcomeDogName || 'a dog') + by + at + '.';
+  if (r.status === 'rejected') return 'Rejected' + by + at + (r.rejectReason ? ': ' + r.rejectReason : '.');
+  return '';
+}
+function reportIcon() {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 64 60'); svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M8 6h48c3 0 5 2 5 5v28c0 3-2 5-5 5H26L13 55V44H8c-3 0-5-2-5-5V11c0-3 2-5 5-5z');
+  svg.appendChild(path);
+  return svg;
+}
+// Who did something with a report, and when.
+const reportStamp = () => ({ dealtBy: state.profile.name || '', dealtByUid: state.user.uid, dealtAt: state.fb.serverTimestamp() });
+
+function showReports() {
+  const fb = state.fb, list = $('#reports-list');
+  $$('[data-report-filter]').forEach(b => b.classList.toggle('on', b.getAttribute('data-report-filter') === reportFilter));
+  list.textContent = '';
+  list.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'reports'), snap => {
+    const all = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
+    const newCount = all.filter(r => r.status === 'new').length;
+    $('[data-report-filter="new"]').textContent = 'New' + (newCount ? ' (' + newCount + ')' : '');
+    const shown = all.filter(r => (r.status === 'new') === (reportFilter === 'new'))
+      .sort((a, b) => reportFilter === 'new' ? millis(b.createdAt) - millis(a.createdAt) : millis(b.dealtAt) - millis(a.dealtAt));
+    list.textContent = '';
+    if (!shown.length) { list.appendChild(h('p', { class: 'empty' }, reportFilter === 'new' ? 'No new reports. Well done!' : 'Nothing dealt with in the last 30 days.')); return; }
+    shown.forEach(r => {
+      const t = reportType(r);
+      list.appendChild(h('button', { class: 'report-card', type: 'button', 'data-go': 'report/' + r.id },
+        r.thumb ? h('img', { alt: '', src: r.thumb }) : h('span', { class: 'report-noimg' }, reportIcon()),
+        h('span', { class: 'report-info' },
+          h('span', { class: 'report-tag ' + t.cls }, t.label),
+          h('strong', null, r.town || 'No place given'),
+          r.dogName ? h('span', null, (r.type === 'posts' ? 'About: ' : 'Dog: ') + r.dogName) : null,
+          h('span', null, (reportSeen(r) ? 'Seen ' + reportSeen(r) + ' · ' : '') + 'sent ' + when(r.createdAt)),
+          r.status === 'new' && r.lookingBy ? h('span', { class: 'report-looking' }, 'Being looked at by ' + r.lookingBy) : null,
+          r.status !== 'new' ? h('span', { class: 'report-outcome' }, reportOutcome(r)) : null)));
+    });
+  }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
+}
+
+function showReport(id) {
+  const fb = state.fb, root = $('#report-body'), ref = fb.doc(fb.db, 'reports', id);
+  const live = { r: null, photo: null, dogs: [], map: null, claimed: false, mode: null };
+  root.textContent = '';
+  root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  state.subs.push(() => { if (live.map) { live.map.remove(); live.map = null; } });
+
+  state.subs.push(fb.onSnapshot(ref, snap => {
+    if (!snap.exists()) { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, 'This report is no longer here. Reports are deleted 30 days after they are dealt with.')); live.r = null; return; }
+    live.r = { id: snap.id, ...snap.data({ serverTimestamps: 'estimate' }) };
+    // Opening a new report tells everyone else who is dealing with it, so two people do not phone the same person.
+    if (live.r.status === 'new' && !live.r.lookingByUid && !live.claimed) {
+      live.claimed = true;
+      fb.updateDoc(ref, { lookingBy: state.profile.name || '', lookingByUid: state.user.uid, lookingAt: fb.serverTimestamp() }).catch(() => {});
+    }
+    draw();
+  }, err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
+  fb.getDoc(fb.doc(fb.db, 'reports', id, 'images', 'main')).then(snap => { if (snap.exists()) { live.photo = snap.data().data; draw(); } }).catch(() => {});
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'dogs'), snap => {
+    live.dogs = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(d => (STATUSES[d.status] || {}).active)
+      .sort((a, b) => millis(b.createdAt) - millis(a.createdAt));
+    if (live.mode === 'sighting') draw();
+  }, () => {}));
+
+  function draw() {
+    const r = live.r;
+    if (!r) return;
+    if (live.map) { live.map.remove(); live.map = null; }
+    const t = reportType(r), isNew = r.status === 'new';
+    const reason = $('#report-reject-why') ? $('#report-reject-why').value : '';
+    root.textContent = '';
+    root.appendChild(h('h2', { class: 'page-title' }, t.title + (r.town ? ' · ' + r.town : '')));
+    root.appendChild(h('p', { class: 'status-line' }, h('span', { class: 'report-tag ' + t.cls }, t.label)));
+    if (isNew && r.lookingBy) root.appendChild(h('p', { class: 'report-looking-box' },
+      r.lookingByUid === state.user.uid ? 'You are looking at this report.' : 'Being looked at by ' + r.lookingBy + (r.lookingAt ? ' (' + when(r.lookingAt) + ')' : '') + '.'));
+    if (!isNew) root.appendChild(h('div', { class: 'fb-posted report-done' },
+      h('span', { class: 'ok' }, tickIcon('#ffffff', 24)),
+      h('div', null, h('strong', null, reportOutcome(r)),
+        r.outcomeDogId ? h('br') : null, r.outcomeDogId ? h('button', { class: 'link', type: 'button', 'data-go': 'dog/' + r.outcomeDogId }, 'Open the dog') : null)));
+
+    const pic = live.photo || r.thumb;
+    if (pic) root.appendChild(h('img', { class: 'full-image', alt: 'Photo sent with the report', src: pic }));
+    const rows = [
+      [r.type === 'posts' ? 'About' : 'Dog', r.dogName], ['Where', r.town], ['When', reportSeen(r)],
+      ['Details', r.details], ['Sent', when(r.createdAt)]
+    ].filter(x => x[1]);
+    root.appendChild(h('dl', { class: 'card details' }, rows.map(x => [h('dt', null, x[0]), h('dd', null, x[1])])));
+    if (typeof r.lat === 'number') {
+      const mapEl = h('div', { class: 'map', id: 'report-map' });
+      root.appendChild(mapEl);
+      makeMap(mapEl, [{ lat: r.lat, lng: r.lng, kind: 'sighting', label: 'Pin from the report' }]).then(m => { live.map = m; });
+      root.appendChild(h('a', { class: 'btn wide ghost', href: 'https://www.google.com/maps?q=' + r.lat + ',' + r.lng, target: '_blank', rel: 'noopener' }, 'Open the pin in Maps'));
+    } else root.appendChild(h('p', { class: 'hint' }, 'No map pin was given.'));
+
+    root.appendChild(h('div', { class: 'report-who' },
+      h('div', null, h('span', { class: 'report-who-label' }, 'Reported by'), h('strong', null, r.reporterName || 'No name'), h('span', null, prettyPhone(r.reporterPhone))),
+      r.reporterPhone ? h('a', { class: 'btn report-call', href: 'tel:' + r.reporterPhone }, 'Call') : null));
+    root.appendChild(h('p', { class: 'hint', style: 'margin-top:4px' }, "The reporter's name and phone are only shown to coordinators and admins."));
+
+    if (!isNew) {
+      if (r.status === 'rejected') root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', onclick: () => setStatus({ status: 'new', rejectReason: '' }) }, 'Move back to New'));
+      return;
+    }
+
+    // --- What to do with it
+    const msg = h('p', { class: 'form-msg', role: 'status' });
+    const box = h('div', { class: 'admin-box report-actions' }, h('h3', null, 'What would you like to do?'));
+    const createBtn = REPORT_STATUS_FOR[r.type] ? h('button', { class: 'btn wide', type: 'button', onclick: () => {
+      reportPrefill = { ...r, photoData: live.photo || '' };
+      go('dog-edit/new');
+    } }, 'Accept: create the dog') : null;
+    const sightBtn = h('button', { class: 'btn wide' + (r.type === 'posts' ? '' : ' ghost'), type: 'button', onclick: () => { live.mode = live.mode === 'sighting' ? null : 'sighting'; draw(); } }, 'Add as a sighting to a dog');
+    if (r.type === 'posts') box.appendChild(sightBtn); else { box.appendChild(createBtn); box.appendChild(h('p', { class: 'hint' }, 'Opens Add a dog with the photo, place, time and details filled in.')); box.appendChild(sightBtn); }
+
+    if (live.mode === 'sighting') {
+      const pick = h('select', { id: 'report-dog' }, h('option', { value: '' }, live.dogs.length ? 'Choose the dog…' : 'No active dogs'),
+        live.dogs.map(d => h('option', { value: d.id, selected: d.id === r.dogId }, (d.name || 'Unnamed dog') + (d.lastSeenPlace ? ' – ' + d.lastSeenPlace : '') + ' (' + ((STATUSES[d.status] || {}).label || '') + ')')));
+      const tell = h('input', { type: 'checkbox', id: 'report-notify', checked: true });
+      box.appendChild(h('div', { class: 'admin-box form' },
+        h('label', { for: 'report-dog' }, 'Which dog?'), pick,
+        h('p', { class: 'hint' }, typeof r.lat === 'number' ? 'The pin goes on the dog’s map as a sighting, and a line is added to its updates.' : 'There is no pin, so a line is added to the dog’s updates.'),
+        h('label', { class: 'check' }, tell, " Notify members' phones"),
+        h('button', { class: 'btn', type: 'button', onclick: async e => {
+          const dog = live.dogs.find(d => d.id === pick.value);
+          if (!dog) { msg.textContent = 'Choose the dog first.'; return; }
+          e.target.disabled = true; msg.textContent = 'Adding…';
+          try { await addReportToDog(r, dog, tell.checked); msg.textContent = ''; live.mode = null; }
+          catch (err) { e.target.disabled = false; msg.textContent = friendlyError(err); }
+        } }, 'Add to this dog')));
+    }
+
+    const why = h('select', { id: 'report-reject-why' }, h('option', { value: '' }, 'Choose a reason…'), REPORT_REJECT.map(x => h('option', { value: x, selected: x === reason }, x)));
+    box.appendChild(h('label', { for: 'report-reject-why' }, 'Reject (the reason is for the team only)'));
+    box.appendChild(h('div', { class: 'row' }, why,
+      h('button', { class: 'btn danger', type: 'button', onclick: () => {
+        if (!why.value) { msg.textContent = 'Choose a reason first.'; return; }
+        setStatus({ status: 'rejected', rejectReason: why.value, ...reportStamp() });
+      } }, 'Reject')));
+    box.appendChild(msg);
+    root.appendChild(box);
+    root.appendChild(h('p', { class: 'hint' }, 'Reports are deleted automatically 30 days after they are dealt with.'));
+
+    async function setStatus(change) {
+      try { await fb.updateDoc(ref, change); } catch (err) { msg.textContent = friendlyError(err); }
+    }
+  }
+}
+
+// Put a public report on an existing dog: a sighting on its map (when there is a pin) and a line in its updates.
+async function addReportToDog(r, dog, notify) {
+  const fb = state.fb, me = state.profile.name || '';
+  const seenAt = r.seenDate ? r.seenDate + 'T' + (r.seenTime || '12:00') : localInput(new Date());
+  const note = r.details ? r.details.replace(/\s+/g, ' ').slice(0, 200) : '';
+  if (typeof r.lat === 'number')
+    await fb.addDoc(fb.collection(fb.db, 'dogs', dog.id, 'sightings'),
+      { lat: r.lat, lng: r.lng, note: 'Public report' + (note ? ': ' + note : ''), seenAt, byName: me, createdAt: fb.serverTimestamp() });
+  const text = 'Sighting reported by a member of the public in ' + (r.town || 'an unknown place') + (reportSeen(r) ? ' on ' + reportSeen(r) : '') + '.' + (note ? ' "' + note + '"' : '');
+  const upd = await fb.addDoc(fb.collection(fb.db, 'dogs', dog.id, 'updates'), { text, byName: me, createdAt: fb.serverTimestamp() });
+  fb.updateDoc(fb.doc(fb.db, 'dogs', dog.id), { updateCount: fb.increment(1), lastUpdateAt: fb.serverTimestamp() }).catch(() => {});
+  await fb.updateDoc(fb.doc(fb.db, 'reports', r.id), { status: 'sighting', outcomeDogId: dog.id, outcomeDogName: dog.name || '', ...reportStamp() });
+  if (notify) sendPush({ type: 'update', dogId: dog.id, updateId: upd.id });
 }
 
 // ============================================================
@@ -5917,6 +6191,17 @@ function startAlerts() {
     knownDogs = new Map(snap.docs.map(d => [d.id, !!d.data().askAvailability]));
   }, () => {}));
 
+  if (isCoord()) {
+    let knownReports = null;
+    alertSubs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'reports'), fb.where('status', '==', 'new')), snap => {
+      if (knownReports) snap.docs.forEach(d => {
+        if (knownReports.has(d.id)) return;
+        const r = d.data(), t = REPORT_TYPES[r.type] || { title: 'Report' };
+        showAlert('New public report', t.title + (r.town ? ' \u00b7 ' + r.town : ''), 'report/' + d.id);
+      });
+      knownReports = new Set(snap.docs.map(d => d.id));
+    }, () => {}));
+  }
   if (isDev()) {
     let knownDocs = null;
     alertSubs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'docs'), fb.where('status', '==', 'pending')), snap => {

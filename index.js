@@ -143,6 +143,7 @@ exports.tidyClosedDogs = onSchedule({ schedule: 'every day 03:00', timeZone: 'Eu
     if (closedAt && closedAt < cutoff) { await db.recursiveDelete(dog.ref); removed++; }
   }
   console.log('Closed cases removed:', removed);
+  await tidyReports();   // public reports: see further down
 });
 
 // ---- Delete a volunteer for good ----
@@ -339,3 +340,143 @@ exports.facebookUpdate = onCall({ timeoutSeconds: 60 }, async request => {
   await dogRef.collection('updates').add({ kind: 'facebook', text: 'Facebook post updated (' + label + ').', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
   return { updated: true, link: dog.fbLink || '' };
 });
+
+// ============================================================
+//  Public reporting website (report.html)
+// ============================================================
+// Members of the public can see the dogs we are looking for (photo, name, area and status only) and send
+// a report: a lost dog, a loose dog, a found dog, or a sighting of a dog from our posts.
+// Reports never go straight into the database from the website: they come through here, so every one is
+// checked, robots and floods are turned away, and only then is it saved and the coordinators and admins told.
+const crypto = require('crypto');
+const PUBLIC_STATUS = { missing: 'Missing', loose: 'Loose dog', found: 'Found' };
+const REPORT_TYPES = { lost: 'Lost dog', loose: 'Loose dog seen', found: 'Dog found', posts: 'Sighting' };
+const REPORT_LIMITS = { perHour: 5, perDay: 12, allPerDay: 300 };
+
+// ---- The dogs shown on the public page ----
+let publicCache = { at: 0, dogs: null };
+exports.publicDogs = onCall({ cors: true }, async () => {
+  if (publicCache.dogs && Date.now() - publicCache.at < 60 * 1000) return { dogs: publicCache.dogs };
+  const snap = await admin.firestore().collection('dogs').where('status', 'in', Object.keys(PUBLIC_STATUS)).get();
+  const dogs = snap.docs.map(d => {
+    const x = d.data();
+    return {
+      id: d.id,
+      name: String(x.name || '').trim().slice(0, 60) || 'Unknown',
+      area: String(x.lastSeenPlace || '').trim().slice(0, 80),
+      status: x.status, statusLabel: PUBLIC_STATUS[x.status],
+      thumb: typeof x.thumb === 'string' && x.thumb.startsWith('data:image/') && x.thumb.length < 120000 ? x.thumb : '',
+      added: millis(x.createdAt)
+    };
+  }).sort((a, b) => b.added - a.added).map(({ added, ...rest }) => rest);
+  publicCache = { at: Date.now(), dogs };
+  return { dogs };
+});
+
+// Tidy a piece of text typed by the public: no control characters, no runs of spaces, a sensible length.
+function cleanText(v, max, multiline) {
+  let s = String(v == null ? '' : v).replace(/\r\n?/g, '\n');
+  s = multiline ? s.replace(/[^\S\n]+/g, ' ').replace(/\n{3,}/g, '\n\n') : s.replace(/\s+/g, ' ');
+  s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim();
+  return s.length > max ? s.slice(0, max) : s;
+}
+function bad(msg) { return new HttpsError('invalid-argument', msg); }
+
+// ---- A report from the public ----
+exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request => {
+  const d = request.data || {}, db = admin.firestore(), now = Date.now();
+
+  // Robots: the website has a hidden box people never see (robots fill it in), and a person takes
+  // more than a few seconds to fill in the form. Either sign gets a polite "thank you" and nothing is kept.
+  if (d.website || !(Number(d.tookMs) >= 4000)) return { ok: true };
+
+  // Floods: a handful of reports an hour from one connection, and an overall daily ceiling.
+  const ip = String((request.rawRequest && (request.rawRequest.ip || (request.rawRequest.headers || {})['x-forwarded-for'])) || 'unknown').split(',')[0].trim();
+  const who = crypto.createHash('sha256').update('lda-report:' + ip).digest('hex').slice(0, 32);   // the address itself is never stored
+  const limitRef = db.collection('limits').doc(who);
+  const limitSnap = await limitRef.get();
+  const times = ((limitSnap.exists && limitSnap.data().times) || []).filter(t => t > now - 24 * 3600e3);
+  if (times.filter(t => t > now - 3600e3).length >= REPORT_LIMITS.perHour || times.length >= REPORT_LIMITS.perDay)
+    throw new HttpsError('resource-exhausted', 'You have sent several reports already. Please phone us on 07715 950588 instead.');
+  const dayRef = db.collection('limits').doc('all-' + new Date(now).toISOString().slice(0, 10));
+  const daySnap = await dayRef.get();
+  const dayCount = daySnap.exists ? Number(daySnap.data().n || 0) : 0;
+  if (dayCount >= REPORT_LIMITS.allPerDay) throw new HttpsError('resource-exhausted', 'We are very busy. Please phone us on 07715 950588 instead.');
+
+  // Check every box.
+  const type = String(d.type || '');
+  if (!REPORT_TYPES[type]) throw bad('Please choose what you are reporting.');
+  if (d.consent !== true) throw bad('Please tick the box so a coordinator can contact you.');
+  const town = cleanText(d.town, 60);
+  if (town.length < 2) throw bad('Please add the Town/Village.');
+  const details = cleanText(d.details, 1000, true);
+  if (type !== 'posts' && details.length < 5) throw bad('Please add a short description.');
+  const name = cleanText(d.name, 60);
+  if (!name) throw bad('Please add your name.');
+  const phone = String(d.phone || '').replace(/[\s()\-.]/g, '').replace(/^\+44/, '0').replace(/^0044/, '0');
+  if (!/^0\d{9,10}$/.test(phone)) throw bad('Please add a UK phone number.');
+  const seenDate = String(d.date || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(seenDate)) throw bad('Please add the date.');
+  const dayMs = Date.parse(seenDate + 'T12:00:00Z');
+  if (isNaN(dayMs) || dayMs > now + 36 * 3600e3) throw bad("The date can't be in the future.");
+  if (dayMs < now - 366 * 24 * 3600e3) throw bad('Please check the date.');
+  const seenTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(d.time || '')) ? String(d.time) : '';
+  let lat = null, lng = null;
+  if (d.lat != null || d.lng != null) {
+    lat = Number(d.lat); lng = Number(d.lng);
+    if (!(lat > 54 && lat < 57 && lng > -7 && lng < -2.5)) throw bad('The map pin is outside our area. Please check it.');
+    lat = Math.round(lat * 1e5) / 1e5; lng = Math.round(lng * 1e5) / 1e5;
+  }
+  const isJpeg = (v, max) => typeof v === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(v) && v.length <= max;
+  const photo = d.photo ? String(d.photo) : '', thumb = d.thumb ? String(d.thumb) : '';
+  if (type === 'posts' && (photo || thumb)) throw bad('Photos are not needed for a sighting.');
+  if (photo && !isJpeg(photo, 600000)) throw bad('That photo could not be used. Please try a different one.');
+  if (thumb && !isJpeg(thumb, 80000)) throw bad('That photo could not be used. Please try a different one.');
+  let dogId = '', dogName = '';
+  if (type === 'posts') {
+    dogId = String(d.dogId || '');
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(dogId)) throw bad('Please tap the dog you saw.');
+    const dog = await db.collection('dogs').doc(dogId).get();
+    if (!dog.exists || !PUBLIC_STATUS[dog.data().status]) throw bad('That dog is no longer listed. Please choose "I’ve seen a loose dog" instead.');
+    dogName = String(dog.data().name || '').slice(0, 60);
+  } else if (type === 'lost') {
+    dogName = cleanText(d.dogName, 60);
+    if (!dogName) throw bad("Please add your dog's name.");
+  }
+
+  // Save it. The full photo is kept separately so the list of reports stays quick to open.
+  const ref = await db.collection('reports').add({
+    type, status: 'new', dogId, dogName, town, lat, lng, seenDate, seenTime, details,
+    reporterName: name, reporterPhone: phone, thumb: thumb || '', hasPhoto: !!photo,
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+  if (photo) await ref.collection('images').doc('main').set({ data: photo });
+  await limitRef.set({ times: times.concat(now), updatedAt: now });
+  await dayRef.set({ n: dayCount + 1, updatedAt: now });
+
+  // Tell the coordinators and admins.
+  const title = 'New public report: ' + (type === 'posts' ? 'sighting' : REPORT_TYPES[type].toLowerCase());
+  const body = type === 'posts' ? (dogName && !/^unknown$/i.test(dogName) ? dogName + ' seen in ' : 'Listed dog seen in ') + town
+    : type === 'lost' ? dogName + ' lost in ' + town : type === 'found' ? 'Found in ' + town : 'Seen in ' + town;
+  try { await sendTo(await peopleWithRole(['coordinator', 'admin', 'developer']), title, body, SITE + '#report/' + ref.id, 'report'); }
+  catch (e) { console.warn('Report alert not sent:', e && e.message); }
+  return { ok: true };
+});
+
+// ---- Reports tidy themselves away ----
+// Run each night with the closed-dog tidy: a report that has been dealt with is deleted 30 days later;
+// one nobody dealt with is deleted after 60 days. The flood counters are cleared after two days.
+async function tidyReports() {
+  const db = admin.firestore(), now = Date.now();
+  let removed = 0;
+  for (const r of (await db.collection('reports').get()).docs) {
+    const x = r.data();
+    const dealt = x.status && x.status !== 'new';
+    const from = dealt ? (millis(x.dealtAt) || millis(x.createdAt)) : millis(x.createdAt);
+    if (from && from < now - (dealt ? 30 : 60) * 24 * 3600e3) { await db.recursiveDelete(r.ref); removed++; }
+  }
+  for (const l of (await db.collection('limits').get()).docs)
+    if (!(Number(l.data().updatedAt) > now - 2 * 24 * 3600e3)) await l.ref.delete();
+  console.log('Reports removed:', removed);
+}
+if (process.env.LDA_TEST) exports.tidyReports = tidyReports;   // for the tests only
