@@ -1014,6 +1014,8 @@
 .found-q { margin: 0 0 8px; font-weight: 800; }
 .found-options { display: flex; flex-wrap: wrap; gap: 8px; }
 .found-options .chip.on { background: var(--yellow); color: var(--purple); }
+
+.found-where.tile-where { display: table; margin: 6px auto 0; font-size: .78rem; }
 </style>
 </head>
 <body>
@@ -2427,6 +2429,7 @@ function showDogs() {
         d.thumb ? h('img', { alt: '', src: d.thumb }) : h('span', { class: 'art nophoto' }, pawIcon()),
         h('span', { class: 'tile-name' }, h('span', { class: 'name-label' }, 'Name: '), d.name || 'Unnamed dog'),
         statusBadge(d.status),
+        d.status === 'found' && d.foundWhere ? h('span', { class: 'found-where tile-where' }, d.foundWhere) : null,
         fresh ? h('span', { class: 'count dog-new', title: 'New updates' }, String(fresh)) : null));
     });
   }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));

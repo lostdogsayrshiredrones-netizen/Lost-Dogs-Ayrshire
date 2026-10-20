@@ -51,6 +51,7 @@
   .dog.safe { cursor: default; background: #1d6b33; }
   .dog.safe img, .dog.safe .nophoto { border-color: #fff; }
   .tag.safe { background: #fff; color: #1d6b33; }
+  .tag.where { background: #fff; color: var(--deep); }
   .dog .seen.safe { color: #fff; }
   .foot { font-size: .82rem; color: var(--soft); text-align: center; }
   .back { align-self: flex-start; padding: 8px 18px; border: 3px solid var(--yellow); border-radius: 999px;
@@ -342,7 +343,8 @@ function drawDogs(note) {
         '<span><b>Name: ' + esc(d.name) + '</b>' + (d.area ? '<small>' + esc(d.area) + '</small>' : '') + '<span class="tag safe">' + esc(d.statusLabel) + '</span></span>' +
         '<span class="seen safe">Thank you<br>for sharing!</span></div>'
       : '<button type="button" class="dog" data-dog="' + esc(d.id) + '">' + dogPic(d) +
-        '<span><b>Name: ' + esc(d.name) + '</b>' + (d.area ? '<small>' + esc(d.area) + '</small>' : '') + '<span class="tag">' + esc(d.statusLabel) + '</span></span>' +
+        '<span><b>Name: ' + esc(d.name) + '</b>' + (d.area ? '<small>' + esc(d.area) + '</small>' : '') + '<span class="tag">' + esc(d.statusLabel) + '</span>' +
+        (d.foundWhere ? ' <span class="tag where">' + esc(d.foundWhere) + '</span>' : '') + '</span>' +
         '<span class="seen">Seen<br>this dog?</span></button>').join('');
 }
 async function loadDogs(tries) {

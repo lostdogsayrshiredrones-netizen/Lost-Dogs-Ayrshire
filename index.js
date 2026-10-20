@@ -362,6 +362,8 @@ let publicCache = { at: 0, dogs: null };
 // Dogs that are Home safe or Reunited stay on the list for 24 hours with that good news, then drop off.
 // They cannot be picked for a sighting, so no more reports come in about them.
 const SAFE_STATUS = { 'home-safe': 'Home safe', reunited: 'Reunited' };
+// Where a Found dog is now. Only these general phrases are ever shown publicly (never the vet, finder or address).
+const FOUND_WHERE = ['Safe with finder', 'On route to vets', 'On route to police station', 'Safe with dog warden'];
 const SAFE_SHOW_MS = 24 * 3600e3;
 exports.publicDogs = onCall({ cors: true }, async () => {
   if (publicCache.dogs && Date.now() - publicCache.at < 60 * 1000) return { dogs: publicCache.dogs };
@@ -375,6 +377,7 @@ exports.publicDogs = onCall({ cors: true }, async () => {
       name: String(x.name || '').trim().slice(0, 60) || 'Unknown',
       area: String(x.lastSeenPlace || '').trim().slice(0, 80),
       status: x.status, statusLabel: safe ? SAFE_STATUS[x.status] : PUBLIC_STATUS[x.status], safe,
+      foundWhere: x.status === 'found' && FOUND_WHERE.includes(x.foundWhere) ? x.foundWhere : '',
       thumb: typeof x.thumb === 'string' && x.thumb.startsWith('data:image/') && x.thumb.length < 120000 ? x.thumb : '',
       added: millis(x.createdAt)
     };
