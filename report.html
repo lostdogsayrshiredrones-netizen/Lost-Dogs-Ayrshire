@@ -147,6 +147,9 @@
   .pick .nophoto { display: flex; align-items: center; justify-content: center; border: 2px dashed #b9a6f0; font-size: .75rem; }
   .pick small { display: block; font-size: .85rem; opacity: .85; }
   .thanks { align-items: center; text-align: center; }
+  .t-poster { margin: 0; width: 100%; }
+  .t-poster img { display: block; width: 100%; height: auto; border-radius: 14px; border: 3px solid var(--yellow); }
+  .t-poster figcaption { margin-top: 6px; font-size: .85rem; color: var(--soft); }
   .tick { width: 84px; height: 84px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; }
   .info { width: 100%; padding: 14px; background: var(--deep); border-radius: 14px; text-align: left; display: flex; flex-direction: column; gap: 10px; }
   .info div { display: flex; gap: 10px; }
@@ -305,9 +308,13 @@
   <p style="margin:0;font-size:1.1rem;font-weight:700">Your report has been sent to the Lost Dogs Ayrshire team.</p>
   <div class="info">
     <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fdf90f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg><span id="t-call-text">A coordinator may phone you to ask a few questions. Please keep your phone handy.</span></div>
-    <div id="t-safety"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fdf90f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg><span id="t-safety-text">Please don't pursue, call or approach a loose dog. A frightened dog may run into danger.</span></div>
+    <div id="t-safety" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fdf90f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg><span id="t-safety-text">Please don't pursue, call or approach a loose dog. A frightened dog may run into danger.</span></div>
     <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fdf90f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>If you see the dog again, send another report. Each one helps.</span></div>
   </div>
+  <figure class="t-poster" id="t-poster">
+    <a href="loose-dog-advice.jpg" target="_blank" rel="noopener"><img src="loose-dog-advice.jpg" loading="lazy" alt="Loose dog advice. Please do: note the location, try to get a photo, note the time and the direction of travel. Do not: shout, whistle, pursue or grab. If you can: avoid eye contact, stay low to the ground, turn your body to the side, move slowly and speak softly with an excited tone."></a>
+    <figcaption>Tap the poster to see it full size. Please share!</figcaption>
+  </figure>
   <div class="warn" style="width:100%">Urgent? Call Lost Dogs Ayrshire on <a href="tel:07715950588" style="color:#fff"><b>07715 950588</b></a></div>
   <button class="send" type="button" data-go="home" style="width:100%">Send another report</button>
 </section>
@@ -581,6 +588,9 @@ $('r-form').addEventListener('submit', async e => {
     $('t-call-text').textContent = behalf
       ? 'We will review your report and phone the owner. No search or posts will start until the owner has agreed. Please let them know to expect our call.'
       : 'A coordinator may phone you to ask a few questions. Please keep your phone handy.';
+    // A found dog is already safe: keep the short line. Everyone else gets the Loose Dog advice poster.
+    $('t-safety').hidden = type !== 'found';
+    $('t-poster').hidden = type === 'found';
     $('t-safety-text').textContent = behalf
       ? "If you see the dog, don't pursue it; crouch down and call it calmly, or let us know where it was."
       : type === 'lost'
