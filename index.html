@@ -1007,6 +1007,13 @@
 .report-consent { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 14px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,.12); font-weight: 700; }
 .report-consent input { width: 24px; height: 24px; flex-shrink: 0; margin: 0; }
 .report-actions .btn:disabled { opacity: .45; }
+
+/* Found: where the dog is now */
+.found-where { display: inline-block; margin-left: 8px; padding: 3px 10px; border-radius: 999px; background: var(--white); color: var(--purple-deep); font-weight: 800; font-size: .85rem; }
+.found-box { margin: 10px 0 14px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,.12); }
+.found-q { margin: 0 0 8px; font-weight: 800; }
+.found-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.found-options .chip.on { background: var(--yellow); color: var(--purple); }
 </style>
 </head>
 <body>
@@ -1475,6 +1482,10 @@
       <option value="no-further-sightings">No further sightings</option>
       <option value="paws-down">Paws down</option>
     </select>
+    <div id="dog-found-box" hidden>
+      <label for="dog-found-where">Where is the dog now?</label>
+      <select id="dog-found-where" name="foundWhere"></select>
+    </div>
     <label for="dog-photo-btn">Photo</label>
     <button class="btn ghost" id="dog-photo-btn" type="button" onclick="document.getElementById('dog-photo').click()">Choose a photo</button>
     <input id="dog-photo" type="file" accept="image/*" hidden>
@@ -1939,6 +1950,11 @@ const STATUSES = {
   'paws-down':            { label: 'Paws down',            active: false, poster: 'paws-down' }
 };
 
+// When a dog is Found, where it is now. Kept as a second step so the status list stays short.
+const FOUND_WHERE = ['Safe with finder', 'On route to vets', 'On route to police station', 'Safe with dog warden'];
+// "Found · Safe with finder" (or just the status label).
+const statusText = d => ((STATUSES[d.status] || {}).label || d.status || 'Unknown') + (d.status === 'found' && d.foundWhere ? ' \u00b7 ' + d.foundWhere : '');
+
 // ---------- Small helpers ----------
 const $  = (sel, root) => (root || document).querySelector(sel);
 const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -2366,10 +2382,10 @@ $$('[data-dog-filter]').forEach(b => b.addEventListener('click', () => { dogFilt
 
 // Every status change records who made it and when, and adds a line to the dog's updates.
 const statusStamp = () => ({ statusBy: state.profile.name || '', statusByUid: state.user.uid, statusAt: state.fb.serverTimestamp() });
-function logStatusChange(dogId, from, to) {
+function logStatusChange(dogId, from, to, where) {
   const fb = state.fb, name = s => (STATUSES[s] || { label: s || 'Unknown' }).label;
   return fb.addDoc(fb.collection(fb.db, 'dogs', dogId, 'updates'),
-    { kind: 'status', from: from || '', to, text: 'Status changed from ' + name(from) + ' to ' + name(to) + '.', byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() })
+    { kind: 'status', from: from || '', to, text: 'Status changed from ' + name(from) + ' to ' + name(to) + (to === 'found' && where ? ' (' + where + ')' : '') + '.', byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() })
     .catch(err => console.warn('Status change not logged:', err && err.message));
 }
 
@@ -2486,7 +2502,7 @@ function showDog(id) {
     root.textContent = '';
 
     root.appendChild(h('h2', { class: 'page-title' }, h('span', { class: 'name-label' }, 'Name: '), d.name || 'Unnamed dog'));
-    root.appendChild(h('p', { class: 'status-line' }, statusBadge(d.status)));
+    root.appendChild(h('p', { class: 'status-line' }, statusBadge(d.status), d.status === 'found' && d.foundWhere ? h('span', { class: 'found-where' }, d.foundWhere) : null));
     if (d.statusBy) root.appendChild(h('p', { class: 'status-by' },
       (st.active === false ? 'Closed by ' : 'Status set by ') + d.statusBy + (d.statusAt ? ', ' + when(d.statusAt) : '')));
 
@@ -2579,15 +2595,35 @@ function showDog(id) {
 
     // --- Coordinator and admin controls
     if (isCoord()) {
-      const select = h('select', { id: 'status-select', onchange: async e => {
-        const to = e.target.value, from = d.status;
-        if (to === from) return;
-        try { await fb.updateDoc(dogRef, { status: to, ...statusStamp(), updatedAt: fb.serverTimestamp() }); logStatusChange(id, from, to); offerFacebookUpdate(id, from, to, d); }
-        catch (err) { alert(friendlyError(err)); }
-      } }, Object.entries(STATUSES).map(([k, v]) => h('option', { value: k, selected: k === d.status }, v.label)));
+      const setStatus = async (to, where) => {
+        const from = d.status;
+        live.askFound = false;
+        try {
+          await fb.updateDoc(dogRef, { status: to, foundWhere: to === 'found' ? (where || '') : '', ...statusStamp(), updatedAt: fb.serverTimestamp() });
+          logStatusChange(id, from, to, where); offerFacebookUpdate(id, from, to, d);
+        } catch (err) { alert(friendlyError(err)); draw(); }
+      };
+      const select = h('select', { id: 'status-select', onchange: e => {
+        const to = e.target.value;
+        if (to === d.status) { live.askFound = false; draw(); return; }
+        if (to === 'found') { live.askFound = true; draw(); return; }      // Found: ask where the dog is now first
+        setStatus(to);
+      } }, Object.entries(STATUSES).map(([k, v]) => h('option', { value: k, selected: live.askFound ? k === 'found' : k === d.status }, v.label)));
+      // Where a Found dog is now: asked when changing to Found, and can be changed while it stays Found.
+      const whereBox = (live.askFound || d.status === 'found') ? h('div', { class: 'found-box' },
+        h('p', { class: 'found-q' }, live.askFound ? 'Found: where is the dog now?' : 'Where is the dog now?'),
+        h('div', { class: 'found-options' }, FOUND_WHERE.map(w => h('button', { type: 'button', class: 'chip' + (!live.askFound && d.foundWhere === w ? ' on' : ''), onclick: async () => {
+          if (live.askFound) return setStatus('found', w);
+          if (d.foundWhere === w) return;
+          try {
+            await fb.updateDoc(dogRef, { foundWhere: w, updatedAt: fb.serverTimestamp() });
+            fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'), { kind: 'status', from: 'found', to: 'found', text: 'Found dog now: ' + w + '.', byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() }).catch(() => {});
+          } catch (err) { alert(friendlyError(err)); }
+        } }, w))),
+        live.askFound ? h('button', { class: 'link', type: 'button', onclick: () => { live.askFound = false; draw(); } }, 'Cancel') : null) : null;
       const box = h('div', { class: 'admin-box' },
         h('h3', null, isAdmin() ? 'Admin' : 'Coordinator'),
-        h('label', { for: 'status-select' }, 'Status'), select,
+        h('label', { for: 'status-select' }, 'Status'), select, whereBox,
         h('button', { class: 'btn wide ' + (d.askAvailability ? 'ghost' : ''), type: 'button', onclick: async () => {
           try {
             await fb.updateDoc(dogRef, { askAvailability: !d.askAvailability, availabilityAskedByUid: state.user.uid, updatedAt: fb.serverTimestamp() });
@@ -2832,6 +2868,12 @@ function showDogEdit(id) {
   statusBox.textContent = '';
   Object.entries(STATUSES).filter(([, st]) => !isNew || st.active).forEach(([k, st]) => statusBox.appendChild(h('option', { value: k }, st.label)));
   statusBox.value = 'missing';
+  const whereSel = $('#dog-found-where');
+  whereSel.textContent = '';
+  whereSel.appendChild(h('option', { value: '' }, 'Choose\u2026'));
+  FOUND_WHERE.forEach(w => whereSel.appendChild(h('option', { value: w }, w)));
+  const showWhere = () => { $('#dog-found-box').hidden = statusBox.value !== 'found'; };
+  statusBox.onchange = showWhere; showWhere();
   msg.textContent = '';
   $('#dog-photo-preview').hidden = true;
   state.subs.push(() => { if (edit.map) { edit.map.remove(); edit.map = null; } });
@@ -2859,6 +2901,7 @@ function showDogEdit(id) {
     const r = edit.report, el = form.elements;
     el.name.value = r.type === 'lost' && r.dogName ? r.dogName : 'Unknown';
     el.status.value = REPORT_STATUS_FOR[r.type] || 'missing';
+    showWhere();
     el.lastSeenPlace.value = r.town || '';
     if (r.seenDate) el.lastSeenAt.value = r.seenDate + 'T' + (r.seenTime || '12:00');
     el.description.value = r.details || '';
@@ -2882,8 +2925,9 @@ function showDogEdit(id) {
     fb.getDoc(fb.doc(fb.db, 'dogs', id)).then(snap => {
       if (!snap.exists()) { go('dogs'); return; }
       const d = snap.data();
-      for (const k of ['name', 'status', 'breed', 'colour', 'sex', 'age', 'lastSeenPlace', 'lastSeenAt', 'description', 'notes'])
+      for (const k of ['name', 'status', 'breed', 'colour', 'sex', 'age', 'lastSeenPlace', 'lastSeenAt', 'description', 'notes', 'foundWhere'])
         if (form.elements[k]) form.elements[k].value = d[k] || (k === 'status' ? 'missing' : '');
+      showWhere();
       edit.oldStatus = d.status || 'missing';
       edit.fbPostId = d.fbPostId || '';
       $('#dog-ask').checked = !!d.askAvailability;
@@ -2916,8 +2960,9 @@ function showDogEdit(id) {
     fbAfterSave = false;
     const v = k => (form.elements[k] ? form.elements[k].value.trim() : '');
     if (!v('name')) { msg.textContent = 'Enter the dog\'s name (or a short description if unknown).'; return; }
+    if (v('status') === 'found' && !v('foundWhere')) { msg.textContent = 'Found: choose where the dog is now.'; $('#dog-found-where').focus(); return; }
     const data = {
-      name: v('name'), status: v('status') || 'missing', breed: v('breed'), colour: v('colour'), sex: v('sex'), age: v('age'),
+      name: v('name'), status: v('status') || 'missing', foundWhere: v('status') === 'found' ? v('foundWhere') : '', breed: v('breed'), colour: v('colour'), sex: v('sex'), age: v('age'),
       lastSeenPlace: v('lastSeenPlace'), lastSeenAt: v('lastSeenAt'), description: v('description'), notes: v('notes'),
       lat: edit.spot ? edit.spot.lat : null, lng: edit.spot ? edit.spot.lng : null,
       askAvailability: $('#dog-ask').checked, availabilityAskedByUid: state.user.uid,
@@ -2938,7 +2983,7 @@ function showDogEdit(id) {
       } else {
         const changed = edit.oldStatus && data.status !== edit.oldStatus;
         await fb.updateDoc(fb.doc(fb.db, 'dogs', id), changed ? { ...data, ...statusStamp() } : data);
-        if (changed) logStatusChange(id, edit.oldStatus, data.status);
+        if (changed) logStatusChange(id, edit.oldStatus, data.status, data.foundWhere);
         if (changed) edit.fbOffer = { from: edit.oldStatus, to: data.status };
       }
       // The full-size photo lives in its own record so the list stays quick to load.
