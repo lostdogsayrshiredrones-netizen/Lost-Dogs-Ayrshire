@@ -355,6 +355,7 @@ const REPORT_LIMITS = { perHour: 5, perDay: 12, allPerDay: 300 };
 // Who is alerted to new reports. For now only the developer, while it is being tried out.
 // To open it up later: ['coordinator', 'admin', 'developer'] (and canSeeReports in the app).
 const REPORT_ROLES = ['developer'];
+const RELATIONSHIPS = ['Family member', 'Partner', 'Friend', 'Neighbour', 'Dog walker or sitter', 'Other'];
 
 // ---- The dogs shown on the public page ----
 let publicCache = { at: 0, dogs: null };
@@ -443,7 +444,7 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   if (type === 'posts' && (photo || thumb)) throw bad('Photos are not needed for a sighting.');
   if (photo && !isJpeg(photo, 600000)) throw bad('That photo could not be used. Please try a different one.');
   if (thumb && !isJpeg(thumb, 80000)) throw bad('That photo could not be used. Please try a different one.');
-  let dogId = '', dogName = '';
+  let dogId = '', dogName = '', behalf = null;
   if (type === 'posts') {
     dogId = String(d.dogId || '');
     if (!/^[A-Za-z0-9_-]{1,64}$/.test(dogId)) throw bad('Please tap the dog you saw.');
@@ -452,7 +453,20 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
     if (!dog.exists || !PUBLIC_STATUS[dog.data().status]) throw bad('That dog is no longer listed. Please choose "I’ve seen a loose dog" instead.');
     dogName = String(dog.data().name || '').slice(0, 60);
   } else if (type === 'lost') {
-    if (d.owner !== true) throw bad('We can only take a lost dog report from the owner. Please ask the owner to phone us on 07715 950588.');
+    // A lost dog is reported by its owner, or by someone reporting for the owner (who gives the owner's name and number).
+    // Either way nothing is acted on until the owner has agreed: for someone reporting for the owner, a coordinator
+    // must phone the owner and confirm it in the app before the dog can be created.
+    if (d.owner === true) behalf = null;
+    else if (d.behalf === true) {
+      const relationship = String(d.relationship || ''), ownerName = cleanText(d.ownerName, 60);
+      const ownerPhone = String(d.ownerPhone || '').replace(/[\s()\-.]/g, '').replace(/^\+44/, '0').replace(/^0044/, '0');
+      if (!RELATIONSHIPS.includes(relationship)) throw bad('Please choose your relationship to the owner.');
+      if (!ownerName) throw bad("Please add the owner's name.");
+      if (!/^0\d{9,10}$/.test(ownerPhone)) throw bad("Please add the owner's UK phone number.");
+      if (ownerPhone === phone) throw bad("Please give the owner's own number, not yours.");
+      if (d.ownerKnows !== true) throw bad('Please tick to confirm the owner knows you are reporting this.');
+      behalf = { relationship, ownerName, ownerPhone };
+    } else throw bad('We can only take a lost dog report from the owner. Please ask the owner to phone us on 07715 950588.');
     dogName = cleanText(d.dogName, 60);
     if (!dogName) throw bad("Please add your dog's name.");
   }
@@ -461,7 +475,8 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   const ref = await db.collection('reports').add({
     type, status: 'new', dogId, dogName, town, lat, lng, seenDate, seenTime, details,
     reporterName: name, reporterPhone: phone, thumb: thumb || '', hasPhoto: !!photo,
-    ownerConfirmed: type === 'lost',
+    ownerConfirmed: type === 'lost' && !behalf,
+    ...(behalf ? { reportedFor: 'owner', relationship: behalf.relationship, ownerName: behalf.ownerName, ownerPhone: behalf.ownerPhone, ownerConsent: false } : {}),
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   });
   if (photo) await ref.collection('images').doc('main').set({ data: photo });
@@ -469,7 +484,7 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   await dayRef.set({ n: dayCount + 1, updatedAt: now });
 
   // Tell whoever handles reports.
-  const title = 'New public report: ' + (type === 'posts' ? 'sighting' : REPORT_TYPES[type].toLowerCase());
+  const title = 'New public report: ' + (type === 'posts' ? 'sighting' : REPORT_TYPES[type].toLowerCase()) + (behalf ? ' (for the owner)' : '');
   const body = type === 'posts' ? (dogName && !/^unknown$/i.test(dogName) ? dogName + ' seen in ' : 'Listed dog seen in ') + town
     : type === 'lost' ? dogName + ' lost in ' + town : type === 'found' ? 'Found in ' + town : 'Seen in ' + town;
   try { await sendTo(await peopleWithRole(REPORT_ROLES), title, body, SITE + '#report/' + ref.id, 'report'); }

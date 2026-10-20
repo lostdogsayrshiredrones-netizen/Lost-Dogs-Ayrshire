@@ -174,7 +174,8 @@ service cloud.firestore {
       allow read: if isCoordinator();
       allow update: if isCoordinator()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-                         ['status', 'lookingBy', 'lookingByUid', 'lookingAt', 'dealtBy', 'dealtByUid', 'dealtAt', 'outcomeDogId', 'outcomeDogName', 'rejectReason'])
+                         ['status', 'lookingBy', 'lookingByUid', 'lookingAt', 'dealtBy', 'dealtByUid', 'dealtAt', 'outcomeDogId', 'outcomeDogName', 'rejectReason',
+                          'ownerConsent', 'ownerConsentBy', 'ownerConsentByUid', 'ownerConsentAt'])
                     && request.resource.data.status in ['new', 'accepted', 'sighting', 'rejected'];
       allow delete: if isAdmin();
 

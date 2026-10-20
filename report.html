@@ -68,6 +68,10 @@
   .owner-q { padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; background: var(--deep); }
   .owner-q .f { font-weight: 800; font-size: 1.02rem; }
   .yesno { display: flex; gap: 10px; }
+  .yesno.three { flex-direction: column; gap: 8px; }
+  .behalf { display: flex; flex-direction: column; gap: 12px; padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; background: var(--deep); }
+  .behalf select { appearance: auto; }
+  .behalf-note { padding: 10px 12px; border-radius: 10px; background: var(--yellow); color: var(--deep); font-size: .92rem; font-weight: 600; }
   .yesno label { flex: 1 1 0; display: flex; align-items: center; gap: 8px; padding: 12px; border-radius: 12px; background: #fff; color: var(--deep); font-weight: 800; cursor: pointer; }
   .yesno input { width: 22px; height: 22px; margin: 0; flex-shrink: 0; accent-color: var(--purple); }
   .yesno label:has(input:checked) { background: var(--yellow); }
@@ -156,8 +160,9 @@
 
     <div class="field owner-q" data-for="lost" id="f-owner">
       <span class="f" id="r-owner-q">Are you the owner of the dog you are reporting?</span>
-      <div class="yesno" role="radiogroup" aria-labelledby="r-owner-q">
+      <div class="yesno three" role="radiogroup" aria-labelledby="r-owner-q">
         <label><input type="radio" name="owner" value="yes" id="r-owner-yes"><span>Yes, I'm the owner</span></label>
+        <label><input type="radio" name="owner" value="for" id="r-owner-for"><span>I'm reporting for the owner</span></label>
         <label><input type="radio" name="owner" value="no" id="r-owner-no"><span>No</span></label>
       </div>
       <span class="hint">We can only act on a missing dog with the owner's permission.</span>
@@ -170,13 +175,31 @@
       <p>Seen a dog loose? Please use <button type="button" class="linkish" data-report="loose">I've seen a loose dog</button> instead.</p>
     </div>
 
+    <div class="behalf" id="r-behalf" data-for="lost" hidden>
+      <div class="field" id="f-rel">
+        <label class="f" for="r-rel">Your relationship to the owner</label>
+        <select id="r-rel">
+          <option value="">Choose…</option>
+          <option>Family member</option><option>Partner</option><option>Friend</option><option>Neighbour</option><option>Dog walker or sitter</option><option>Other</option>
+        </select>
+      </div>
+      <div class="row">
+        <div class="field" id="f-oname"><label class="f" for="r-oname">Owner's name</label><input type="text" id="r-oname" autocomplete="off" maxlength="60"></div>
+        <div class="field" id="f-ophone"><label class="f" for="r-ophone">Owner's phone</label><input type="tel" id="r-ophone" autocomplete="off" maxlength="20" placeholder="07…"></div>
+      </div>
+      <div class="field" id="f-oknows">
+        <label class="consent"><input type="checkbox" id="r-oknows"><span>The owner knows I am reporting this, and is happy for Lost Dogs Ayrshire to contact them.</span></label>
+      </div>
+      <div class="behalf-note">Thank you. Lost Dogs Ayrshire will review your report and phone the owner. <b>No search or posts will start until the owner has agreed.</b> Please let them know to expect our call.</div>
+    </div>
+
     <div class="field" data-for="posts" id="f-dog">
       <label class="f">Which dog did you see?</label>
       <div class="pick" id="r-pick"></div>
     </div>
 
     <div class="field" data-for="lost" id="f-dogname">
-      <label class="f" for="r-dogname">Your dog's name</label>
+      <label class="f" for="r-dogname" id="r-dogname-label">Your dog's name</label>
       <input type="text" id="r-dogname" autocomplete="off" maxlength="60">
     </div>
 
@@ -234,7 +257,7 @@
   <h1 style="margin:0;font-size:2rem;font-weight:900;text-transform:uppercase;color:var(--yellow)">Thank you!</h1>
   <p style="margin:0;font-size:1.1rem;font-weight:700">Your report has been sent to the Lost Dogs Ayrshire team.</p>
   <div class="info">
-    <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fdf90f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg><span>A coordinator may phone you to ask a few questions. Please keep your phone handy.</span></div>
+    <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fdf90f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg><span id="t-call-text">A coordinator may phone you to ask a few questions. Please keep your phone handy.</span></div>
     <div id="t-safety"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fdf90f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg><span id="t-safety-text">Please don't pursue, call or approach a loose dog. A frightened dog may run into danger.</span></div>
     <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fdf90f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>If you see the dog again, send another report. Each one helps.</span></div>
   </div>
@@ -340,7 +363,7 @@ function setupForm(dogId, keep) {
   $('r-desc-label').innerHTML = esc(T.desc) + (T.descNeeded ? '' : ' <span class="opt">(optional)</span>');
   $('r-send').textContent = T.send;
   document.querySelectorAll('[data-for]').forEach(el => { el.hidden = el.getAttribute('data-for').split(' ').indexOf(type) < 0; });
-  if (type !== 'lost') { $('r-form').classList.remove('not-owner'); $('r-notowner').hidden = true; } else $('r-notowner').hidden = !$('r-owner-no').checked;
+  if (type !== 'lost') { $('r-form').classList.remove('not-owner'); $('r-notowner').hidden = true; $('r-behalf').hidden = true; } else setOwner();
   if (keep) return;
   $('r-form').reset(); clearErrors(); setPhoto(null, null); pinLatLng = null; openedAt = Date.now();
   setOwner();
@@ -413,13 +436,22 @@ function startMap() {
 
 // Lost dog: only the owner can report it. "No" stops the form and asks them to get the owner to phone us.
 function setOwner() {
-  const no = type === 'lost' && $('r-owner-no').checked;
+  const lost = type === 'lost', no = lost && $('r-owner-no').checked, behalf = lost && $('r-owner-for').checked;
   $('r-form').classList.toggle('not-owner', no);
   $('r-notowner').hidden = !no;
+  $('r-behalf').hidden = !behalf;
+  // Wording follows who is filling it in: "your dog" for the owner, "the dog" for someone helping.
+  $('r-dogname-label').textContent = behalf ? "The dog's name" : "Your dog's name";
+  if (lost) {
+    $('r-town-label').textContent = behalf ? 'Town/Village where the dog went missing' : TYPES.lost.town;
+    $('r-map-label').innerHTML = esc(behalf ? 'Tap the map where the dog was last seen' : TYPES.lost.map) + ' <span class="opt">(if you can)</span>';
+    $('r-desc-label').textContent = behalf ? 'Describe the dog (breed, colour, collar, microchipped?) and what happened' : TYPES.lost.desc;
+  }
   if (no) { clearErrors(); $('r-notowner').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 }
-$('r-owner-yes').addEventListener('change', () => { setOwner(); $('f-owner').classList.remove('bad'); const er = $('f-owner').querySelector('.err'); if (er) er.remove(); });
-$('r-owner-no').addEventListener('change', setOwner);
+['r-owner-yes', 'r-owner-for', 'r-owner-no'].forEach(id => $(id).addEventListener('change', () => {
+  setOwner(); $('f-owner').classList.remove('bad'); const er = $('f-owner').querySelector('.err'); if (er) er.remove();
+}));
 
 // Checking the boxes before sending
 function clearErrors() {
@@ -437,8 +469,18 @@ $('r-form').addEventListener('submit', async e => {
   let dogId = '';
   if (type === 'posts') { const c = document.querySelector('#r-pick input:checked'); if (!c) note(fail('f-dog', 'Please tap the dog you saw')); else dogId = c.value; }
   if (type === 'lost' && $('r-owner-no').checked) return;
-  if (type === 'lost' && !$('r-owner-yes').checked) note(fail('f-owner', 'Please tell us if you are the owner'));
-  if (type === 'lost' && !$('r-dogname').value.trim()) note(fail('f-dogname', "Please add your dog's name"));
+  const behalf = type === 'lost' && $('r-owner-for').checked;
+  if (type === 'lost' && !$('r-owner-yes').checked && !behalf) note(fail('f-owner', 'Please tell us if you are the owner'));
+  let ownerPhone = null;
+  if (behalf) {
+    if (!$('r-rel').value) note(fail('f-rel', 'Please choose your relationship to the owner'));
+    if (!$('r-oname').value.trim()) note(fail('f-oname', "Please add the owner's name"));
+    ownerPhone = ukPhone($('r-ophone').value);
+    if (!ownerPhone) note(fail('f-ophone', "Please add the owner's UK phone number"));
+    else if (ownerPhone === ukPhone($('r-phone').value)) note(fail('f-ophone', "Please give the owner's own number, not yours"));
+    if (!$('r-oknows').checked) note(fail('f-oknows', 'Please tick to confirm the owner knows'));
+  }
+  if (type === 'lost' && !$('r-dogname').value.trim()) note(fail('f-dogname', behalf ? "Please add the dog's name" : "Please add your dog's name"));
   if ($('r-town').value.trim().length < 2) note(fail('f-town', 'Please add the Town/Village'));
   if (pinLatLng && !inArea(pinLatLng)) note(fail('f-map', 'That pin is outside our area. Tap the map again.'));
   if (!$('r-date').value) note(fail('f-when', 'Please add the date'));
@@ -454,6 +496,9 @@ $('r-form').addEventListener('submit', async e => {
   const data = {
     type, dogId, dogName: type === 'lost' ? $('r-dogname').value.trim() : '',
     owner: type === 'lost' ? $('r-owner-yes').checked : undefined,
+    behalf: behalf || undefined,
+    relationship: behalf ? $('r-rel').value : undefined, ownerName: behalf ? $('r-oname').value.trim() : undefined,
+    ownerPhone: behalf ? ownerPhone : undefined, ownerKnows: behalf ? $('r-oknows').checked : undefined,
     town: $('r-town').value.trim(), date: $('r-date').value, time: $('r-time').value,
     details: $('r-desc').value.trim(), name: $('r-name').value.trim(), phone, consent: true,
     website: $('r-web').value, tookMs: Date.now() - openedAt
@@ -462,7 +507,12 @@ $('r-form').addEventListener('submit', async e => {
   if (photo && type !== 'posts') { data.photo = photo; data.thumb = thumb; }
   try {
     await submitReport(data);
-    $('t-safety-text').textContent = type === 'lost'
+    $('t-call-text').textContent = behalf
+      ? 'We will review your report and phone the owner. No search or posts will start until the owner has agreed. Please let them know to expect our call.'
+      : 'A coordinator may phone you to ask a few questions. Please keep your phone handy.';
+    $('t-safety-text').textContent = behalf
+      ? "If you see the dog, don't pursue it; crouch down and call it calmly, or let us know where it was."
+      : type === 'lost'
       ? "Keep your phone on and stay near home if you can: dogs often find their own way back. Don't pursue your dog if you see it; crouch down and call it calmly."
       : type === 'found' ? 'Please keep the dog safe and contained. A coordinator will be in touch to help reunite it.'
       : "Please don't pursue, call or approach a loose dog. A frightened dog may run into danger.";

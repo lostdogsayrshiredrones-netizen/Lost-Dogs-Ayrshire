@@ -998,6 +998,15 @@
 .report-actions .row select { flex: 1 1 auto; min-width: 0; }
 .report-actions .row .btn { flex: 0 0 auto; width: auto; }
 .report-actions .hint { margin: 8px 0 14px; }
+.report-behalf { display: flex; flex-direction: column; gap: 4px; margin-top: 14px; padding: 12px; border-radius: 12px; background: var(--yellow); color: var(--purple-deep); }
+.report-behalf strong { font-size: 1.1rem; text-transform: uppercase; }
+.report-behalf.ok { background: #1d8a3a; color: var(--white); }
+.report-who.owner { background: #b45309; }
+.report-behalf-line { color: #b45309; font-weight: 800; }
+.report-behalf-line.ok { color: #1d6b33; }
+.report-consent { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 14px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,.12); font-weight: 700; }
+.report-consent input { width: 24px; height: 24px; flex-shrink: 0; margin: 0; }
+.report-actions .btn:disabled { opacity: .45; }
 </style>
 </head>
 <body>
@@ -2847,7 +2856,9 @@ function showDogEdit(id) {
     el.lastSeenPlace.value = r.town || '';
     if (r.seenDate) el.lastSeenAt.value = r.seenDate + 'T' + (r.seenTime || '12:00');
     el.description.value = r.details || '';
-    el.notes.value = 'From a public report (' + (r.reporterName || 'no name') + '). Their phone number is in Public Reports.';
+    el.notes.value = r.reportedFor === 'owner'
+      ? 'From a public report made for the owner by ' + (r.reporterName || 'someone') + (r.relationship ? ' (' + r.relationship.toLowerCase() + ')' : '') + '. Owner agreed' + (r.ownerConsentBy ? ' (confirmed by ' + r.ownerConsentBy + ')' : '') + '. Phone numbers are in Public Reports.'
+      : 'From a public report (' + (r.reporterName || 'no name') + '). Their phone number is in Public Reports.';
     if (typeof r.lat === 'number') edit.spot = { lat: r.lat, lng: r.lng };
     const pic = r.photoData || r.thumb;
     if (pic) fetch(pic).then(res => res.blob()).then(async blob => {
@@ -3038,6 +3049,7 @@ function showReports() {
           h('strong', null, r.town || 'No place given'),
           r.dogName ? h('span', null, (r.type === 'posts' ? 'About: ' : 'Dog: ') + r.dogName) : null,
           h('span', null, (reportSeen(r) ? 'Seen ' + reportSeen(r) + ' · ' : '') + 'sent ' + when(r.createdAt)),
+          r.reportedFor === 'owner' ? h('span', { class: 'report-behalf-line' + (r.ownerConsent ? ' ok' : '') }, r.ownerConsent ? 'For the owner \u00b7 owner has agreed' : 'For the owner \u00b7 owner not yet confirmed') : null,
           r.status === 'new' && r.lookingBy ? h('span', { class: 'report-looking' }, 'Being looked at by ' + r.lookingBy) : null,
           r.status !== 'new' ? h('span', { class: 'report-outcome' }, reportOutcome(r)) : null)));
     });
@@ -3088,7 +3100,8 @@ function showReport(id) {
     if (pic) root.appendChild(h('img', { class: 'full-image', alt: 'Photo sent with the report', src: pic }));
     const rows = [
       [r.type === 'posts' ? 'About' : 'Dog', r.dogName], ['Where', r.town], ['When', reportSeen(r)],
-      ['Owner', r.type === 'lost' && r.ownerConfirmed ? 'The reporter confirmed they are the owner' : ''],
+      ['Owner', r.type === 'lost' && r.ownerConfirmed ? 'The reporter confirmed they are the owner'
+        : r.reportedFor === 'owner' ? (r.ownerName || 'Name not given') + (r.ownerConsent ? ' \u00b7 agreement confirmed by ' + (r.ownerConsentBy || 'a coordinator') + (r.ownerConsentAt ? ', ' + when(r.ownerConsentAt) : '') : ' \u00b7 not yet confirmed') : ''],
       ['Details', r.details], ['Sent', when(r.createdAt)]
     ].filter(x => x[1]);
     root.appendChild(h('dl', { class: 'card details' }, rows.map(x => [h('dt', null, x[0]), h('dd', null, x[1])])));
@@ -3099,10 +3112,20 @@ function showReport(id) {
       root.appendChild(h('a', { class: 'btn wide ghost', href: 'https://www.google.com/maps?q=' + r.lat + ',' + r.lng, target: '_blank', rel: 'noopener' }, 'Open the pin in Maps'));
     } else root.appendChild(h('p', { class: 'hint' }, 'No map pin was given.'));
 
+    const behalf = r.reportedFor === 'owner';
+    if (behalf) {
+      root.appendChild(h('div', { class: 'report-behalf' + (r.ownerConsent ? ' ok' : '') },
+        h('strong', null, r.ownerConsent ? 'The owner has agreed' : 'Phone the owner first'),
+        h('span', null, 'Reported for the owner by ' + (r.reporterName || 'someone') + (r.relationship ? ' (' + r.relationship.toLowerCase() + ')' : '') + '. '
+          + (r.ownerConsent ? 'Agreement confirmed by ' + (r.ownerConsentBy || 'a coordinator') + (r.ownerConsentAt ? ', ' + when(r.ownerConsentAt) : '') + '.' : 'Nothing can be acted on until the owner agrees.'))));
+      root.appendChild(h('div', { class: 'report-who owner' },
+        h('div', null, h('span', { class: 'report-who-label' }, 'Owner'), h('strong', null, r.ownerName || 'No name'), h('span', null, prettyPhone(r.ownerPhone))),
+        r.ownerPhone ? h('a', { class: 'btn report-call', href: 'tel:' + r.ownerPhone }, 'Call owner') : null));
+    }
     root.appendChild(h('div', { class: 'report-who' },
-      h('div', null, h('span', { class: 'report-who-label' }, 'Reported by'), h('strong', null, r.reporterName || 'No name'), h('span', null, prettyPhone(r.reporterPhone))),
-      r.reporterPhone ? h('a', { class: 'btn report-call', href: 'tel:' + r.reporterPhone }, 'Call') : null));
-    root.appendChild(h('p', { class: 'hint', style: 'margin-top:4px' }, "The reporter's name and phone are only shown to coordinators and admins."));
+      h('div', null, h('span', { class: 'report-who-label' }, behalf ? 'Reported by (' + (r.relationship || 'for the owner').toLowerCase() + ')' : 'Reported by'), h('strong', null, r.reporterName || 'No name'), h('span', null, prettyPhone(r.reporterPhone))),
+      r.reporterPhone ? h('a', { class: 'btn report-call', href: 'tel:' + r.reporterPhone }, behalf ? 'Call reporter' : 'Call') : null));
+    root.appendChild(h('p', { class: 'hint', style: 'margin-top:4px' }, (behalf ? 'These names and phone numbers are' : "The reporter's name and phone are") + ' only shown to coordinators and admins.'));
 
     if (!isNew) {
       if (r.status === 'rejected') {
@@ -3130,12 +3153,26 @@ function showReport(id) {
     // --- What to do with it
     const msg = h('p', { class: 'form-msg', role: 'status' });
     const box = h('div', { class: 'admin-box report-actions' }, h('h3', null, 'What would you like to do?'));
-    const createBtn = REPORT_STATUS_FOR[r.type] ? h('button', { class: 'btn wide', type: 'button', onclick: () => {
+    // Reported for the owner: the coordinator must phone the owner and confirm their agreement before the dog can be created.
+    if (behalf) {
+      const tick = h('input', { type: 'checkbox', id: 'report-consent', checked: !!r.ownerConsent, onchange: async e => {
+        const on = e.target.checked;
+        try {
+          await fb.updateDoc(ref, on
+            ? { ownerConsent: true, ownerConsentBy: state.profile.name || '', ownerConsentByUid: state.user.uid, ownerConsentAt: fb.serverTimestamp() }
+            : { ownerConsent: false, ownerConsentBy: '', ownerConsentByUid: '', ownerConsentAt: null });
+        } catch (err) { e.target.checked = !on; msg.textContent = friendlyError(err); }
+      } });
+      box.appendChild(h('label', { class: 'report-consent' }, tick, h('span', null, 'I have spoken to the owner and they agree to Lost Dogs Ayrshire acting.')));
+    }
+    const locked = behalf && !r.ownerConsent;
+    const createBtn = REPORT_STATUS_FOR[r.type] ? h('button', { class: 'btn wide', type: 'button', disabled: locked, onclick: () => {
+      if (locked) return;
       reportPrefill = { ...r, photoData: live.photo || '' };
       go('dog-edit/new');
     } }, 'Accept: create the dog') : null;
     const sightBtn = h('button', { class: 'btn wide' + (r.type === 'posts' ? '' : ' ghost'), type: 'button', onclick: () => { live.mode = live.mode === 'sighting' ? null : 'sighting'; draw(); } }, 'Add as a sighting to a dog');
-    if (r.type === 'posts') box.appendChild(sightBtn); else { box.appendChild(createBtn); box.appendChild(h('p', { class: 'hint' }, 'Opens Add a dog with the photo, place, time and details filled in.')); box.appendChild(sightBtn); }
+    if (r.type === 'posts') box.appendChild(sightBtn); else { box.appendChild(createBtn); box.appendChild(h('p', { class: 'hint' }, locked ? 'Locked until you have phoned the owner and ticked that they agree.' : 'Opens Add a dog with the photo, place, time and details filled in.')); box.appendChild(sightBtn); }
 
     if (live.mode === 'sighting') {
       const pick = h('select', { id: 'report-dog' }, h('option', { value: '' }, live.dogs.length ? 'Choose the dog…' : 'No active dogs'),
