@@ -452,6 +452,7 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
     if (!dog.exists || !PUBLIC_STATUS[dog.data().status]) throw bad('That dog is no longer listed. Please choose "I’ve seen a loose dog" instead.');
     dogName = String(dog.data().name || '').slice(0, 60);
   } else if (type === 'lost') {
+    if (d.owner !== true) throw bad('We can only take a lost dog report from the owner. Please ask the owner to phone us on 07715 950588.');
     dogName = cleanText(d.dogName, 60);
     if (!dogName) throw bad("Please add your dog's name.");
   }
@@ -460,6 +461,7 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   const ref = await db.collection('reports').add({
     type, status: 'new', dogId, dogName, town, lat, lng, seenDate, seenTime, details,
     reporterName: name, reporterPhone: phone, thumb: thumb || '', hasPhoto: !!photo,
+    ownerConfirmed: type === 'lost',
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   });
   if (photo) await ref.collection('images').doc('main').set({ data: photo });

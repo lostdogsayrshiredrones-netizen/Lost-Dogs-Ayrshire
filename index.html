@@ -3088,6 +3088,7 @@ function showReport(id) {
     if (pic) root.appendChild(h('img', { class: 'full-image', alt: 'Photo sent with the report', src: pic }));
     const rows = [
       [r.type === 'posts' ? 'About' : 'Dog', r.dogName], ['Where', r.town], ['When', reportSeen(r)],
+      ['Owner', r.type === 'lost' && r.ownerConfirmed ? 'The reporter confirmed they are the owner' : ''],
       ['Details', r.details], ['Sent', when(r.createdAt)]
     ].filter(x => x[1]);
     root.appendChild(h('dl', { class: 'card details' }, rows.map(x => [h('dt', null, x[0]), h('dd', null, x[1])])));

@@ -61,6 +61,22 @@
     width: 100%; padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; background: #fff; color: #1a1a1a;
     font: inherit; font-size: 16px; min-width: 0; }
   textarea { resize: vertical; min-height: 90px; }
+  /* iPhone draws date and time boxes wider than asked unless their own styling is switched off */
+  input[type=date], input[type=time] { -webkit-appearance: none; appearance: none; display: block; max-width: 100%; min-height: 52px; text-align: left; }
+  input[type=date]::-webkit-date-and-time-value, input[type=time]::-webkit-date-and-time-value { text-align: left; }
+  .row > div > input { width: 100%; }
+  .owner-q { padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; background: var(--deep); }
+  .owner-q .f { font-weight: 800; font-size: 1.02rem; }
+  .yesno { display: flex; gap: 10px; }
+  .yesno label { flex: 1 1 0; display: flex; align-items: center; gap: 8px; padding: 12px; border-radius: 12px; background: #fff; color: var(--deep); font-weight: 800; cursor: pointer; }
+  .yesno input { width: 22px; height: 22px; margin: 0; flex-shrink: 0; accent-color: var(--purple); }
+  .yesno label:has(input:checked) { background: var(--yellow); }
+  .notowner { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; background: var(--red); }
+  .notowner b { font-size: 1.15rem; }
+  .notowner p { margin: 0; }
+  .notowner .send { text-align: center; text-decoration: none; background: #fff; color: var(--red); box-shadow: none; }
+  .linkish { padding: 0; border: 0; background: none; color: var(--yellow); font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
+  form.not-owner > :not(#f-owner):not(#r-notowner):not(.hp) { display: none !important; }
   .row { display: flex; gap: 10px; }
   .row > div { flex: 1 1 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
   .field { display: flex; flex-direction: column; gap: 4px; }
@@ -137,6 +153,22 @@
   <button class="back" type="button" data-go="home">&#8592; Back</button>
   <h1 class="banner" id="r-title">Report</h1>
   <form id="r-form" novalidate style="display:flex;flex-direction:column;gap:12px">
+
+    <div class="field owner-q" data-for="lost" id="f-owner">
+      <span class="f" id="r-owner-q">Are you the owner of the dog you are reporting?</span>
+      <div class="yesno" role="radiogroup" aria-labelledby="r-owner-q">
+        <label><input type="radio" name="owner" value="yes" id="r-owner-yes"><span>Yes, I'm the owner</span></label>
+        <label><input type="radio" name="owner" value="no" id="r-owner-no"><span>No</span></label>
+      </div>
+      <span class="hint">We can only act on a missing dog with the owner's permission.</span>
+    </div>
+
+    <div class="notowner" id="r-notowner" data-for="lost" hidden>
+      <b>Please ask the owner to contact us</b>
+      <p>We can only search for a missing dog with the owner's permission. Please ask the owner to phone Lost Dogs Ayrshire on <b>07715 950588</b>, or send them the link to this page.</p>
+      <a class="send" href="tel:07715950588">Call 07715 950588</a>
+      <p>Seen a dog loose? Please use <button type="button" class="linkish" data-report="loose">I've seen a loose dog</button> instead.</p>
+    </div>
 
     <div class="field" data-for="posts" id="f-dog">
       <label class="f">Which dog did you see?</label>
@@ -308,8 +340,10 @@ function setupForm(dogId, keep) {
   $('r-desc-label').innerHTML = esc(T.desc) + (T.descNeeded ? '' : ' <span class="opt">(optional)</span>');
   $('r-send').textContent = T.send;
   document.querySelectorAll('[data-for]').forEach(el => { el.hidden = el.getAttribute('data-for').split(' ').indexOf(type) < 0; });
+  if (type !== 'lost') { $('r-form').classList.remove('not-owner'); $('r-notowner').hidden = true; } else $('r-notowner').hidden = !$('r-owner-no').checked;
   if (keep) return;
   $('r-form').reset(); clearErrors(); setPhoto(null, null); pinLatLng = null; openedAt = Date.now();
+  setOwner();
   if (marker && map) { map.removeLayer(marker); marker = null; }
   if (map) map.setView(AYRSHIRE, 9);
   $('r-date').value = today(); $('r-time').value = nowTime(); $('r-date').max = today();
@@ -377,6 +411,16 @@ function startMap() {
   });
 }
 
+// Lost dog: only the owner can report it. "No" stops the form and asks them to get the owner to phone us.
+function setOwner() {
+  const no = type === 'lost' && $('r-owner-no').checked;
+  $('r-form').classList.toggle('not-owner', no);
+  $('r-notowner').hidden = !no;
+  if (no) { clearErrors(); $('r-notowner').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+}
+$('r-owner-yes').addEventListener('change', () => { setOwner(); $('f-owner').classList.remove('bad'); const er = $('f-owner').querySelector('.err'); if (er) er.remove(); });
+$('r-owner-no').addEventListener('change', setOwner);
+
 // Checking the boxes before sending
 function clearErrors() {
   document.querySelectorAll('#r-form .bad').forEach(b => b.classList.remove('bad'));
@@ -392,6 +436,8 @@ $('r-form').addEventListener('submit', async e => {
   const T = TYPES[type]; let first = null; const note = b => { if (!first) first = b; };
   let dogId = '';
   if (type === 'posts') { const c = document.querySelector('#r-pick input:checked'); if (!c) note(fail('f-dog', 'Please tap the dog you saw')); else dogId = c.value; }
+  if (type === 'lost' && $('r-owner-no').checked) return;
+  if (type === 'lost' && !$('r-owner-yes').checked) note(fail('f-owner', 'Please tell us if you are the owner'));
   if (type === 'lost' && !$('r-dogname').value.trim()) note(fail('f-dogname', "Please add your dog's name"));
   if ($('r-town').value.trim().length < 2) note(fail('f-town', 'Please add the Town/Village'));
   if (pinLatLng && !inArea(pinLatLng)) note(fail('f-map', 'That pin is outside our area. Tap the map again.'));
@@ -407,6 +453,7 @@ $('r-form').addEventListener('submit', async e => {
   const btn = $('r-send'); btn.disabled = true; btn.textContent = 'Sending…';
   const data = {
     type, dogId, dogName: type === 'lost' ? $('r-dogname').value.trim() : '',
+    owner: type === 'lost' ? $('r-owner-yes').checked : undefined,
     town: $('r-town').value.trim(), date: $('r-date').value, time: $('r-time').value,
     details: $('r-desc').value.trim(), name: $('r-name').value.trim(), phone, consent: true,
     website: $('r-web').value, tookMs: Date.now() - openedAt
