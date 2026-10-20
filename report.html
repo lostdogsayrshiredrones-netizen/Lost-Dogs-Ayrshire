@@ -95,6 +95,19 @@
   .photo-prev button { padding: 8px 12px; border: 2px solid #fff; border-radius: 10px; background: transparent; color: #fff; font: inherit; font-weight: 800; }
   .map { height: 230px; border: 3px solid var(--yellow); border-radius: 12px; overflow: hidden; background: #e8efe0; color: #333; }
   .map.failed { display: flex; align-items: center; justify-content: center; padding: 12px; text-align: center; }
+  /* Full-screen map, for dropping the pin more easily */
+  .map { position: relative; }
+  .map-full-btn { position: absolute; top: 10px; right: 10px; z-index: 1001; padding: 9px 12px; background: var(--yellow); color: var(--purple);
+    border: 2px solid var(--purple); border-radius: 10px; font: inherit; font-size: .85rem; font-weight: 900; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+  .map-full-bar { display: none; }
+  .map.full { position: fixed !important; inset: 0; z-index: 3000; height: auto; border: 0; border-radius: 0; box-shadow: none !important; }
+  .map.full .map-full-btn { top: calc(env(safe-area-inset-top) + 12px); right: 12px; padding: 12px 18px; font-size: 1rem; }
+  .map.full .leaflet-top { top: env(safe-area-inset-top); }
+  .map.full .leaflet-bottom { bottom: calc(env(safe-area-inset-bottom) + 64px); }
+  .map.full .map-full-bar { display: block; position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 12px); z-index: 1001;
+    padding: 12px 14px; border-radius: 12px; background: var(--purple); color: #fff; font-weight: 800; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+  .map.full .map-full-bar.done { background: var(--green); }
+  body.map-open { overflow: hidden; }
   .hint { font-size: .85rem; color: var(--soft); }
   .pin { display: block; width: 28px; height: 28px; border-radius: 50% 50% 50% 0; background: var(--red); border: 3px solid #fff;
     transform: rotate(-45deg); box-shadow: 0 2px 6px rgba(0,0,0,.4); }
@@ -303,6 +316,7 @@ let DOGS = [], type = null, photo = null, thumb = null, pinLatLng = null, map = 
 
 // ---------- screens ----------
 function show(id, push) {
+  if ($('r-map').classList.contains('full')) setFull(false);
   ['home', 'report', 'thanks'].forEach(s => { $(s).hidden = s !== id; });
   if (push !== false) history.pushState({ s: id, t: type }, '', '#' + id + (id === 'report' ? '-' + type : ''));
   window.scrollTo(0, 0);
@@ -427,11 +441,33 @@ function startMap() {
       const icon = L.divIcon({ className: '', html: '<span class="pin"></span>', iconSize: [28, 28], iconAnchor: [14, 28] });
       if (marker) marker.setLatLng(e.latlng); else marker = L.marker(e.latlng, { icon }).addTo(map);
       $('f-map').classList.remove('bad'); const er = $('f-map').querySelector('.err'); if (er) er.remove();
+      drawFullBar();
     });
+    // Full screen button: the whole screen becomes the map, with a "Done" button to come back.
+    const btn = document.createElement('button'), bar = document.createElement('div');
+    btn.type = 'button'; btn.className = 'map-full-btn'; btn.textContent = 'Full screen'; bar.className = 'map-full-bar'; bar.setAttribute('role', 'status');
+    btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); setFull(!el.classList.contains('full')); });
+    if (L.DomEvent && L.DomEvent.disableClickPropagation) { L.DomEvent.disableClickPropagation(btn); L.DomEvent.disableClickPropagation(bar); }
+    el.appendChild(btn); el.appendChild(bar);
     setTimeout(() => map.invalidateSize(), 200);
   }, () => {
     el.classList.add('failed'); el.textContent = 'The map could not be loaded. You can still send the report with the Town/Village.';
   });
+}
+
+function drawFullBar() {
+  const bar = document.querySelector('#r-map .map-full-bar'); if (!bar) return;
+  bar.textContent = pinLatLng ? 'Pin dropped. Tap again to move it, or Done to carry on.' : $('r-map-label').textContent.replace(/\s*\(if you can\)\s*$/, '');
+  bar.classList.toggle('done', !!pinLatLng);
+}
+function setFull(on) {
+  const el = $('r-map'), btn = el.querySelector('.map-full-btn');
+  if (!btn) return;
+  el.classList.toggle('full', on); document.body.classList.toggle('map-open', on);
+  btn.textContent = on ? 'Done' : 'Full screen';
+  drawFullBar();
+  setTimeout(() => { try { map.invalidateSize(); if (!on && pinLatLng) map.panTo([pinLatLng.lat, pinLatLng.lng]); } catch (e) {} }, 80);
+  if (!on) setTimeout(() => $('f-map').scrollIntoView({ block: 'center' }), 120);
 }
 
 // Lost dog: only the owner can report it. "No" stops the form and asks them to get the owner to phone us.
