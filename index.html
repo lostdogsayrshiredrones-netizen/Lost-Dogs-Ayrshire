@@ -1037,6 +1037,8 @@ details.near-box[open] > summary::after { transform: rotate(-135deg); margin-top
 details.near-box[open] > summary { margin-bottom: 12px; }
 .near-count { min-width: 26px; padding: 2px 8px; border-radius: 999px; background: var(--yellow); color: var(--purple); font-weight: 900; text-align: center; }
 .near-count:empty { display: none; }
+.wa-toast { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 20px); z-index: 5000; max-width: 520px; margin: 0 auto;
+  padding: 14px 16px; border-radius: 14px; background: #fff; color: #1c1530; font-weight: 700; line-height: 1.4; box-shadow: 0 6px 24px rgba(0,0,0,.35); border-left: 0; border-top: 5px solid #1da851; }
 </style>
 </head>
 <body>
@@ -2847,20 +2849,36 @@ function showDog(id) {
   }
 }
 
-// WhatsApp can't open a group with a message already typed in, so this uses WhatsApp's own "send to" route:
-// WhatsApp opens with "Scooby Doo – Kilmarnock: " typed, the volunteer picks the LDA chat, edits and sends.
-// The same words are copied too, in case a phone opens the chat without them.
+// WhatsApp: open the LDA chat itself (the invite link the developer set), as the old WhatsApp tile did.
+// WhatsApp doesn't let an app type into a group, so the words "Scooby Doo – Kilmarnock: " are copied at the
+// same moment and a note says to press and hold in the message box and Paste.
 function waDogText(d) {
   const name = String(d.name || '').trim(), place = String(d.lastSeenPlace || '').trim();
   const known = name && !/^(unknown|unnamed.*|not known|no name|n\/a|\?+)$/i.test(name);
   return [known ? name : 'Unknown dog', place].filter(Boolean).join(' \u2013 ') + ': ';
 }
+function waToast(text) {
+  const old = document.querySelector('.wa-toast'); if (old) old.remove();
+  const t = h('div', { class: 'wa-toast', role: 'status' }, text);
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 6000);
+}
 function waDogButton(d) {
   const text = waDogText(d);
   const icon = h('img', { alt: '', class: 'wa-icon', src: WA_WHITE });
-  return h('a', { class: 'wa-bar', href: 'https://wa.me/?text=' + encodeURIComponent(text), target: '_blank', rel: 'noopener',
-    onclick: () => { copyText(text).catch(() => {}); } },
-    icon, h('span', null, h('b', null, 'Message the LDA chat'), h('small', null, 'Starts with: ' + text.replace(/: $/, ''))));
+  return h('a', { class: 'wa-bar', href: waLink || '#', target: '_blank', rel: 'noopener',
+    onclick: e => {
+      e.preventDefault();
+      if (!waLink) { waToast('The LDA WhatsApp chat link has not been set up yet. Ask the developer.'); return; }
+      copyText(text).catch(() => {});
+      waToast('Copied \u201c' + text.trim() + '\u201d. In the chat, press and hold in the message box and tap Paste.');
+      // Opened straight away, while the tap still counts (iPhones can block it if it waits).
+      const started = Date.now(), link = waLink;
+      location.href = 'whatsapp://chat?code=' + encodeURIComponent(link.split('/').pop());
+      // WhatsApp not on this phone (or a computer): open the invite page instead.
+      setTimeout(() => { if (document.visibilityState === 'visible' && Date.now() - started < 4000) window.open(link, '_blank', 'noopener'); }, 1800);
+    } },
+    icon, h('span', null, h('b', null, 'Message the LDA chat'), h('small', null, 'Copies \u201c' + text.replace(/: $/, '') + '\u201d to paste in the chat')));
 }
 const WA_WHITE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"> <path fill="#ffffff" d="M360,0C161.18,0,0,161.18,0,360c0,65.41,17.45,126.75,47.94,179.61L0,720l187.02-44.21c51.34,28.18,110.28,44.21,172.98,44.21,198.82,0,360-161.18,360-360S558.82,0,360,0ZM360,655.52c-60.17,0-116.13-17.98-162.82-48.87l-110.49,28.14,30.99-105.61c-33.53-47.93-53.2-106.26-53.2-169.19,0-163.21,132.31-295.52,295.52-295.52s295.52,132.31,295.52,295.52-132.31,295.52-295.52,295.52Z"/> <path fill="#ffffff" d="M444.35,407.52l87.1,41.06c4,1.88,6.56,5.94,6.2,10.34-.94,11.46-5.54,34.43-26.13,55.02-58.12,58.12-162.49-7.64-166.74-10.18-25.67-13.79-50.06-32.24-73.19-55.36-23.12-23.12-41.58-47.52-55.37-73.19-2.55-4.24-68.31-108.61-10.18-166.74,20.59-20.59,43.56-25.19,55.02-26.13,4.41-.36,8.46,2.2,10.34,6.2l41.07,87.1c1.94,4.12,1.09,9.02-2.13,12.24l-30.61,30.61c-6.62,6.62-8.56,16.93-4,25.11,11.17,20.03,26.19,39.32,43.59,57.07,17.75,17.4,37.04,32.43,57.07,43.59,8.18,4.56,18.48,2.62,25.11-4l30.61-30.61c3.22-3.22,8.12-4.08,12.24-2.13Z"/> </svg>');
 
