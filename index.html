@@ -1020,6 +1020,23 @@
 .report-tag.urgent { background: #b00020; box-shadow: 0 0 0 2px #fff inset; }
 .report-danger { display: flex; flex-direction: column; gap: 4px; margin: 0 0 12px; padding: 12px 14px; border-radius: 12px; background: #e11d2e; color: #fff; line-height: 1.45; }
 .report-danger strong { font-size: 1.1rem; text-transform: uppercase; }
+
+/* ---- 5.3: WhatsApp button on each dog, Facebook blue, nearest volunteers drop-down ---- */
+.wa-bar { display: flex; align-items: center; gap: 12px; margin: 22px 0 6px; padding: 14px 16px; border-radius: 16px; background: #1da851; color: #fff; text-decoration: none; box-shadow: 0 5px 0 #13763a; }
+.wa-bar .wa-icon { width: 36px; height: 36px; flex-shrink: 0; }
+.wa-bar span { display: flex; flex-direction: column; line-height: 1.25; }
+.wa-bar b { font-size: 1.15rem; font-weight: 900; }
+.wa-bar small { font-size: .85rem; opacity: .95; }
+.wa-bar:active { transform: translateY(3px); box-shadow: 0 2px 0 #13763a; }
+.btn.fb-btn, .save.fb-blue, a.save.fb-blue { background: #1877f2 !important; color: #fff !important; box-shadow: 0 5px 0 #0b5bc4 !important; border-color: #1877f2 !important; }
+details.near-box > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+details.near-box > summary::-webkit-details-marker { display: none; }
+details.near-box > summary h3 { margin: 0; flex: 1 1 auto; }
+details.near-box > summary::after { content: ""; width: 12px; height: 12px; border-right: 3px solid var(--yellow); border-bottom: 3px solid var(--yellow); transform: rotate(45deg); margin: -6px 6px 0 0; transition: transform .15s; }
+details.near-box[open] > summary::after { transform: rotate(-135deg); margin-top: 6px; }
+details.near-box[open] > summary { margin-bottom: 12px; }
+.near-count { min-width: 26px; padding: 2px 8px; border-radius: 999px; background: var(--yellow); color: var(--purple); font-weight: 900; text-align: center; }
+.near-count:empty { display: none; }
 </style>
 </head>
 <body>
@@ -1093,12 +1110,7 @@
       <span class="tile-name">Public Reports</span>
     </button>
 
-    <!-- TILE: WhatsApp Community -->
-    <button class="tile" id="wa-tile" data-go="whatsapp">
-      <!-- The official WhatsApp glyph from Meta's brand pack, used unchanged (green, white background). -->
-      <span class="art wa-art"><img alt="" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MjAgNzIwIj4KICA8ZGVmcz4KICAgIDxzdHlsZT4KICAgICAgLmNscy0xIHsKICAgICAgICBmaWxsOiAjMjVkMzY2OwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvZGVmcz4KICA8cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0zNjAsMEMxNjEuMTgsMCwwLDE2MS4xOCwwLDM2MGMwLDY1LjQxLDE3LjQ1LDEyNi43NSw0Ny45NCwxNzkuNjFMMCw3MjBsMTg3LjAyLTQ0LjIxYzUxLjM0LDI4LjE4LDExMC4yOCw0NC4yMSwxNzIuOTgsNDQuMjEsMTk4LjgyLDAsMzYwLTE2MS4xOCwzNjAtMzYwUzU1OC44MiwwLDM2MCwwWk0zNjAsNjU1LjUyYy02MC4xNywwLTExNi4xMy0xNy45OC0xNjIuODItNDguODdsLTExMC40OSwyOC4xNCwzMC45OS0xMDUuNjFjLTMzLjUzLTQ3LjkzLTUzLjItMTA2LjI2LTUzLjItMTY5LjE5LDAtMTYzLjIxLDEzMi4zMS0yOTUuNTIsMjk1LjUyLTI5NS41MnMyOTUuNTIsMTMyLjMxLDI5NS41MiwyOTUuNTItMTMyLjMxLDI5NS41Mi0yOTUuNTIsMjk1LjUyWiIvPgogIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTQ0NC4zNSw0MDcuNTJsODcuMSw0MS4wNmM0LDEuODgsNi41Niw1Ljk0LDYuMiwxMC4zNC0uOTQsMTEuNDYtNS41NCwzNC40My0yNi4xMyw1NS4wMi01OC4xMiw1OC4xMi0xNjIuNDktNy42NC0xNjYuNzQtMTAuMTgtMjUuNjctMTMuNzktNTAuMDYtMzIuMjQtNzMuMTktNTUuMzYtMjMuMTItMjMuMTItNDEuNTgtNDcuNTItNTUuMzctNzMuMTktMi41NS00LjI0LTY4LjMxLTEwOC42MS0xMC4xOC0xNjYuNzQsMjAuNTktMjAuNTksNDMuNTYtMjUuMTksNTUuMDItMjYuMTMsNC40MS0uMzYsOC40NiwyLjIsMTAuMzQsNi4ybDQxLjA3LDg3LjFjMS45NCw0LjEyLDEuMDksOS4wMi0yLjEzLDEyLjI0bC0zMC42MSwzMC42MWMtNi42Miw2LjYyLTguNTYsMTYuOTMtNCwyNS4xMSwxMS4xNywyMC4wMywyNi4xOSwzOS4zMiw0My41OSw1Ny4wNywxNy43NSwxNy40LDM3LjA0LDMyLjQzLDU3LjA3LDQzLjU5LDguMTgsNC41NiwxOC40OCwyLjYyLDI1LjExLTRsMzAuNjEtMzAuNjFjMy4yMi0zLjIyLDguMTItNC4wOCwxMi4yNC0yLjEzWiIvPgo8L3N2Zz4="></span>
-      <span class="tile-name">WhatsApp Community</span>
-    </button>
+    <!-- (The WhatsApp tile moved to a button on each dog's page in 5.3) -->
 
     <!-- TILE: Create Lost Dog Poster -->
     <button class="tile" data-go="create-poster">
@@ -1579,6 +1591,7 @@
   <button class="back" data-go="home">&larr; Home</button>
   <h2 class="page-title">Access &amp; Roles</h2>
   <button class="btn wide ghost dev-only" type="button" data-go="facebook" style="margin:0 0 16px">Facebook Page link</button>
+  <button class="btn wide ghost dev-only" type="button" data-go="whatsapp" style="margin:0 0 16px">WhatsApp chat link</button>
   <p class="intro" id="member-total"></p>
   <ul id="member-list"></ul>
   <p class="hint"></p>
@@ -1849,7 +1862,7 @@
 
 <!-- ================= WHATSAPP COMMUNITY ================= -->
 <section class="screen" id="whatsapp">
-  <button class="back" data-go="home">&larr; Home</button>
+  <button class="back" data-go="members">&larr; Access &amp; Roles</button>
   <h2 class="page-title">WhatsApp Community</h2>
   <div id="whatsapp-body"></div>
 </section>
@@ -2572,7 +2585,9 @@ function showDog(id) {
       const units = teamUnits(live.members.map(m => ({ ...m, profile: live.profiles.get(m.id) || null })), teamsByUid(live.teams));
       const near = units.map(u => ({ m: u, pr: u.profile })).filter(x => hasSpot(x.pr))
         .map(x => ({ ...x, miles: milesBetween([x.pr.lat, x.pr.lng], [d.lat, d.lng]) })).sort((x, y) => x.miles - y.miles);
-      const box = h('div', { class: 'admin-box near-box' }, h('h3', null, 'Nearest volunteers (admins only)'));
+      // A drop-down: closed until tapped, and stays as it was while the page refreshes.
+      const box = h('details', { class: 'admin-box near-box', open: !!live.nearOpen, ontoggle: e => { live.nearOpen = e.target.open; } },
+        h('summary', null, h('h3', null, 'Nearest volunteers (admins only)'), h('span', { class: 'near-count' }, near.length ? String(Math.min(near.length, 5)) : '')));
       box.appendChild(near.length
         ? h('ul', { class: 'card vol-people' }, near.slice(0, 5).map(({ m, pr, miles }) => h('li', null,
             h('button', { class: 'vol-person', type: 'button', 'data-go': 'volunteer/' + m.id },
@@ -2752,7 +2767,7 @@ function showDog(id) {
     }
 
     // --- Posters
-    if (posters.length || st.poster || isAdmin()) root.appendChild(h('h3', { class: 'section' }, 'Posters'));
+    if (posters.length || st.poster) root.appendChild(h('h3', { class: 'section' }, 'Posters'));
     posters.forEach((p, i) => {
       const imgId = 'dogposter-' + p.id;
       root.appendChild(h('img', { class: 'full-image', id: imgId, alt: 'Poster for ' + (d.name || 'the dog'), src: p.data }));
@@ -2760,22 +2775,7 @@ function showDog(id) {
       if (isAdmin()) root.appendChild(h('button', { class: 'link danger center', onclick: () => { if (confirm('Remove this poster?')) fb.deleteDoc(fb.doc(fb.db, 'dogs', id, 'images', p.id)); } }, 'Remove this poster'));
     });
     if (st.poster) root.appendChild(h('button', { class: 'btn wide ghost', 'data-go': st.poster + '/' + id }, 'Open the standard "' + st.label + '" poster and post text'));
-    if (isAdmin()) {
-      const msg = h('p', { class: 'form-msg' });
-      const file = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: async e => {
-        const f = e.target.files[0];
-        if (!f) return;
-        msg.textContent = 'Uploading…';
-        try {
-          const data = await shrinkImage(f, 1400, 900000);
-          await fb.addDoc(fb.collection(fb.db, 'dogs', id, 'images'), { kind: 'poster', data, createdAt: fb.serverTimestamp() });
-          msg.textContent = '';
-        } catch (err) { msg.textContent = friendlyError(err); }
-      } });
-      root.appendChild(h('button', { class: 'btn wide', onclick: () => file.click() }, 'Add a poster for this dog'));
-      root.appendChild(file);
-      root.appendChild(msg);
-    }
+    // (Adding a poster here was removed in 5.3: posters now go out through Post to Facebook.)
 
     // --- Updates
     root.appendChild(h('h3', { class: 'section' }, 'Updates'));
@@ -2811,6 +2811,8 @@ function showDog(id) {
     } else {
       root.appendChild(h('p', { class: 'empty' }, 'No updates yet.'));
     }
+    // --- WhatsApp: start a message in the LDA chat about this dog
+    root.appendChild(waDogButton(d));
     root.appendChild(h('p', { class: 'hint' }, 'Added ' + when(d.createdAt) + (d.createdBy ? ' by ' + d.createdBy : '')));
     if (st.active === false) {
       const ms = ts => ts ? millis(ts) : 0;   // millis() treats a missing time as "now"; here a missing one must be skipped
@@ -2844,6 +2846,23 @@ function showDog(id) {
     }
   }
 }
+
+// WhatsApp can't open a group with a message already typed in, so this uses WhatsApp's own "send to" route:
+// WhatsApp opens with "Scooby Doo – Kilmarnock: " typed, the volunteer picks the LDA chat, edits and sends.
+// The same words are copied too, in case a phone opens the chat without them.
+function waDogText(d) {
+  const name = String(d.name || '').trim(), place = String(d.lastSeenPlace || '').trim();
+  const known = name && !/^(unknown|unnamed.*|not known|no name|n\/a|\?+)$/i.test(name);
+  return [known ? name : 'Unknown dog', place].filter(Boolean).join(' \u2013 ') + ': ';
+}
+function waDogButton(d) {
+  const text = waDogText(d);
+  const icon = h('img', { alt: '', class: 'wa-icon', src: WA_WHITE });
+  return h('a', { class: 'wa-bar', href: 'https://wa.me/?text=' + encodeURIComponent(text), target: '_blank', rel: 'noopener',
+    onclick: () => { copyText(text).catch(() => {}); } },
+    icon, h('span', null, h('b', null, 'Message the LDA chat'), h('small', null, 'Starts with: ' + text.replace(/: $/, ''))));
+}
+const WA_WHITE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"> <path fill="#ffffff" d="M360,0C161.18,0,0,161.18,0,360c0,65.41,17.45,126.75,47.94,179.61L0,720l187.02-44.21c51.34,28.18,110.28,44.21,172.98,44.21,198.82,0,360-161.18,360-360S558.82,0,360,0ZM360,655.52c-60.17,0-116.13-17.98-162.82-48.87l-110.49,28.14,30.99-105.61c-33.53-47.93-53.2-106.26-53.2-169.19,0-163.21,132.31-295.52,295.52-295.52s295.52,132.31,295.52,295.52-132.31,295.52-295.52,295.52Z"/> <path fill="#ffffff" d="M444.35,407.52l87.1,41.06c4,1.88,6.56,5.94,6.2,10.34-.94,11.46-5.54,34.43-26.13,55.02-58.12,58.12-162.49-7.64-166.74-10.18-25.67-13.79-50.06-32.24-73.19-55.36-23.12-23.12-41.58-47.52-55.37-73.19-2.55-4.24-68.31-108.61-10.18-166.74,20.59-20.59,43.56-25.19,55.02-26.13,4.41-.36,8.46,2.2,10.34,6.2l41.07,87.1c1.94,4.12,1.09,9.02-2.13,12.24l-30.61,30.61c-6.62,6.62-8.56,16.93-4,25.11,11.17,20.03,26.19,39.32,43.59,57.07,17.75,17.4,37.04,32.43,57.07,43.59,8.18,4.56,18.48,2.62,25.11-4l30.61-30.61c3.22-3.22,8.12-4.08,12.24-2.13Z"/> </svg>');
 
 async function deleteDog(id, name) {
   if (!confirm('Delete ' + (name || 'this dog') + ' and everything saved with it? This cannot be undone.')) return;
@@ -5679,7 +5698,7 @@ function showFacebookPost(arg) {
     root.appendChild(h('label', { for: 'fbpost-text' }, 'Post text (you can change it)'));
     root.appendChild(ta);
     const msg = h('p', { class: 'form-msg', role: 'status' });
-    const post = h('button', { class: 'save', type: 'button', onclick: async () => {
+    const post = h('button', { class: 'save fb-blue', type: 'button', onclick: async () => {
       if (!ta.value.trim()) { msg.textContent = 'Write the post text first.'; return; }
       if (placeBox && !placeBox.value.trim()) { msg.textContent = 'Enter the town or village first.'; placeBox.focus(); return; }
       if (/\[Town\/Village\]/.test(ta.value)) { msg.textContent = 'Replace [Town/Village] in the text with the place first.'; return; }
@@ -5693,7 +5712,7 @@ function showFacebookPost(arg) {
           h('div', { class: 'tick' }, tickIcon('#3e12a3', 56)),
           h('h3', null, r.practice ? 'Practice only' : 'Posted to Facebook'),
           h('p', null, r.practice ? 'This is the practice site, so nothing was posted. In the real app the post would now be live on the Page.' : 'The poster and text are now live on ' + (fbSetting.pageName || 'the Page') + '.'),
-          r.link ? h('a', { class: 'save', href: r.link, target: '_blank', rel: 'noopener', style: 'display:block;text-decoration:none;margin-top:14px' }, 'Open the post on Facebook') : null,
+          r.link ? h('a', { class: 'save fb-blue', href: r.link, target: '_blank', rel: 'noopener', style: 'display:block;text-decoration:none;margin-top:14px' }, 'Open the post on Facebook') : null,
           h('button', { class: 'btn wide ghost', type: 'button', 'data-go': draft.back }, draft.from === 'dog' ? 'Back to the dog' : 'Back to poster')));
       } catch (err) {
         post.disabled = false;
@@ -5778,7 +5797,7 @@ function showFacebookUpdate(dogId) {
     root.appendChild(ta);
     root.appendChild(h('p', { class: 'fb-note', style: 'margin-top:10px' }, 'The original text stays underneath, after a line saying Original post. The pictures stay the same (Facebook does not let apps change them).'));
     const msg = h('p', { class: 'form-msg', role: 'status' });
-    const btn = h('button', { class: 'save', type: 'button', onclick: async () => {
+    const btn = h('button', { class: 'save fb-blue', type: 'button', onclick: async () => {
       if (!ta.value.trim()) { msg.textContent = 'Write the update first.'; return; }
       if (placeBox && !placeBox.value.trim()) { msg.textContent = 'Enter the town or village first.'; placeBox.focus(); return; }
       if (/\[Town\/Village\]/.test(ta.value)) { msg.textContent = 'Replace [Town/Village] in the text with the place first.'; return; }
