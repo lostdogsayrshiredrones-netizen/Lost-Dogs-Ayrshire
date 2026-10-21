@@ -90,6 +90,19 @@
   .owner-q .f { font-weight: 800; font-size: 1.02rem; }
   .yesno { display: flex; gap: 10px; }
   .yesno.three { flex-direction: column; gap: 8px; }
+  .danger-q { padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; background: var(--deep); gap: 10px; }
+  .danger-q .f { font-weight: 800; font-size: 1.02rem; }
+  .danger-where { display: flex; flex-direction: column; gap: 8px; }
+  .dbox { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 14px; box-shadow: 0 0 0 4px #fff; }
+  .dbox > b { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; font-weight: 900; text-transform: uppercase; }
+  .dbox p { margin: 0; line-height: 1.45; font-weight: 600; }
+  .dbox p.small { font-size: .9rem; }
+  .dbox.red { background: var(--red); color: #fff; }
+  .dbox.yellow { background: var(--yellow); color: var(--deep); }
+  .dcall { padding: 14px; border-radius: 12px; text-align: center; text-decoration: none; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; }
+  .dbox.red .dcall { background: #fff; color: var(--red); }
+  .dbox.yellow .dcall { background: var(--purple); color: #fff; }
+  .dnext { margin: 0; font-weight: 800; }
   .behalf { display: flex; flex-direction: column; gap: 12px; padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; background: var(--deep); }
   .behalf select { appearance: auto; }
   .behalf-note { padding: 10px 12px; border-radius: 10px; background: var(--yellow); color: var(--deep); font-size: .92rem; font-weight: 600; }
@@ -248,6 +261,61 @@
       <div class="pick" id="r-pick"></div>
     </div>
 
+    <div class="field danger-q" data-for="loose posts" id="f-danger">
+      <span class="f" id="r-danger-q">Do you feel this dog is in immediate danger?</span>
+      <div class="yesno" role="radiogroup" aria-labelledby="r-danger-q">
+        <label><input type="radio" name="danger" value="yes" id="r-danger-yes"><span>Yes</span></label>
+        <label><input type="radio" name="danger" value="no" id="r-danger-no"><span>No</span></label>
+      </div>
+      <div class="danger-where" id="r-danger-where" hidden>
+        <span class="f" id="r-where-q">Where is the dog?</span>
+        <div class="yesno three" role="radiogroup" aria-labelledby="r-where-q">
+          <label><input type="radio" name="dwhere" value="road" id="r-dw-road"><span>On or near a road</span></label>
+          <label><input type="radio" name="dwhere" value="rail" id="r-dw-rail"><span>On or near a railway</span></label>
+          <label><input type="radio" name="dwhere" value="water" id="r-dw-water"><span>In or near water</span></label>
+          <label><input type="radio" name="dwhere" value="other" id="r-dw-other"><span>Somewhere else</span></label>
+        </div>
+      </div>
+      <div class="danger-where" id="r-danger-road" hidden>
+        <span class="f" id="r-road-q">What kind of road?</span>
+        <div class="yesno three" role="radiogroup" aria-labelledby="r-road-q">
+          <label><input type="radio" name="droad" value="road-fast" id="r-dr-fast"><span>Fast road: motorway, dual carriageway or national speed limit</span></label>
+          <label><input type="radio" name="droad" value="road-town" id="r-dr-town"><span>Town or village road (20 or 30 mph)</span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="dbox red" id="d-road-fast" data-danger hidden role="alert">
+      <b><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 20h20z"/><path d="M12 10v4M12 17v.5"/></svg>Call 999 now</b>
+      <p>A dog on a fast road is a serious danger to itself and to drivers. Please call <b>999</b> and make <b>Police Scotland</b> aware.</p>
+      <a class="dcall" href="tel:999">Call 999</a>
+      <p class="small">Please keep yourself safe. Don't step into the road or try to catch the dog.</p>
+    </div>
+    <div class="dbox yellow" id="d-road-town" data-danger hidden role="alert">
+      <b><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 20h20z"/><path d="M12 10v4M12 17v.5"/></svg>Send this report now</b>
+      <p>Our team is alerted the moment you send it. Please keep a safe distance, don't pursue or call the dog, and keep an eye on which way it goes.</p>
+      <a class="dcall" href="tel:07715950588">Call LDA 07715 950588</a>
+      <p class="small">If the dog is causing danger to traffic or people, call <b>999</b>.</p>
+    </div>
+    <div class="dbox red" id="d-rail" data-danger hidden role="alert">
+      <b><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 20h20z"/><path d="M12 10v4M12 17v.5"/></svg>Call Network Rail</b>
+      <p>If the dog is on the rail tracks, please call <b>Network Rail</b> straight away so trains can be warned. Lines are open 24 hours.</p>
+      <a class="dcall" href="tel:03457114141">Call 03457 11 41 41</a>
+      <p class="small">Never go onto the railway yourself. If anyone is in danger, call <b>999</b>.</p>
+    </div>
+    <div class="dbox red" id="d-water" data-danger hidden role="alert">
+      <b><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 20h20z"/><path d="M12 10v4M12 17v.5"/></svg>Call 999: Fire and Rescue</b>
+      <p>If the dog is in the water and in danger, please call <b>999</b> and ask for the <b>Fire and Rescue Service</b>.</p>
+      <a class="dcall" href="tel:999">Call 999</a>
+      <p class="small">Please don't go into the water yourself to rescue the dog.</p>
+    </div>
+    <div class="dbox red" id="d-other" data-danger hidden role="alert">
+      <b><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 20h20z"/><path d="M12 10v4M12 17v.5"/></svg>If anyone is in danger, call 999</b>
+      <p>If the dog or anyone else is in danger, please call <b>999</b>. Please keep a safe distance and don't pursue or call the dog.</p>
+      <a class="dcall" href="tel:999">Call 999</a>
+    </div>
+    <p class="dnext" id="d-next" hidden>Then tell us about the dog below. What you've typed is kept if you make a call.</p>
+
     <div class="field" data-for="lost" id="f-dogname">
       <label class="f" for="r-dogname" id="r-dogname-label">Your dog's name</label>
       <input type="text" id="r-dogname" autocomplete="off" maxlength="60">
@@ -358,6 +426,7 @@ let DOGS = [], type = null, photo = null, thumb = null, pinLatLng = null, map = 
 // ---------- screens ----------
 function show(id, push) {
   if ($('r-map').classList.contains('full')) setFull(false);
+  if (id === 'home') clearDraft();   // they chose to leave the form
   ['home', 'report', 'thanks'].forEach(s => { $(s).hidden = s !== id; });
   if (push !== false) history.pushState({ s: id, t: type }, '', '#' + id + (id === 'report' ? '-' + type : ''));
   window.scrollTo(0, 0);
@@ -420,9 +489,10 @@ function setupForm(dogId, keep) {
   $('r-send').textContent = T.send;
   document.querySelectorAll('[data-for]').forEach(el => { el.hidden = el.getAttribute('data-for').split(' ').indexOf(type) < 0; });
   if (type !== 'lost') { $('r-form').classList.remove('not-owner'); $('r-notowner').hidden = true; $('r-behalf').hidden = true; } else setOwner();
+  drawDanger();
   if (keep) return;
   $('r-form').reset(); clearErrors(); setPhoto(null, null); pinLatLng = null; openedAt = Date.now();
-  setOwner();
+  setOwner(); drawDanger();
   if (marker && map) { map.removeLayer(marker); marker = null; }
   if (map) map.setView(AYRSHIRE, 9);
   $('r-date').value = today(); $('r-time').value = nowTime(); $('r-date').max = today();
@@ -491,6 +561,10 @@ function startMap() {
     btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); setFull(!el.classList.contains('full')); });
     if (L.DomEvent && L.DomEvent.disableClickPropagation) { L.DomEvent.disableClickPropagation(btn); L.DomEvent.disableClickPropagation(bar); }
     el.appendChild(btn); el.appendChild(bar);
+    if (pinLatLng) {   // a pin restored from a kept report
+      marker = L.marker([pinLatLng.lat, pinLatLng.lng], { icon: L.divIcon({ className: '', html: '<span class="pin"></span>', iconSize: [28, 28], iconAnchor: [14, 28] }) }).addTo(map);
+      map.setView([pinLatLng.lat, pinLatLng.lng], 14);
+    }
     setTimeout(() => map.invalidateSize(), 200);
   }, () => {
     el.classList.add('failed'); el.textContent = 'The map could not be loaded. You can still send the report with the Town/Village.';
@@ -511,6 +585,62 @@ function setFull(on) {
   setTimeout(() => { try { map.invalidateSize(); if (!on && pinLatLng) map.panTo([pinLatLng.lat, pinLatLng.lng]); } catch (e) {} }, 80);
   if (!on) setTimeout(() => $('f-map').scrollIntoView({ block: 'center' }), 120);
 }
+
+// Loose dog / sighting: is the dog in immediate danger? The answer shows who to call first.
+function dangerValue() {
+  if (type !== 'loose' && type !== 'posts') return '';
+  if ($('r-danger-no').checked) return 'no';
+  if (!$('r-danger-yes').checked) return '';
+  const w = document.querySelector('input[name=dwhere]:checked');
+  if (!w) return 'yes';
+  if (w.value !== 'road') return w.value;
+  const r = document.querySelector('input[name=droad]:checked');
+  return r ? r.value : 'road';
+}
+function drawDanger() {
+  const on = type === 'loose' || type === 'posts', yes = on && $('r-danger-yes').checked;
+  const w = document.querySelector('input[name=dwhere]:checked');
+  $('r-danger-where').hidden = !yes;
+  $('r-danger-road').hidden = !(yes && w && w.value === 'road');
+  const v = on ? dangerValue() : '';
+  document.querySelectorAll('[data-danger]').forEach(b => { b.hidden = b.id !== 'd-' + v; });
+  $('d-next').hidden = !document.querySelector('[data-danger]:not([hidden])');
+}
+document.querySelectorAll('#f-danger input').forEach(i => i.addEventListener('change', () => {
+  drawDanger();
+  $('f-danger').classList.remove('bad'); $('f-danger').querySelectorAll('.err').forEach(e => e.remove());
+  const shown = document.querySelector('[data-danger]:not([hidden])');
+  if (shown) shown.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}));
+// Keep a half-filled report on this phone if they go off to make a call, so nothing is lost.
+const DRAFT = 'lda_report_draft';
+function saveDraft() {
+  if ($('report').hidden || !type) return;
+  const f = {};
+  document.querySelectorAll('#r-form input[id], #r-form select[id], #r-form textarea[id]').forEach(el => {
+    if (el.type === 'file' || el.id === 'r-web') return;
+    f[el.id] = (el.type === 'radio' || el.type === 'checkbox') ? el.checked : el.value;
+  });
+  const dog = document.querySelector('#r-pick input:checked');
+  const d = { type, at: Date.now(), openedAt, f, pin: pinLatLng, dogId: dog ? dog.value : '', photo, thumb };
+  try { sessionStorage.setItem(DRAFT, JSON.stringify(d)); } catch (e) { try { d.photo = d.thumb = null; sessionStorage.setItem(DRAFT, JSON.stringify(d)); } catch (e2) {} }
+}
+function clearDraft() { try { sessionStorage.removeItem(DRAFT); } catch (e) {} }
+function restoreDraft() {
+  let d = null;
+  try { d = JSON.parse(sessionStorage.getItem(DRAFT) || 'null'); } catch (e) {}
+  if (!d || !TYPES[d.type] || Date.now() - d.at > 3 * 3600e3) return false;
+  type = d.type; setupForm(d.dogId);
+  for (const [id, v] of Object.entries(d.f || {})) { const el = $(id); if (!el) continue; if (el.type === 'radio' || el.type === 'checkbox') el.checked = !!v; else el.value = v; }
+  openedAt = d.openedAt || openedAt;
+  if (d.photo) setPhoto(d.photo, d.thumb);
+  pinLatLng = d.pin || null;
+  setOwner(); drawDanger();
+  show('report');
+  return true;
+}
+document.addEventListener('click', e => { if (e.target.closest('a[href^="tel:"]')) saveDraft(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveDraft(); });
 
 // Lost dog: only the owner can report it. "No" stops the form and asks them to get the owner to phone us.
 function setOwner() {
@@ -559,6 +689,9 @@ $('r-form').addEventListener('submit', async e => {
     if (!$('r-oknows').checked) note(fail('f-oknows', 'Please tick to confirm the owner knows'));
   }
   if (type === 'lost' && !$('r-dogname').value.trim()) note(fail('f-dogname', behalf ? "Please add the dog's name" : "Please add your dog's name"));
+  const danger = dangerValue();
+  if ((type === 'loose' || type === 'posts') && (!danger || danger === 'yes' || danger === 'road'))
+    note(fail('f-danger', !danger ? 'Please tell us if the dog is in immediate danger' : danger === 'yes' ? 'Please choose where the dog is' : 'Please choose the kind of road'));
   if ($('r-town').value.trim().length < 2) note(fail('f-town', 'Please add the Town/Village'));
   if (pinLatLng && !inArea(pinLatLng)) note(fail('f-map', 'That pin is outside our area. Tap the map again.'));
   if (!$('r-date').value) note(fail('f-when', 'Please add the date'));
@@ -579,12 +712,14 @@ $('r-form').addEventListener('submit', async e => {
     ownerPhone: behalf ? ownerPhone : undefined, ownerKnows: behalf ? $('r-oknows').checked : undefined,
     town: $('r-town').value.trim(), date: $('r-date').value, time: $('r-time').value,
     details: $('r-desc').value.trim(), name: $('r-name').value.trim(), phone, consent: true,
+    danger: danger || undefined,
     website: $('r-web').value, tookMs: Date.now() - openedAt
   };
   if (pinLatLng) { data.lat = pinLatLng.lat; data.lng = pinLatLng.lng; }
   if (photo && type !== 'posts') { data.photo = photo; data.thumb = thumb; }
   try {
     await submitReport(data);
+    clearDraft();
     $('t-call-text').textContent = behalf
       ? 'We will review your report and phone the owner. No search or posts will start until the owner has agreed. Please let them know to expect our call.'
       : 'A coordinator may phone you to ask a few questions. Please keep your phone handy.';
@@ -611,6 +746,7 @@ $('r-form').addEventListener('submit', async e => {
 // ---------- start ----------
 history.replaceState({ s: 'home' }, '', location.pathname);
 loadDogs();
+restoreDraft();
 </script>
 </body>
 </html>

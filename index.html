@@ -1016,6 +1016,10 @@
 .found-options .chip.on { background: var(--yellow); color: var(--purple); }
 
 .found-where.tile-where { display: table; margin: 6px auto 0; font-size: .78rem; }
+.report-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.report-tag.urgent { background: #b00020; box-shadow: 0 0 0 2px #fff inset; }
+.report-danger { display: flex; flex-direction: column; gap: 4px; margin: 0 0 12px; padding: 12px 14px; border-radius: 12px; background: #e11d2e; color: #fff; line-height: 1.45; }
+.report-danger strong { font-size: 1.1rem; text-transform: uppercase; }
 </style>
 </head>
 <body>
@@ -2907,7 +2911,7 @@ function showDogEdit(id) {
     showWhere();
     el.lastSeenPlace.value = r.town || '';
     if (r.seenDate) el.lastSeenAt.value = r.seenDate + 'T' + (r.seenTime || '12:00');
-    el.description.value = r.details || '';
+    el.description.value = (r.details || '') + (REPORT_DANGER[r.danger] ? (r.details ? '\n\n' : '') + 'Reported in immediate danger: ' + REPORT_DANGER[r.danger].text.split('.')[0] + '.' : '');
     el.notes.value = r.reportedFor === 'owner'
       ? 'From a public report made for the owner by ' + (r.reporterName || 'someone') + (r.relationship ? ' (' + r.relationship.toLowerCase() + ')' : '') + '. Owner agreed' + (r.ownerConsentBy ? ' (confirmed by ' + r.ownerConsentBy + ')' : '') + '. Phone numbers are in Public Reports.'
       : 'From a public report (' + (r.reporterName || 'no name') + '). Their phone number is in Public Reports.';
@@ -3047,6 +3051,14 @@ const REPORT_TYPES = {
   found: { label: 'Found a dog',              cls: 'found', title: 'Dog found' },
   posts: { label: 'Sighting of a listed dog', cls: 'posts', title: 'Sighting' }
 };
+// Loose dog / sighting reports: what the reporter said about immediate danger, and what the page asked them to do.
+const REPORT_DANGER = {
+  'road-fast': { label: 'Fast road', text: 'On a fast road (motorway, dual carriageway or national speed limit). They were asked to call 999 and make Police Scotland aware.' },
+  'road-town': { label: 'Town road', text: 'On a town or village road (20 or 30 mph). They were asked to keep a safe distance and send this report, and to call 999 only if the dog is causing danger to traffic or people.' },
+  rail:        { label: 'Railway',   text: 'On or near a railway. They were asked to call Network Rail on 03457 11 41 41 if the dog is on the tracks.' },
+  water:       { label: 'Water',     text: 'In or near water. They were asked to call 999 and ask for the Fire and Rescue Service if the dog is in the water and in danger.' },
+  other:       { label: 'Danger',    text: 'Somewhere else. They were told to call 999 if the dog or anyone is in danger.' }
+};
 const REPORT_REJECT = ['Owner declined help', 'Could not reach the owner', 'Duplicate of another report', 'Dog already home', 'Not enough detail', 'Not a real report', 'Other'];
 const REPORT_STATUS_FOR = { lost: 'missing', loose: 'loose', found: 'found' };
 let reportFilter = 'new';
@@ -3091,7 +3103,7 @@ function showReports() {
     const newCount = all.filter(r => r.status === 'new').length;
     $('[data-report-filter="new"]').textContent = 'New' + (newCount ? ' (' + newCount + ')' : '');
     const shown = all.filter(r => (r.status === 'new') === (reportFilter === 'new'))
-      .sort((a, b) => reportFilter === 'new' ? millis(b.createdAt) - millis(a.createdAt) : millis(b.dealtAt) - millis(a.dealtAt));
+      .sort((a, b) => reportFilter === 'new' ? (!!b.urgent - !!a.urgent) || (millis(b.createdAt) - millis(a.createdAt)) : millis(b.dealtAt) - millis(a.dealtAt));
     list.textContent = '';
     if (!shown.length) { list.appendChild(h('p', { class: 'empty' }, reportFilter === 'new' ? 'No new reports. Well done!' : 'Nothing dealt with in the last 30 days.')); return; }
     shown.forEach(r => {
@@ -3099,7 +3111,8 @@ function showReports() {
       list.appendChild(h('button', { class: 'report-card', type: 'button', 'data-go': 'report/' + r.id },
         r.thumb ? h('img', { alt: '', src: r.thumb }) : h('span', { class: 'report-noimg' }, reportIcon()),
         h('span', { class: 'report-info' },
-          h('span', { class: 'report-tag ' + t.cls }, t.label),
+          h('span', { class: 'report-tags' }, h('span', { class: 'report-tag ' + t.cls }, t.label),
+            REPORT_DANGER[r.danger] ? h('span', { class: 'report-tag urgent' }, 'Urgent \u00b7 ' + REPORT_DANGER[r.danger].label) : null),
           h('strong', null, r.town || 'No place given'),
           r.dogName ? h('span', null, (r.type === 'posts' ? 'About: ' : 'Dog: ') + r.dogName) : null,
           h('span', null, (reportSeen(r) ? 'Seen ' + reportSeen(r) + ' · ' : '') + 'sent ' + when(r.createdAt)),
@@ -3143,6 +3156,10 @@ function showReport(id) {
     root.textContent = '';
     root.appendChild(h('h2', { class: 'page-title' }, t.title + (r.town ? ' · ' + r.town : '')));
     root.appendChild(h('p', { class: 'status-line' }, h('span', { class: 'report-tag ' + t.cls }, t.label)));
+    if (REPORT_DANGER[r.danger]) root.appendChild(h('div', { class: 'report-danger' },
+      h('strong', null, 'Immediate danger: ' + REPORT_DANGER[r.danger].label),
+      h('span', null, 'The reporter felt the dog was in immediate danger. ' + REPORT_DANGER[r.danger].text)));
+    else if (r.danger === 'no') root.appendChild(h('p', { class: 'hint', style: 'margin:-4px 0 10px' }, 'The reporter said the dog was not in immediate danger.'));
     if (isNew && r.lookingBy) root.appendChild(h('p', { class: 'report-looking-box' },
       r.lookingByUid === state.user.uid ? 'You are looking at this report.' : 'Being looked at by ' + r.lookingBy + (r.lookingAt ? ' (' + when(r.lookingAt) + ')' : '') + '.'));
     if (!isNew) root.appendChild(h('div', { class: 'fb-posted report-done' },
@@ -6313,7 +6330,7 @@ function startAlerts() {
       if (knownReports) snap.docs.forEach(d => {
         if (knownReports.has(d.id)) return;
         const r = d.data(), t = REPORT_TYPES[r.type] || { title: 'Report' };
-        showAlert('New public report', t.title + (r.town ? ' \u00b7 ' + r.town : ''), 'report/' + d.id);
+        showAlert(REPORT_DANGER[r.danger] ? 'URGENT public report' : 'New public report', (REPORT_DANGER[r.danger] ? REPORT_DANGER[r.danger].label + ' \u00b7 ' : '') + t.title + (r.town ? ' \u00b7 ' + r.town : ''), 'report/' + d.id);
       });
       knownReports = new Set(snap.docs.map(d => d.id));
     }, () => {}));

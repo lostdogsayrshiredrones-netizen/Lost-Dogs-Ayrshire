@@ -355,6 +355,8 @@ const REPORT_LIMITS = { perHour: 5, perDay: 12, allPerDay: 300 };
 // Who is alerted to new reports. For now only the developer, while it is being tried out.
 // To open it up later: ['coordinator', 'admin', 'developer'] (and canSeeReports in the app).
 const REPORT_ROLES = ['developer'];
+// Loose dog / sighting: what the reporter said about immediate danger.
+const DANGER = { 'road-fast': 'On a fast road', 'road-town': 'On a town or village road', rail: 'On or near a railway', water: 'In or near water', other: 'In danger' };
 const RELATIONSHIPS = ['Family member', 'Partner', 'Friend', 'Neighbour', 'Dog walker or sitter', 'Other'];
 
 // ---- The dogs shown on the public page ----
@@ -447,7 +449,11 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   if (type === 'posts' && (photo || thumb)) throw bad('Photos are not needed for a sighting.');
   if (photo && !isJpeg(photo, 600000)) throw bad('That photo could not be used. Please try a different one.');
   if (thumb && !isJpeg(thumb, 80000)) throw bad('That photo could not be used. Please try a different one.');
-  let dogId = '', dogName = '', behalf = null;
+  let dogId = '', dogName = '', behalf = null, danger = '';
+  if (type === 'loose' || type === 'posts') {
+    danger = String(d.danger || '');     // (left empty by a page opened before this question existed)
+    if (danger && danger !== 'no' && !DANGER[danger]) throw bad('Please tell us if the dog is in immediate danger.');
+  }
   if (type === 'posts') {
     dogId = String(d.dogId || '');
     if (!/^[A-Za-z0-9_-]{1,64}$/.test(dogId)) throw bad('Please tap the dog you saw.');
@@ -479,6 +485,7 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
     type, status: 'new', dogId, dogName, town, lat, lng, seenDate, seenTime, details,
     reporterName: name, reporterPhone: phone, thumb: thumb || '', hasPhoto: !!photo,
     ownerConfirmed: type === 'lost' && !behalf,
+    danger: danger || '', urgent: !!DANGER[danger],
     ...(behalf ? { reportedFor: 'owner', relationship: behalf.relationship, ownerName: behalf.ownerName, ownerPhone: behalf.ownerPhone, ownerConsent: false } : {}),
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   });
@@ -487,10 +494,11 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   await dayRef.set({ n: dayCount + 1, updatedAt: now });
 
   // Tell whoever handles reports.
-  const title = 'New public report: ' + (type === 'posts' ? 'sighting' : REPORT_TYPES[type].toLowerCase()) + (behalf ? ' (for the owner)' : '');
+  const title = (DANGER[danger] ? 'URGENT public report: ' : 'New public report: ') + (type === 'posts' ? 'sighting' : REPORT_TYPES[type].toLowerCase()) + (behalf ? ' (for the owner)' : '');
   const body = type === 'posts' ? (dogName && !/^unknown$/i.test(dogName) ? dogName + ' seen in ' : 'Listed dog seen in ') + town
     : type === 'lost' ? dogName + ' lost in ' + town : type === 'found' ? 'Found in ' + town : 'Seen in ' + town;
-  try { await sendTo(await peopleWithRole(REPORT_ROLES), title, body, SITE + '#report/' + ref.id, 'report'); }
+  const alertBody = DANGER[danger] ? DANGER[danger] + ' \u00b7 ' + body : body;
+  try { await sendTo(await peopleWithRole(REPORT_ROLES), title, alertBody, SITE + '#report/' + ref.id, 'report'); }
   catch (e) { console.warn('Report alert not sent:', e && e.message); }
   return { ok: true };
 });
