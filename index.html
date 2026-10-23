@@ -1039,6 +1039,21 @@ details.near-box[open] > summary { margin-bottom: 12px; }
 .near-count:empty { display: none; }
 .wa-toast { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 20px); z-index: 5000; max-width: 520px; margin: 0 auto;
   padding: 14px 16px; border-radius: 14px; background: #fff; color: #1c1530; font-weight: 700; line-height: 1.4; box-shadow: 0 6px 24px rgba(0,0,0,.35); border-left: 0; border-top: 5px solid #1da851; }
+
+/* ---- Availability: "No reply yet" drop-down; green/amber nearest volunteers ---- */
+details.avail-fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+details.avail-fold > summary::-webkit-details-marker { display: none; }
+details.avail-fold > summary h4 { flex: 1 1 auto; }
+details.avail-fold > summary::after { content: ""; width: 10px; height: 10px; border-right: 3px solid var(--yellow); border-bottom: 3px solid var(--yellow); transform: rotate(45deg); margin: -6px 6px 0 0; }
+details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-top: 4px; }
+.vol-people li.avail-now { background: #d8f5df; box-shadow: inset 6px 0 0 #1d8a3a; border-radius: 10px; }
+.vol-people li.avail-later { background: #fff0cc; box-shadow: inset 6px 0 0 #d97706; border-radius: 10px; }
+.vol-people li.avail-now .vol-person, .vol-people li.avail-later .vol-person { padding-left: 14px; padding-right: 10px; }
+.avail-tag { display: inline-block; justify-self: start; grid-column: 1 / -1; padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 900; color: #fff; }
+.avail-tag.now { background: #1d8a3a; }
+.avail-tag.later { background: #b45309; }
+.near-count.green { background: #1d8a3a; color: #fff; }
+.near-count.amber { background: #b45309; color: #fff; }
 </style>
 </head>
 <body>
@@ -2569,8 +2584,12 @@ function showDog(id) {
         ];
         const box = h('div', { class: 'admin-box avail-lists' }, h('h3', null, 'Availability (admins only)'));
         groups.forEach(([title, people, detail]) => {
-          box.appendChild(h('h4', null, title + ' (' + people.length + ')'));
-          box.appendChild(people.length
+          // "No reply yet" is usually the longest list, so it is a drop-down: closed until tapped.
+          const fold = title === 'No reply yet';
+          const target = fold ? h('details', { class: 'avail-fold', open: !!live.noReplyOpen, ontoggle: e => { live.noReplyOpen = e.target.open; } },
+            h('summary', null, h('h4', null, title + ' (' + people.length + ')'))) : box;
+          if (fold) box.appendChild(target); else box.appendChild(h('h4', null, title + ' (' + people.length + ')'));
+          target.appendChild(people.length
             ? h('ul', { class: 'card feed' }, people.map(p => {
                 const note = [detail(p), far(p.id), teamWith(p.id, byTeam, nameOf)].filter(Boolean).join(' \u00b7 ');
                 const t = byTeam.get(p.id), kit = { equipment: mergeKit((t ? t.members : [p.id]).map(u => (live.profiles.get(u) || {}).equipment)).equipment };
@@ -2587,14 +2606,34 @@ function showDog(id) {
       const units = teamUnits(live.members.map(m => ({ ...m, profile: live.profiles.get(m.id) || null })), teamsByUid(live.teams));
       const near = units.map(u => ({ m: u, pr: u.profile })).filter(x => hasSpot(x.pr))
         .map(x => ({ ...x, miles: milesBetween([x.pr.lat, x.pr.lng], [d.lat, d.lng]) })).sort((x, y) => x.miles - y.miles);
+      // Availability answers (only while availability is being asked for): green = now, amber = later.
+      // A team counts as available if any of its members is.
+      const reply = new Map(d.askAvailability ? live.replies.map(r => [r.id, r]) : []);
+      near.forEach(x => {
+        const rs = (x.m.members || [x.m]).map(q => reply.get(q.id)).filter(Boolean);
+        const now = rs.find(r => r.status === 'now'), later = rs.filter(r => r.status === 'later').sort((a, b) => String(a.from).localeCompare(String(b.from)))[0];
+        x.avail = now ? 'now' : later ? 'later' : rs.length && rs.every(r => r.status === 'no') ? 'no' : '';
+        x.from = later ? later.from : '';
+      });
+      const greens = near.filter(x => x.avail === 'now');
+      const ambers = near.filter(x => x.avail === 'later').sort((a, b) => String(a.from).localeCompare(String(b.from)) || a.miles - b.miles);
+      // Green first, then amber, then the closest few of everyone else (leaving out anyone who said Not available).
+      // If nobody has said they are available, it is simply the five closest, as before.
+      const shown = greens.length || ambers.length
+        ? greens.concat(ambers, near.filter(x => !x.avail).slice(0, 3))
+        : near.slice(0, 5);
       // A drop-down: closed until tapped, and stays as it was while the page refreshes.
       const box = h('details', { class: 'admin-box near-box', open: !!live.nearOpen, ontoggle: e => { live.nearOpen = e.target.open; } },
-        h('summary', null, h('h3', null, 'Nearest volunteers (admins only)'), h('span', { class: 'near-count' }, near.length ? String(Math.min(near.length, 5)) : '')));
+        h('summary', null, h('h3', null, 'Nearest volunteers (admins only)'),
+          greens.length ? h('span', { class: 'near-count green', title: 'Available now' }, String(greens.length)) : null,
+          ambers.length ? h('span', { class: 'near-count amber', title: 'Available later' }, String(ambers.length)) : null,
+          h('span', { class: 'near-count' }, shown.length ? String(shown.length) : '')));
       box.appendChild(near.length
-        ? h('ul', { class: 'card vol-people' }, near.slice(0, 5).map(({ m, pr, miles }) => h('li', null,
+        ? h('ul', { class: 'card vol-people' }, shown.map(({ m, pr, miles, avail, from }) => h('li', { class: avail === 'now' ? 'avail-now' : avail === 'later' ? 'avail-later' : null },
             h('button', { class: 'vol-person', type: 'button', 'data-go': 'volunteer/' + m.id },
               h('strong', null, m.name || 'No name'),
               h('span', { class: 'vol-miles' }, milesText(miles)),
+              avail === 'now' ? h('span', { class: 'avail-tag now' }, 'Available now') : avail === 'later' ? h('span', { class: 'avail-tag later' }, 'Available from ' + (from || '?')) : null,
               h('span', { class: 'vol-sub' }, (m.team ? 'Team \u00b7 ' : '') + (pr.town || '')),
               kitTags(pr)))))
         : h('p', { class: 'avail-none' }, 'Nobody has set where they are based yet.'));
