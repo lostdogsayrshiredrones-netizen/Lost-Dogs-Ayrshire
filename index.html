@@ -1054,6 +1054,51 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 .avail-tag.later { background: #b45309; }
 .near-count.green { background: #1d8a3a; color: #fff; }
 .near-count.amber { background: #b45309; color: #fff; }
+
+/* ---- V6: asking for availability with what is needed ---- */
+.ask-panel { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding: 14px; background: var(--white); color: #1c1530; border-radius: 14px; }
+.ask-panel .ask-title { font-size: 1.15rem; font-weight: 900; color: #3e12a3; }
+.ask-panel .ask-sub { font-weight: 900; color: #3e12a3; margin-top: 4px; }
+.admin-box .ask-panel label.ask-check { display: flex; align-items: flex-start; gap: 12px; margin: 0; padding: 12px; border: 2px solid #5220c4; border-radius: 12px; background: #f3efff; font-size: 1rem; font-weight: 700; line-height: 1.35; color: #1c1530; }
+.admin-box .ask-panel label.ask-check input { flex-shrink: 0; width: 26px; height: 26px; padding: 0; margin: 0; border: 0; accent-color: #5220c4; }
+.ask-panel label.ask-check.need span { font-weight: 900; }
+.ask-panel label.ask-check small { display: block; font-size: .82rem; font-weight: 600; color: #4a3f6b; }
+.ask-panel .btn:disabled { opacity: .45; }
+.ask-panel .link { color: #5220c4; }
+.ask-on .ask-now { margin: 10px 0 8px; font-weight: 800; }
+.need-pick { margin: 4px 0 6px 40px; }
+.need-pick small { font-weight: 600; opacity: .85; }
+.need-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; font-weight: 800; }
+.need-chip { padding: 4px 12px; border-radius: 999px; background: var(--purple); color: var(--white); font-size: .85rem; font-weight: 800; }
+.avail-step { margin-top: 14px; font-weight: 900; }
+.offer-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 8px; }
+.btn.offer { padding: 13px 10px; background: var(--white); color: var(--purple); box-shadow: inset 0 0 0 3px var(--purple); font-size: 1rem; }
+.btn.offer.on { background: var(--purple); color: var(--yellow); }
+.btn.offer.on::before { content: "\2713  "; }
+.avail-msg { margin-top: 8px; text-align: center; font-weight: 800; }
+.standby-box { display: flex; flex-direction: column; gap: 4px; margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #fff4d6; border: 3px solid #e08a00; color: #1c1530; text-align: left; }
+.standby-box strong { color: #8a4b00; font-size: 1.05rem; }
+.standby-offers { font-size: .9rem; color: #4a3f6b; }
+.standby-tag { display: inline-block; margin-left: 8px; padding: 6px 14px; border-radius: 999px; background: #e08a00; color: #fff; font-size: .9rem; font-weight: 900; text-transform: uppercase; vertical-align: middle; }
+.need-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-top: 10px; }
+.need-totals > div { padding: 8px; border-radius: 12px; background: rgba(255,255,255,.12); text-align: center; }
+.need-totals b { display: block; font-size: 1.6rem; color: var(--yellow); }
+.need-totals span { font-size: .85rem; font-weight: 800; }
+.offer-tags { display: flex; flex-wrap: wrap; gap: 4px; flex-basis: 100%; }
+.offer-tag { padding: 2px 9px; border-radius: 999px; font-size: .78rem; font-weight: 900; color: #fff; background: #1d8a3a; }
+.offer-tag.later { background: #b45309; }
+.popup-back { position: fixed; inset: 0; z-index: 6000; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(20,6,60,.88); }
+.popup { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; padding: 22px 20px; border-radius: 20px; background: #fff; color: #1c1530; text-align: center; border-top: 8px solid var(--purple); box-shadow: 0 16px 40px rgba(0,0,0,.5); }
+.popup.good { border-top-color: #1d8a3a; }
+.popup.warn { border-top-color: #e08a00; }
+.popup-icon { align-self: center; width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; color: #fff; background: var(--purple); }
+.popup.good .popup-icon { background: #1d8a3a; }
+.popup.warn .popup-icon { background: #e08a00; }
+.popup h3 { font-size: 1.25rem; font-weight: 900; color: #3e12a3; line-height: 1.25; }
+.popup p { font-size: 1.02rem; line-height: 1.45; }
+.popup .popup-warn { padding: 10px 12px; border-radius: 12px; background: #fff4d6; border: 2px solid #e08a00; font-weight: 800; }
+.popup .btn.ghost { color: var(--purple); box-shadow: inset 0 0 0 3px var(--purple); background: #fff; }
+.avail-lists .need-chip { background: var(--yellow); color: var(--purple); }
 </style>
 </head>
 <body>
@@ -1193,7 +1238,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 5.5 · 23 Oct 2026</p>
+  <p class="version">Version 6.0 · 24 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </main>
 
@@ -1471,7 +1516,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 5.5 · 23 Oct 2026</p>
+  <p class="version">Version 6.0 · 24 Oct 2026</p>
   <p class="credit">Built by Darren Hunt.<br>Please report any issues to Darren.</p>
 </section>
 
@@ -1550,10 +1595,16 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <p class="field-help" id="dog-pin-status" role="status">No pin placed.</p>
     <label for="dog-description">Description</label>
     <textarea id="dog-description" name="description" rows="3" placeholder="Collar, harness, temperament, anything that helps identify the dog"></textarea>
-    <label class="check"><input type="checkbox" id="dog-ask"> Ask members for their availability</label>
-    <p class="field-help">Tick this if volunteers may be needed. Members are then asked whether they can help, and only admins see the answers.</p>
+    <label class="check"><input type="checkbox" id="dog-ask"> Ask volunteers for their availability</label>
+    <p class="field-help">Tick this if volunteers may be needed. Volunteers are then asked whether they can help, and only admins see the answers.</p>
+    <div class="need-pick" id="dog-needs" hidden>
+      <p class="field-help"><b>What do we need?</b> Tick all that apply.</p>
+      <label class="check"><input type="checkbox" id="dog-need-ground"> Ground search <small>(anyone can help)</small></label>
+      <label class="check"><input type="checkbox" id="dog-need-drone"> Drones <small>(volunteers with a drone)</small></label>
+      <label class="check"><input type="checkbox" id="dog-need-scan"> Scan dog <small>(volunteers with a microchip scanner)</small></label>
+    </div>
     <label for="dog-notes">Important instructions</label>
-    <textarea id="dog-notes" name="notes" rows="2" placeholder="e.g. Do not approach, call or chase. Report sightings only."></textarea>
+    <textarea id="dog-notes" name="notes" rows="2" placeholder="e.g. Do not approach, call or pursue. Report sightings only."></textarea>
     <button class="save" id="dog-save" type="submit">Save</button>
     <div class="fb-box fb-only fb-new-only" hidden>
       <button class="btn wide fb-btn" id="dog-save-fb" type="button">Save and post to Facebook</button>
@@ -1988,6 +2039,16 @@ const STATUSES = {
 
 // When a dog is Found, where it is now. Kept as a second step so the status list stays short.
 const FOUND_WHERE = ['Safe with finder', 'On route to vets', 'On route to police station', 'Safe with dog warden'];
+// What an admin can ask volunteers for (V6). "kit" is the equipment a volunteer needs in their profile.
+const NEEDS = {
+  ground: { label: 'Ground search', short: 'ground search', kit: '',        help: 'Anyone can help' },
+  drone:  { label: 'Drones',        short: 'drones',        kit: 'drone',   kitName: 'drone',             help: 'Only volunteers with a drone in their profile' },
+  scan:   { label: 'Scan dog',      short: 'scan dog',      kit: 'scanner', kitName: 'microchip scanner', help: 'Only volunteers with a microchip scanner in their profile' }
+};
+const NEED_ORDER = ['ground', 'drone', 'scan'];
+const needsOf = d => NEED_ORDER.filter(n => ((d && d.availNeeds) || []).includes(n));
+const needsText = ns => ns.map(n => NEEDS[n].short).join(', ');
+const STANDBY_LINES = ['You\u2019re on standby \u2013 communication will follow.', 'If your availability changes, please update accordingly!', 'Please don\u2019t go to the area until you hear from us.'];
 // "Found · Safe with finder" (or just the status label).
 const statusText = d => ((STATUSES[d.status] || {}).label || d.status || 'Unknown') + (d.status === 'found' && d.foundWhere ? ' \u00b7 ' + d.foundWhere : '');
 
@@ -2486,7 +2547,8 @@ function showDog(id) {
   const fb = state.fb, root = $('#dog-body');
   const dogRef = fb.doc(fb.db, 'dogs', id);
   const live = { dog: null, images: [], updates: [], sightings: [], map: null, adding: null,
-    mine: null, replies: [], members: [], profiles: new Map(), teams: [], pickTime: false, timeDraft: '' };
+    mine: null, mineLoaded: false, replies: [], members: [], profiles: new Map(), teams: [], pickTime: false, timeDraft: '',
+    myKit: [], offerDraft: null, askOpen: false, askDraft: { confirm: false, needs: new Set() } };
   root.textContent = '';
   root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
 
@@ -2505,7 +2567,9 @@ function showDog(id) {
 
   // Availability: everyone sees their own answer; only admins see everyone's.
   const myReply = fb.doc(fb.db, 'dogs', id, 'availability', state.user.uid);
-  state.subs.push(fb.onSnapshot(myReply, snap => { live.mine = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null; draw(); }, () => {}));
+  state.subs.push(fb.onSnapshot(myReply, snap => { live.mine = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null; live.mineLoaded = true; draw(); }, () => {}));
+  // My own kit, so I can only offer drones or scanning if my profile says I have one.
+  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'profiles', state.user.uid), snap => { live.myKit = snap.exists() ? kitKinds(snap.data()) : []; draw(); }, () => {}));
   if (isAdmin()) {
     state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'dogs', id, 'availability'),
       snap => { live.replies = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })); draw(); }, () => {}));
@@ -2515,15 +2579,56 @@ function showDog(id) {
       snap => { live.profiles = new Map(snap.docs.map(d => [d.id, d.data()])); draw(); }, () => {}));
     watchTeams(teams => { live.teams = teams; draw(); });
   }
-  const answer = async (status, from) => {
+  const answer = async (status, from, offers, quiet) => {
     try {
-      await fb.setDoc(myReply, { uid: state.user.uid, name: state.profile.name || '', status, from: from || '', updatedAt: fb.serverTimestamp() });
+      await fb.setDoc(myReply, { uid: state.user.uid, name: state.profile.name || '', status, from: from || '', offers: status === 'no' ? [] : (offers || []), updatedAt: fb.serverTimestamp() });
       live.pickTime = false;
+      // Saying you can help puts you on standby: nobody goes out until the admins have a plan.
+      if (status !== 'no' && !quiet) popup({ tone: 'good', title: STANDBY_LINES[0], lines: [STANDBY_LINES[1]], warn: STANDBY_LINES[2], buttons: [{ label: 'OK, I\u2019ll stand by', primary: true }] });
     } catch (err) {
       alert(err && err.code === 'permission-denied' ? 'Not allowed yet. The new security rules need pasting into Firebase first.' : friendlyError(err));
     }
   };
   state.subs.push(() => { if (live.map) { live.map.remove(); live.map = null; } });
+
+  // Asking for availability: tick to confirm, then tick what is needed (V6).
+  function askPanel() {
+    const d = live.dog;
+    if (d.askAvailability) {
+      const needs = needsOf(d);
+      return h('div', { class: 'ask-on' },
+        needs.length ? h('p', { class: 'ask-now' }, 'Asking for: ' + needs.map(n => NEEDS[n].label).join(', ')) : null,
+        h('button', { class: 'btn wide ghost', type: 'button', onclick: async () => {
+          try { await fb.updateDoc(dogRef, { askAvailability: false, updatedAt: fb.serverTimestamp() }); }
+          catch (err) { alert(friendlyError(err)); }
+        } }, 'Stop asking for availability'));
+    }
+    if (!live.askOpen) return h('button', { class: 'btn wide', type: 'button', id: 'ask-open', onclick: () => { live.askOpen = true; live.askDraft = { confirm: false, needs: new Set() }; draw(); } }, 'Ask volunteers for their availability');
+    const dr = live.askDraft, msg = h('p', { class: 'form-msg' });
+    const send = h('button', { class: 'btn wide', type: 'button', id: 'ask-send' }, 'Send request');
+    const check = () => { send.disabled = !(dr.confirm && dr.needs.size); };
+    send.onclick = async () => {
+      if (!dr.confirm || !dr.needs.size) { msg.textContent = 'Tick the confirm box and at least one need.'; return; }
+      send.disabled = true;
+      try {
+        await fb.updateDoc(dogRef, { askAvailability: true, availNeeds: NEED_ORDER.filter(n => dr.needs.has(n)), availabilityAskedByUid: state.user.uid, updatedAt: fb.serverTimestamp() });
+        live.askOpen = false;
+        sendPush({ type: 'availability', dogId: id });
+      } catch (err) { send.disabled = false; msg.textContent = friendlyError(err); }
+    };
+    const tick = (idName, text, on, set, help) => h('label', { class: 'ask-check' + (help ? ' need' : '') },
+      h('input', { type: 'checkbox', id: idName, checked: on, onchange: e => { set(e.target.checked); check(); } }),
+      h('span', null, text, help ? h('small', null, help) : null));
+    const panel = h('div', { class: 'ask-panel' },
+      h('p', { class: 'ask-title' }, 'Ask volunteers for their availability'),
+      tick('ask-confirm', 'I confirm I want to ask all volunteers for their availability for this dog', dr.confirm, v => { dr.confirm = v; }),
+      h('p', { class: 'ask-sub' }, 'What do we need? (tick all that apply)'),
+      NEED_ORDER.map(n => tick('ask-need-' + n, NEEDS[n].label, dr.needs.has(n), v => { if (v) dr.needs.add(n); else dr.needs.delete(n); }, NEEDS[n].help)),
+      send, msg,
+      h('button', { class: 'link center', type: 'button', onclick: () => { live.askOpen = false; draw(); } }, 'Cancel'));
+    check();
+    return panel;
+  }
 
   function draw() {
     const d = live.dog;
@@ -2539,7 +2644,9 @@ function showDog(id) {
     root.textContent = '';
 
     root.appendChild(h('h2', { class: 'page-title' }, h('span', { class: 'name-label' }, 'Name: '), d.name || 'Unnamed dog'));
-    root.appendChild(h('p', { class: 'status-line' }, statusBadge(d.status), d.status === 'found' && d.foundWhere ? h('span', { class: 'found-where' }, d.foundWhere) : null));
+    const onStandby = d.askAvailability && live.mine && (live.mine.status === 'now' || live.mine.status === 'later');
+    root.appendChild(h('p', { class: 'status-line' }, statusBadge(d.status), d.status === 'found' && d.foundWhere ? h('span', { class: 'found-where' }, d.foundWhere) : null,
+      onStandby ? h('span', { class: 'standby-tag' }, 'On standby') : null));
     if (d.statusBy) root.appendChild(h('p', { class: 'status-by' },
       (st.active === false ? 'Closed by ' : 'Status set by ') + d.statusBy + (d.statusAt ? ', ' + when(d.statusAt) : '')));
 
@@ -2549,24 +2656,64 @@ function showDog(id) {
     // --- Availability return
     if (d.askAvailability) {
       const mine = live.mine, picked = mine && mine.status;
+      const needs = needsOf(d), multi = needs.length > 1;
+      if (!live.offerDraft && live.mineLoaded) live.offerDraft = new Set(((mine && mine.offers) || []).filter(n => needs.includes(n)));
+      const offerSet = live.offerDraft || new Set();
+      const hasKit = n => !NEEDS[n].kit || live.myKit.includes(NEEDS[n].kit);
+      const noKit = n => popup({ tone: 'warn', title: 'No ' + NEEDS[n].kitName + ' in your profile',
+        lines: ['You don\u2019t have a ' + NEEDS[n].kitName + ' logged in your profile, so you can\u2019t offer ' + NEEDS[n].short + ' for this search.',
+          'If you do have one, please add it to your profile and try again.' + (needs.includes('ground') && n !== 'ground' ? ' You can still offer to help with the ground search.' : '')],
+        buttons: [{ label: 'Go to my profile', primary: true, onclick: () => go('profile') }, { label: 'OK' }] });
+      const offers = () => multi ? NEED_ORDER.filter(n => offerSet.has(n)) : needs.slice();
+      const msgBox = h('p', { class: 'avail-msg' });
+      // Before saying "available", check they have picked what they can do and have the kit for it.
+      const ready = () => {
+        const o = offers();
+        if (needs.length && !o.length) { msgBox.textContent = 'First choose what you can help with.'; return null; }
+        const missing = o.find(n => !hasKit(n));
+        if (missing) { noKit(missing); return null; }
+        return o;
+      };
       const option = (status, label) => h('button', { class: 'btn avail' + (picked === status ? ' on' : ''), type: 'button', 'aria-pressed': picked === status ? 'true' : 'false',
-        onclick: () => { if (status === 'later') { live.pickTime = true; draw(); } else answer(status); } }, label);
-      const panel = h('div', { class: 'avail-box' },
-        h('h3', null, 'Can you help with this search?'),
-        h('div', { class: 'avail-row' },
+        onclick: () => {
+          if (status === 'no') return answer('no');
+          const o = ready(); if (!o) return;
+          if (status === 'later') { live.pickTime = true; draw(); } else answer('now', '', o);
+        } }, label);
+      const panel = h('div', { class: 'avail-box' }, h('h3', null, 'Can you help with this search?'));
+      if (needs.length) panel.appendChild(h('div', { class: 'need-chips' }, h('span', null, 'Needed:'), needs.map(n => h('span', { class: 'need-chip' }, NEEDS[n].label))));
+      if (multi) {
+        panel.appendChild(h('p', { class: 'avail-step' }, '1. What can you help with?'));
+        panel.appendChild(h('div', { class: 'offer-row' }, needs.map(n => h('button', {
+          class: 'btn offer' + (offerSet.has(n) ? ' on' : ''), type: 'button', 'aria-pressed': offerSet.has(n) ? 'true' : 'false', 'data-need': n,
+          onclick: () => {
+            if (!offerSet.has(n) && !hasKit(n)) return noKit(n);
+            if (offerSet.has(n)) offerSet.delete(n); else offerSet.add(n);
+            live.offerDraft = offerSet;
+            // Already said available? Keep the saved answer up to date (no second standby message).
+            if (picked === 'now' || picked === 'later') { if (offers().length) answer(picked, mine.from, offers(), true); }
+            draw();
+          } }, NEEDS[n].label))));
+        panel.appendChild(h('p', { class: 'avail-step' }, '2. When?'));
+      }
+      panel.appendChild(h('div', { class: 'avail-row' },
           option('now', 'Available now'),
           option('later', picked === 'later' && mine.from ? 'Available from ' + mine.from : 'Available from\u2026'),
           option('no', 'Not available')));
+      panel.appendChild(msgBox);
       if (live.pickTime) {
         const timeBox = h('input', { id: 'avail-time', type: 'time', value: live.timeDraft || (picked === 'later' ? mine.from : '') || '' });
         const msg = h('p', { class: 'form-msg' });
         panel.appendChild(h('div', { class: 'admin-box' },
           h('label', { for: 'avail-time' }, 'What time will you be available from?'), timeBox, msg,
           h('div', { class: 'row' },
-            h('button', { class: 'btn', type: 'button', onclick: () => { if (!timeBox.value) { msg.textContent = 'Choose a time first.'; return; } live.timeDraft = ''; answer('later', timeBox.value); } }, 'Save time'),
+            h('button', { class: 'btn', type: 'button', onclick: () => { if (!timeBox.value) { msg.textContent = 'Choose a time first.'; return; } const o = ready(); if (!o) return; live.timeDraft = ''; answer('later', timeBox.value, o); } }, 'Save time'),
             h('button', { class: 'btn ghost', type: 'button', onclick: () => { live.pickTime = false; live.timeDraft = ''; draw(); } }, 'Cancel'))));
       }
-      panel.appendChild(h('p', { class: 'avail-note' }, picked
+      if (picked === 'now' || picked === 'later')
+        panel.appendChild(h('div', { class: 'standby-box' }, h('strong', null, STANDBY_LINES[0]), h('span', null, STANDBY_LINES[1]), h('b', null, STANDBY_LINES[2]),
+          (mine.offers || []).length ? h('span', { class: 'standby-offers' }, 'You offered: ' + needsText(NEED_ORDER.filter(n => mine.offers.includes(n)))) : null));
+      else panel.appendChild(h('p', { class: 'avail-note' }, picked
         ? 'Thank you. Your answer has gone to the search coordinator. You can change it at any time.'
         : 'Tap one so the search coordinator knows. Please wait to be directed before attending.'));
       root.appendChild(panel);
@@ -2583,6 +2730,14 @@ function showDog(id) {
           ['No reply yet', live.members.filter(m => !replied.has(m.id)).sort(byName), () => '']
         ];
         const box = h('div', { class: 'admin-box avail-lists' }, h('h3', null, 'Availability (admins only)'));
+        if (needs.length) {
+          const yes = live.replies.filter(r => r.status === 'now' || r.status === 'later');
+          box.appendChild(h('div', { class: 'need-chips' }, h('span', null, 'Asked for:'), needs.map(n => h('span', { class: 'need-chip' }, NEEDS[n].label))));
+          box.appendChild(h('div', { class: 'need-totals' }, needs.map(n => h('div', { 'data-need': n },
+            h('b', null, String(yes.filter(r => (r.offers || (needs.length === 1 ? needs : [])).includes(n)).length)), h('span', null, NEEDS[n].label)))));
+        }
+        const offerTags = p => (p.status === 'now' || p.status === 'later') && (p.offers || []).length
+          ? h('span', { class: 'offer-tags' }, NEED_ORDER.filter(n => p.offers.includes(n)).map(n => h('span', { class: 'offer-tag ' + p.status }, NEEDS[n].label))) : null;
         groups.forEach(([title, people, detail]) => {
           // "No reply yet" is usually the longest list, so it is a drop-down: closed until tapped.
           const fold = title === 'No reply yet';
@@ -2593,7 +2748,7 @@ function showDog(id) {
             ? h('ul', { class: 'card feed' }, people.map(p => {
                 const note = [detail(p), far(p.id), teamWith(p.id, byTeam, nameOf)].filter(Boolean).join(' \u00b7 ');
                 const t = byTeam.get(p.id), kit = { equipment: mergeKit((t ? t.members : [p.id]).map(u => (live.profiles.get(u) || {}).equipment)).equipment };
-                return h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name'), note ? h('span', { class: 'feed-when' }, note) : null, kitTags(kit));
+                return h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name'), note ? h('span', { class: 'feed-when' }, note) : null, offerTags(p), kitTags(kit));
               }))
             : h('p', { class: 'avail-none' }, 'Nobody'));
         });
@@ -2687,13 +2842,7 @@ function showDog(id) {
       const box = h('div', { class: 'admin-box' },
         h('h3', null, isAdmin() ? 'Admin' : 'Coordinator'),
         h('label', { for: 'status-select' }, 'Status'), select, whereBox,
-        h('button', { class: 'btn wide ' + (d.askAvailability ? 'ghost' : ''), type: 'button', onclick: async () => {
-          try {
-            await fb.updateDoc(dogRef, { askAvailability: !d.askAvailability, availabilityAskedByUid: state.user.uid, updatedAt: fb.serverTimestamp() });
-            if (!d.askAvailability) sendPush({ type: 'availability', dogId: id });
-          }
-          catch (err) { alert(friendlyError(err)); }
-        } }, d.askAvailability ? 'Stop asking for availability' : 'Ask members for availability'));
+        askPanel());
       if (isAdmin()) {
         box.appendChild(h('div', { class: 'row' },
           h('button', { class: 'btn', 'data-go': 'dog-edit/' + id }, 'Edit details'),
@@ -2946,6 +3095,9 @@ function showDogEdit(id) {
   $('#dog-edit-title').textContent = isNew ? 'Add a dog' : 'Edit details';
   $('#dog-edit-back').setAttribute('data-go', isNew ? 'dogs' : 'dog/' + id);
   form.reset();
+  // Asking for availability: the "what is needed" boxes show only while the tick is on.
+  $('#dog-needs').hidden = true;
+  $('#dog-ask').onchange = () => { $('#dog-needs').hidden = !$('#dog-ask').checked; };
   // A new dog can only be Missing, Loose dog or Found; the closing statuses are for later, when editing.
   const statusBox = form.elements.status;
   statusBox.textContent = '';
@@ -3014,6 +3166,8 @@ function showDogEdit(id) {
       edit.oldStatus = d.status || 'missing';
       edit.fbPostId = d.fbPostId || '';
       $('#dog-ask').checked = !!d.askAvailability;
+      NEED_ORDER.forEach(n => { $('#dog-need-' + n).checked = needsOf(d).includes(n); });
+      $('#dog-needs').hidden = !d.askAvailability;
       edit.wasAsking = !!d.askAvailability;
       edit.existingThumb = d.thumb || null;
       if (d.thumb) { $('#dog-photo-preview').src = d.thumb; $('#dog-photo-preview').hidden = false; }
@@ -3044,11 +3198,13 @@ function showDogEdit(id) {
     const v = k => (form.elements[k] ? form.elements[k].value.trim() : '');
     if (!v('name')) { msg.textContent = 'Enter the dog\'s name (or a short description if unknown).'; return; }
     if (v('status') === 'found' && !v('foundWhere')) { msg.textContent = 'Found: choose where the dog is now.'; $('#dog-found-where').focus(); return; }
+    const needs = NEED_ORDER.filter(n => $('#dog-need-' + n).checked);
+    if ($('#dog-ask').checked && !needs.length) { msg.textContent = 'Asking for availability: tick what is needed (ground search, drones or scan dog).'; return; }
     const data = {
       name: v('name'), status: v('status') || 'missing', foundWhere: v('status') === 'found' ? v('foundWhere') : '', breed: v('breed'), colour: v('colour'), sex: v('sex'), age: v('age'),
       lastSeenPlace: v('lastSeenPlace'), lastSeenAt: v('lastSeenAt'), description: v('description'), notes: v('notes'),
       lat: edit.spot ? edit.spot.lat : null, lng: edit.spot ? edit.spot.lng : null,
-      askAvailability: $('#dog-ask').checked, availabilityAskedByUid: state.user.uid,
+      askAvailability: $('#dog-ask').checked, availNeeds: $('#dog-ask').checked ? needs : [], availabilityAskedByUid: state.user.uid,
       updatedAt: fb.serverTimestamp()
     };
     if (edit.thumb) data.thumb = edit.thumb;
@@ -6158,6 +6314,22 @@ function playAlertSound() {
 const alertBox = h('div', { id: 'alerts', 'aria-live': 'assertive' });
 document.body.appendChild(alertBox);
 
+// A simple message box over the page (used for the availability kit check and standby message).
+function popup({ tone, title, lines, warn, buttons }) {
+  const back = h('div', { class: 'popup-back', role: 'dialog', 'aria-modal': 'true', 'aria-label': title });
+  const close = () => back.remove();
+  back.appendChild(h('div', { class: 'popup ' + (tone || '') },
+    h('div', { class: 'popup-icon', 'aria-hidden': 'true' }, tone === 'good' ? '\u2713' : '!'),
+    h('h3', null, title),
+    (lines || []).map(t => h('p', null, t)),
+    warn ? h('p', { class: 'popup-warn' }, warn) : null,
+    (buttons || [{ label: 'OK', primary: true }]).map(b => h('button', { class: 'btn wide' + (b.primary ? '' : ' ghost'), type: 'button',
+      onclick: () => { close(); if (b.onclick) b.onclick(); } }, b.label))));
+  document.body.appendChild(back);
+  const first = back.querySelector('button'); if (first) first.focus();
+  return close;
+}
+
 function showAlert(title, text, route) {
   const close = () => banner.remove();
   const banner = h('div', { class: 'alert', role: 'alert' },
@@ -6386,9 +6558,9 @@ function startAlerts() {
       if (!knownDogs.has(d.id)) {
         if (dog.createdByUid === state.user.uid) return;                     // not for the admin who added it
         const label = (STATUSES[dog.status] || { label: 'Missing' }).label;
-        showAlert('New dog: ' + label, [where, dog.askAvailability ? 'Can you help? Please give your availability.' : ''].filter(Boolean).join('. ') || 'Open for details.', 'dog/' + d.id);
+        showAlert('New dog: ' + label, [where, dog.askAvailability ? (needsOf(dog).length ? 'Can you help? Please give your availability. Needed: ' + needsText(needsOf(dog)) : 'Can you help? Please give your availability.') : ''].filter(Boolean).join('. ') || 'Open for details.', 'dog/' + d.id);
       } else if (dog.askAvailability && !knownDogs.get(d.id) && dog.availabilityAskedByUid !== state.user.uid) {
-        showAlert('Availability needed', [where, 'Can you help with this search?'].filter(Boolean).join('. '), 'dog/' + d.id);
+        showAlert('Availability needed', [where, needsOf(dog).length ? 'Needed: ' + needsText(needsOf(dog)) : 'Can you help with this search?'].filter(Boolean).join('. '), 'dog/' + d.id);
       }
     });
     if (knownDogs && isAdmin()) snap.docs.forEach(d => {
