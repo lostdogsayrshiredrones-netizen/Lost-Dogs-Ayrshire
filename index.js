@@ -355,7 +355,7 @@ exports.facebookUpdate = onCall({ timeoutSeconds: 60 }, async request => {
 const crypto = require('crypto');
 const PUBLIC_STATUS = { missing: 'Missing', loose: 'Loose dog', found: 'Found' };
 const REPORT_TYPES = { lost: 'Lost dog', loose: 'Loose dog seen', found: 'Dog found', posts: 'Sighting' };
-const REPORT_LIMITS = { perHour: 5, perDay: 12, allPerDay: 300 };
+const REPORT_LIMITS = { perHour: 5, perDay: 12, allPerDay: 300, checksPerHour: 10, checksPerDay: 25 };
 // Who is alerted to new reports. For now only the developer, while it is being tried out.
 // To open it up later: ['coordinator', 'admin', 'developer'] (and canSeeReports in the app).
 const REPORT_ROLES = ['developer', 'admin'];
@@ -428,6 +428,49 @@ async function checkPhotos(images) {
     return unsafe ? 'unsafe' : 'passed';
   } catch (e) { console.warn('Photo check skipped:', e && e.message); return 'skipped'; }
 }
+
+// A photo checked when it was chosen carries a stamp, so the report does not need checking (or paying for) twice,
+// and a different photo cannot be swapped in afterwards. The secret is kept where no phone can read it.
+let stampSecret = null;
+async function getStampSecret() {
+  if (stampSecret) return stampSecret;
+  const ref = admin.firestore().collection('private').doc('stamp'), snap = await ref.get();
+  if (snap.exists && snap.data().secret) stampSecret = snap.data().secret;
+  else { stampSecret = crypto.randomBytes(32).toString('hex'); await ref.set({ secret: stampSecret }); }
+  return stampSecret;
+}
+const hashOf = v => crypto.createHash('sha256').update(String(v || '')).digest('hex');
+async function makeStamp(photo, thumb, result, t) {
+  return crypto.createHmac('sha256', await getStampSecret()).update([hashOf(photo), hashOf(thumb), result, t].join('|')).digest('hex');
+}
+async function readStamp(stamp, photo, thumb) {
+  const m = /^(passed|skipped)\.(\d+)\.([0-9a-f]{64})$/.exec(String(stamp || ''));
+  if (!m || Number(m[2]) < Date.now() - 6 * 3600e3) return '';
+  const good = await makeStamp(photo, thumb, m[1], m[2]);
+  return crypto.timingSafeEqual(Buffer.from(good), Buffer.from(m[3])) ? m[1] : '';
+}
+const connectionId = request => {
+  const ip = String((request.rawRequest && (request.rawRequest.ip || (request.rawRequest.headers || {})['x-forwarded-for'])) || 'unknown').split(',')[0].trim();
+  return crypto.createHash('sha256').update('lda-report:' + ip).digest('hex').slice(0, 32);   // the address itself is never stored
+};
+
+// ---- Check a photo the moment it is chosen on the report page ----
+exports.checkReportPhoto = onCall({ cors: true, timeoutSeconds: 30 }, async request => {
+  const d = request.data || {}, db = admin.firestore(), now = Date.now();
+  const isJpeg = (v, max) => typeof v === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(v) && v.length <= max;
+  const photo = String(d.photo || ''), thumb = String(d.thumb || '');
+  if (!isJpeg(photo, 600000) || (thumb && !isJpeg(thumb, 80000))) throw bad('That photo could not be used. Please try a different one.');
+  // A few checks an hour from one connection, so nobody can use up the month's free checks.
+  const limitRef = db.collection('limits').doc(connectionId(request)), snap = await limitRef.get();
+  const checks = ((snap.exists && snap.data().checks) || []).filter(t => t > now - 24 * 3600e3);
+  if (checks.filter(t => t > now - 3600e3).length >= REPORT_LIMITS.checksPerHour || checks.length >= REPORT_LIMITS.checksPerDay)
+    throw new HttpsError('resource-exhausted', 'You have tried several photos already. You can send your report without a photo, or phone us on 07715 950588.');
+  await limitRef.set({ checks: checks.concat(now), updatedAt: now }, { merge: true });
+  const result = await checkPhotos([photo, thumb].filter(Boolean));
+  if (result === 'unsafe') return { ok: false };
+  const t = String(now);
+  return { ok: true, checked: result === 'passed', stamp: result + '.' + t + '.' + await makeStamp(photo, thumb, result, t) };
+});
 
 // ---- A report from the public ----
 exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request => {
@@ -510,12 +553,13 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
     if (!dogName) throw bad("Please add your dog's name.");
   }
 
-  // Automatic photo check. A refused photo still counts towards this connection's report limit.
+  // Automatic photo check. A photo already checked when it was chosen (with a valid stamp) is not checked again.
+  // A refused photo still counts towards this connection's report limit.
   let photoAuto = '';
   if (photo || thumb) {
-    photoAuto = await checkPhotos([photo, thumb].filter(Boolean));
+    photoAuto = (await readStamp(d.photoStamp, photo, thumb)) || await checkPhotos([photo, thumb].filter(Boolean));
     if (photoAuto === 'unsafe') {
-      await limitRef.set({ times: times.concat(now), updatedAt: now });
+      await limitRef.set({ times: times.concat(now), updatedAt: now }, { merge: true });
       throw bad("This photo can't be used. It didn't pass our automatic photo check. Please choose a different photo of the dog, or send your report without one.");
     }
   }
@@ -530,7 +574,7 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   });
   if (photo) await ref.collection('images').doc('main').set({ data: photo });
-  await limitRef.set({ times: times.concat(now), updatedAt: now });
+  await limitRef.set({ times: times.concat(now), updatedAt: now }, { merge: true });
   await dayRef.set({ n: dayCount + 1, updatedAt: now });
 
   // Tell whoever handles reports.
