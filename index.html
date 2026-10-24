@@ -1114,6 +1114,24 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 .popup.bad { border-top-color: #e11d2e; }
 .popup.bad .popup-icon { background: #e11d2e; }
 .popup .btn.danger { background: #e11d2e; color: #fff; box-shadow: none; }
+
+/* ---- Holidays and time away ---- */
+.holidays { margin-top: 18px; }
+.holidays .hol-intro { margin: 8px 0 10px; font-weight: 600; }
+.hol-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,.12); }
+.hol-row.now { background: #e08a00; }
+.hol-row > div { flex: 1 1 auto; display: flex; flex-direction: column; }
+.hol-row .btn { flex-shrink: 0; padding: 8px 12px; color: #fff; box-shadow: inset 0 0 0 2px #fff; }
+.hol-sub { margin-top: 14px; font-weight: 900; }
+.hol-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.hol-dates label { margin-top: 6px; }
+.holidays #hol-add { margin-top: 12px; }
+.holiday-box { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; padding: 12px; border-radius: 12px; background: #fff; border: 3px solid #6b6385; color: #1c1530; text-align: left; }
+.holiday-box small { color: #4a3f6b; font-size: .88rem; }
+.standby-tag.holiday { background: #6b6385; }
+.holiday-tag { padding: 2px 9px; border-radius: 999px; background: #6b6385; color: #fff; font-size: .78rem; font-weight: 900; flex-basis: auto; }
+.avail-tag.holiday { background: #6b6385; }
+.vol-people li.on-holiday { opacity: .65; }
 </style>
 </head>
 <body>
@@ -1813,6 +1831,9 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <button class="btn wide ghost" id="profile-cancel" type="button" hidden>Cancel</button>
   </form>
 
+  <!-- Holidays and time away: shown as not available on those dates -->
+  <div id="profile-holidays"></div>
+
   <!-- Volunteer agreement, signed as part of the profile -->
   <div id="profile-agreement">
   <h3 class="section">Volunteer Agreement</h3>
@@ -2063,6 +2084,10 @@ const NEEDS = {
 const NEED_ORDER = ['ground', 'drone', 'scan'];
 const needsOf = d => NEED_ORDER.filter(n => ((d && d.availNeeds) || []).includes(n));
 const needsText = ns => ns.map(n => NEEDS[n].short).join(', ');
+// Holidays (My Profile): date ranges a volunteer is away. On those days they show as not available.
+const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const holidayNow = ranges => { const t = todayStr(); return (ranges || []).filter(r => r && r.from <= t && t <= r.to).sort((a, b) => b.to.localeCompare(a.to))[0] || null; };
+const niceDay = s => { const d = new Date(s + 'T12:00:00'); return isNaN(d) ? s : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); };
 const STANDBY_LINES = ['You\u2019re on standby \u2013 communication will follow.', 'If your availability changes, please update accordingly!', 'Please don\u2019t go to the area until you hear from us.'];
 // "Found · Safe with finder" (or just the status label).
 const statusText = d => ((STATUSES[d.status] || {}).label || d.status || 'Unknown') + (d.status === 'found' && d.foundWhere ? ' \u00b7 ' + d.foundWhere : '');
@@ -2466,6 +2491,8 @@ function showHome() {
   const drawTodo = () => { $('#me-count').hidden = todo.place === null || todo.signed === null || (todo.place && todo.signed); };
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'profiles', state.user.uid),
     snap => { todo.place = snap.exists() && !!snap.data().town; drawTodo(); }, () => { todo.place = true; drawTodo(); }));
+  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'holidays', state.user.uid),
+    snap => { state.holidays = snap.exists() ? (snap.data().ranges || []) : []; }, () => { state.holidays = []; }));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', state.user.uid),
     snap => { todo.signed = snap.exists(); drawTodo(); }, () => { todo.signed = true; drawTodo(); }));
   // Whoever handles public reports sees how many nobody has dealt with yet.
@@ -2563,7 +2590,7 @@ function showDog(id) {
   const dogRef = fb.doc(fb.db, 'dogs', id);
   const live = { dog: null, images: [], updates: [], sightings: [], map: null, adding: null,
     mine: null, mineLoaded: false, replies: [], members: [], profiles: new Map(), teams: [], pickTime: false, timeDraft: '',
-    myKit: [], offerDraft: null, askOpen: false, askDraft: { confirm: false, needs: new Set() } };
+    myKit: [], offerDraft: null, askOpen: false, askDraft: { confirm: false, needs: new Set() }, myHolidays: [], holidays: new Map() };
   root.textContent = '';
   root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
 
@@ -2583,6 +2610,7 @@ function showDog(id) {
   // Availability: everyone sees their own answer; only admins see everyone's.
   const myReply = fb.doc(fb.db, 'dogs', id, 'availability', state.user.uid);
   state.subs.push(fb.onSnapshot(myReply, snap => { live.mine = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null; live.mineLoaded = true; draw(); }, () => {}));
+  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'holidays', state.user.uid), snap => { live.myHolidays = snap.exists() ? (snap.data().ranges || []) : []; draw(); }, () => {}));
   // My own kit, so I can only offer drones or scanning if my profile says I have one.
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'profiles', state.user.uid), snap => { live.myKit = snap.exists() ? kitKinds(snap.data()) : []; draw(); }, () => {}));
   if (isAdmin()) {
@@ -2593,6 +2621,8 @@ function showDog(id) {
     state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'profiles'),
       snap => { live.profiles = new Map(snap.docs.map(d => [d.id, d.data()])); draw(); }, () => {}));
     watchTeams(teams => { live.teams = teams; draw(); });
+    state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'holidays'),
+      snap => { live.holidays = new Map(snap.docs.map(d => [d.id, holidayNow(d.data().ranges)]).filter(x => x[1])); draw(); }, () => {}));
   }
   const answer = async (status, from, offers, quiet) => {
     try {
@@ -2661,7 +2691,8 @@ function showDog(id) {
     root.appendChild(h('h2', { class: 'page-title' }, h('span', { class: 'name-label' }, 'Name: '), d.name || 'Unnamed dog'));
     const onStandby = d.askAvailability && live.mine && (live.mine.status === 'now' || live.mine.status === 'later');
     root.appendChild(h('p', { class: 'status-line' }, statusBadge(d.status), d.status === 'found' && d.foundWhere ? h('span', { class: 'found-where' }, d.foundWhere) : null,
-      onStandby ? h('span', { class: 'standby-tag' }, 'On standby') : null));
+      onStandby ? h('span', { class: 'standby-tag' }, 'On standby') : null,
+      d.askAvailability && !onStandby && holidayNow(live.myHolidays) ? h('span', { class: 'standby-tag holiday' }, 'On holiday') : null));
     if (d.statusBy) root.appendChild(h('p', { class: 'status-by' },
       (st.active === false ? 'Closed by ' : 'Status set by ') + d.statusBy + (d.statusAt ? ', ' + when(d.statusAt) : '')));
 
@@ -2696,6 +2727,11 @@ function showDog(id) {
           if (status === 'later') { live.pickTime = true; draw(); } else answer('now', '', o);
         } }, label);
       const panel = h('div', { class: 'avail-box' }, h('h3', null, 'Can you help with this search?'));
+      const away = holidayNow(live.myHolidays);
+      if (away && !picked) panel.appendChild(h('div', { class: 'holiday-box' },
+        h('strong', null, 'You\u2019re on holiday until ' + niceDay(away.to)),
+        h('span', null, 'You\u2019re shown to the admins as not available. Enjoy your break!'),
+        h('small', null, 'If you can help anyway, tap an answer below.')));
       if (needs.length) panel.appendChild(h('div', { class: 'need-chips' }, h('span', null, 'Needed:'), needs.map(n => h('span', { class: 'need-chip' }, NEEDS[n].label))));
       if (multi) {
         panel.appendChild(h('p', { class: 'avail-step' }, '1. What can you help with?'));
@@ -2714,7 +2750,7 @@ function showDog(id) {
       panel.appendChild(h('div', { class: 'avail-row' },
           option('now', 'Available now'),
           option('later', picked === 'later' && mine.from ? 'Available from ' + mine.from : 'Available from\u2026'),
-          option('no', 'Not available')));
+          away && !picked ? h('button', { class: 'btn avail on', type: 'button', 'aria-pressed': 'true', onclick: () => answer('no') }, 'Not available (on holiday)') : option('no', 'Not available')));
       panel.appendChild(msgBox);
       if (live.pickTime) {
         const timeBox = h('input', { id: 'avail-time', type: 'time', value: live.timeDraft || (picked === 'later' ? mine.from : '') || '' });
@@ -2741,8 +2777,10 @@ function showDog(id) {
         const groups = [
           ['Available now', live.replies.filter(r => r.status === 'now').sort(byName), r => 'replied ' + when(r.updatedAt)],
           ['Available later', live.replies.filter(r => r.status === 'later').sort((x, y) => String(x.from).localeCompare(String(y.from)) || byName(x, y)), r => 'from ' + (r.from || '?')],
-          ['Not available', live.replies.filter(r => r.status === 'no').sort(byName), r => 'replied ' + when(r.updatedAt)],
-          ['No reply yet', live.members.filter(m => !replied.has(m.id)).sort(byName), () => '']
+          ['Not available', live.replies.filter(r => r.status === 'no')
+            .concat(live.members.filter(m => !replied.has(m.id) && live.holidays.has(m.id)).map(m => ({ ...m, holiday: live.holidays.get(m.id) }))).sort(byName),
+            r => r.holiday ? 'marked automatically from their profile' : 'replied ' + when(r.updatedAt)],
+          ['No reply yet', live.members.filter(m => !replied.has(m.id) && !live.holidays.has(m.id)).sort(byName), () => '']
         ];
         const box = h('div', { class: 'admin-box avail-lists' }, h('h3', null, 'Availability (admins only)'));
         if (needs.length) {
@@ -2763,7 +2801,8 @@ function showDog(id) {
             ? h('ul', { class: 'card feed' }, people.map(p => {
                 const note = [detail(p), far(p.id), teamWith(p.id, byTeam, nameOf)].filter(Boolean).join(' \u00b7 ');
                 const t = byTeam.get(p.id), kit = { equipment: mergeKit((t ? t.members : [p.id]).map(u => (live.profiles.get(u) || {}).equipment)).equipment };
-                return h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name'), note ? h('span', { class: 'feed-when' }, note) : null, offerTags(p), kitTags(kit));
+                return h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name'), note ? h('span', { class: 'feed-when' }, note) : null,
+                  p.holiday ? h('span', { class: 'holiday-tag' }, 'On holiday until ' + niceDay(p.holiday.to)) : null, offerTags(p), kitTags(kit));
               }))
             : h('p', { class: 'avail-none' }, 'Nobody'));
         });
@@ -2784,14 +2823,17 @@ function showDog(id) {
         const now = rs.find(r => r.status === 'now'), later = rs.filter(r => r.status === 'later').sort((a, b) => String(a.from).localeCompare(String(b.from)))[0];
         x.avail = now ? 'now' : later ? 'later' : rs.length && rs.every(r => r.status === 'no') ? 'no' : '';
         x.from = later ? later.from : '';
+        // On holiday (and not said they can help anyway): greyed out at the bottom. A team is away only if all of it is.
+        x.holiday = !x.avail && (x.m.members || [x.m]).every(q => live.holidays.has(q.id));
       });
       const greens = near.filter(x => x.avail === 'now');
       const ambers = near.filter(x => x.avail === 'later').sort((a, b) => String(a.from).localeCompare(String(b.from)) || a.miles - b.miles);
       // Green first, then amber, then the closest few of everyone else (leaving out anyone who said Not available).
       // If nobody has said they are available, it is simply the five closest, as before.
-      const shown = greens.length || ambers.length
-        ? greens.concat(ambers, near.filter(x => !x.avail).slice(0, 3))
-        : near.slice(0, 5);
+      const closest = new Set(near.slice(0, 5));
+      const shown = (greens.length || ambers.length
+        ? greens.concat(ambers, near.filter(x => !x.avail && !x.holiday).slice(0, 3))
+        : near.filter(x => !x.holiday).slice(0, 5)).concat(near.filter(x => x.holiday && closest.has(x)));
       // A drop-down: closed until tapped, and stays as it was while the page refreshes.
       const box = h('details', { class: 'admin-box near-box', open: !!live.nearOpen, ontoggle: e => { live.nearOpen = e.target.open; } },
         h('summary', null, h('h3', null, 'Nearest volunteers (admins only)'),
@@ -2799,11 +2841,11 @@ function showDog(id) {
           ambers.length ? h('span', { class: 'near-count amber', title: 'Available later' }, String(ambers.length)) : null,
           h('span', { class: 'near-count' }, shown.length ? String(shown.length) : '')));
       box.appendChild(near.length
-        ? h('ul', { class: 'card vol-people' }, shown.map(({ m, pr, miles, avail, from }) => h('li', { class: avail === 'now' ? 'avail-now' : avail === 'later' ? 'avail-later' : null },
+        ? h('ul', { class: 'card vol-people' }, shown.map(({ m, pr, miles, avail, from, holiday }) => h('li', { class: avail === 'now' ? 'avail-now' : avail === 'later' ? 'avail-later' : holiday ? 'on-holiday' : null },
             h('button', { class: 'vol-person', type: 'button', 'data-go': 'volunteer/' + m.id },
               h('strong', null, m.name || 'No name'),
               h('span', { class: 'vol-miles' }, milesText(miles)),
-              avail === 'now' ? h('span', { class: 'avail-tag now' }, 'Available now') : avail === 'later' ? h('span', { class: 'avail-tag later' }, 'Available from ' + (from || '?')) : null,
+              avail === 'now' ? h('span', { class: 'avail-tag now' }, 'Available now') : avail === 'later' ? h('span', { class: 'avail-tag later' }, 'Available from ' + (from || '?')) : holiday ? h('span', { class: 'avail-tag holiday' }, 'On holiday') : null,
               h('span', { class: 'vol-sub' }, (m.team ? 'Team \u00b7 ' : '') + (pr.town || '')),
               kitTags(pr)))))
         : h('p', { class: 'avail-none' }, 'Nobody has set where they are based yet.'));
@@ -4054,6 +4096,40 @@ function showProfile() {
     teamLine.textContent = others.length ? 'Team: you go out with ' + joinNames(others) + '.' : '';
     teamLine.hidden = !others.length;
   }, () => {}));
+
+  // Holidays and time away: shown to admins as not available, and not asked for availability, on those dates.
+  const holBox = $('#profile-holidays'), holRef = fb.doc(fb.db, 'holidays', uid);
+  let hol = { ranges: [] }, holDraft = { from: '', to: '' };
+  const drawHol = () => {
+    holBox.textContent = '';
+    const t = todayStr(), ranges = (hol.ranges || []).filter(r => r && r.to >= t).sort((a, b) => a.from.localeCompare(b.from));
+    const msg = h('p', { class: 'form-msg', role: 'status' });
+    const save = list => fb.setDoc(holRef, { uid, ranges: list.filter(r => r.to >= todayStr()).map(r => ({ from: r.from, to: r.to })), updatedAt: fb.serverTimestamp() });
+    const fail = err => err && err.code === 'permission-denied' ? 'Not allowed yet. The new security rules need pasting into Firebase first.' : friendlyError(err);
+    const from = h('input', { type: 'date', id: 'hol-from', value: holDraft.from, min: t, oninput: e => { holDraft.from = e.target.value; if (!to.value || to.value < e.target.value) { to.value = e.target.value; holDraft.to = e.target.value; } } });
+    const to = h('input', { type: 'date', id: 'hol-to', value: holDraft.to, min: t, oninput: e => { holDraft.to = e.target.value; } });
+    holBox.appendChild(h('div', { class: 'admin-box holidays' },
+      h('h3', null, 'Holidays & time away'),
+      h('p', { class: 'hol-intro' }, 'Add dates you\u2019re away. On those days you\u2019ll show as not available and won\u2019t be asked for your availability.'),
+      ranges.map(r => { const now = r.from <= t; return h('div', { class: 'hol-row' + (now ? ' now' : '') },
+        h('div', null, h('strong', null, now ? 'On holiday now' : 'Coming up'), h('span', null, niceDay(r.from) + ' \u2013 ' + niceDay(r.to))),
+        h('button', { class: 'btn ghost', type: 'button', onclick: async e => { e.target.disabled = true; try { await save(ranges.filter(x => x !== r)); } catch (err) { e.target.disabled = false; msg.textContent = fail(err); } } }, 'Remove')); }),
+      h('p', { class: 'hol-sub' }, 'Add time away'),
+      h('div', { class: 'hol-dates' }, h('label', null, 'From', from), h('label', null, 'To (last day away)', to)),
+      h('button', { class: 'btn wide', type: 'button', id: 'hol-add', onclick: async e => {
+        const f = from.value, l = to.value;
+        if (!f || !l) { msg.textContent = 'Choose both dates.'; return; }
+        if (l < f) { msg.textContent = 'The last day can\u2019t be before the first day.'; return; }
+        if (l < todayStr()) { msg.textContent = 'Those dates have already passed.'; return; }
+        if (ranges.length >= 20) { msg.textContent = 'That\u2019s a lot of holidays! Remove one first.'; return; }
+        e.target.disabled = true;
+        try { await save(ranges.concat([{ from: f, to: l }])); holDraft = { from: '', to: '' }; }
+        catch (err) { e.target.disabled = false; msg.textContent = fail(err); }
+      } }, 'Add holiday'),
+      msg,
+      h('p', { class: 'hint' }, 'Past holidays tidy themselves away automatically.')));
+  };
+  state.subs.push(fb.onSnapshot(holRef, snap => { hol = snap.exists() ? snap.data() : { ranges: [] }; drawHol(); }, () => drawHol()));
 
   if (town.options.length === 0) {
     town.appendChild(h('option', { value: '' }, 'Choose…'));
@@ -6626,7 +6702,7 @@ function startAlerts() {
         if (dog.createdByUid === state.user.uid) return;                     // not for the admin who added it
         const label = (STATUSES[dog.status] || { label: 'Missing' }).label;
         showAlert('New dog: ' + label, [where, dog.askAvailability ? (needsOf(dog).length ? 'Can you help? Please give your availability. Needed: ' + needsText(needsOf(dog)) : 'Can you help? Please give your availability.') : ''].filter(Boolean).join('. ') || 'Open for details.', 'dog/' + d.id);
-      } else if (dog.askAvailability && !knownDogs.get(d.id) && dog.availabilityAskedByUid !== state.user.uid) {
+      } else if (dog.askAvailability && !knownDogs.get(d.id) && dog.availabilityAskedByUid !== state.user.uid && !holidayNow(state.holidays)) {
         showAlert('Availability needed', [where, needsOf(dog).length ? 'Needed: ' + needsText(needsOf(dog)) : 'Can you help with this search?'].filter(Boolean).join('. '), 'dog/' + d.id);
       }
     });
