@@ -354,7 +354,7 @@ const REPORT_TYPES = { lost: 'Lost dog', loose: 'Loose dog seen', found: 'Dog fo
 const REPORT_LIMITS = { perHour: 5, perDay: 12, allPerDay: 300 };
 // Who is alerted to new reports. For now only the developer, while it is being tried out.
 // To open it up later: ['coordinator', 'admin', 'developer'] (and canSeeReports in the app).
-const REPORT_ROLES = ['developer'];
+const REPORT_ROLES = ['developer', 'admin'];
 // Loose dog / sighting: what the reporter said about immediate danger.
 const DANGER = { 'road-fast': 'On a fast road', 'road-town': 'On a town or village road', rail: 'On or near a railway', water: 'In or near water', other: 'In danger' };
 const RELATIONSHIPS = ['Family member', 'Partner', 'Friend', 'Neighbour', 'Dog walker or sitter', 'Other'];

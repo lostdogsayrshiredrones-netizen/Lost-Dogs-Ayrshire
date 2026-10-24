@@ -1121,7 +1121,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     </button>
 
     <!-- TILE: Public Reports (coordinators and admins): reports sent in from the public reporting page -->
-    <button class="tile dev-only" data-go="reports">
+    <button class="tile admin-only" data-go="reports">
       <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true"><path d="M8 6h48c3 0 5 2 5 5v28c0 3-2 5-5 5H26L13 55V44H8c-3 0-5-2-5-5V11c0-3 2-5 5-5z M15 18v5h34v-5z M15 29v5h22v-5z" fill-rule="evenodd"/></svg></span>
       <span class="count" id="reports-count" hidden>0</span>
       <span class="tile-name">Public Reports</span>
@@ -3140,7 +3140,7 @@ const REPORT_STATUS_FOR = { lost: 'missing', loose: 'loose', found: 'found' };
 let reportFilter = 'new';
 // Who can see Public Reports. For now only the developer, while it is being tried out.
 // To open it to coordinators and admins later, change isDev() to isCoord() here (and REPORT_ROLES in index.js).
-const canSeeReports = () => isDev();
+const canSeeReports = () => isAdmin();   // developer and admins for now
 let reportPrefill = null;     // a report being turned into a dog on the Add a dog screen
 $$('[data-report-filter]').forEach(b => b.addEventListener('click', () => { reportFilter = b.getAttribute('data-report-filter'); render(); }));
 
