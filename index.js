@@ -98,13 +98,17 @@ exports.notify = onCall(async request => {
   const say = (...parts) => parts.filter(Boolean).join('. ');
   const everyoneElse = (await peopleWithRole(['member', 'coordinator', 'admin', 'developer'])).filter(id => id !== uid);
   const link = SITE + '#dog/' + dogId;
+  // What the admin asked for (V6): e.g. "Needed: ground search, drones".
+  const NEED_WORDS = { ground: 'ground search', drone: 'drones', scan: 'scan dog' };
+  const needed = ['ground', 'drone', 'scan'].filter(n => Array.isArray(dog.availNeeds) && dog.availNeeds.includes(n)).map(n => NEED_WORDS[n]);
+  const neededText = needed.length ? 'Needed: ' + needed.join(', ') : '';
 
   if (type === 'dog') {
     const label = STATUS[dog.status] || 'Missing';
-    return sendTo(everyoneElse, 'New dog: ' + label, say(where, dog.askAvailability ? 'Can you help? Please give your availability.' : '') || 'Open the app for details.', link, 'dog');
+    return sendTo(everyoneElse, 'New dog: ' + label, say(where, dog.askAvailability ? (neededText ? 'Can you help? Please give your availability. ' + neededText : 'Can you help? Please give your availability.') : '') || 'Open the app for details.', link, 'dog');
   }
   if (type === 'availability') {
-    return sendTo(everyoneElse, 'Availability needed', say(where, 'Can you help with this search?'), link, 'availability');
+    return sendTo(everyoneElse, 'Availability needed', say(where, neededText || 'Can you help with this search?'), link, 'availability');
   }
   // A coordinator has asked for a dog's post to be removed: tell the admins.
   if (type === 'removal') {
