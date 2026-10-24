@@ -5844,6 +5844,23 @@ const fbError = err => {
 function loadImage(src) {
   return new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = () => reject(new Error('image')); i.src = src; });
 }
+// The same pale, slanted "LDA" marks as on the poster photo, repeated across a whole picture.
+// Used on dog photos posted to Facebook so they can't easily be copied and reused.
+async function asJpegMarked(src, max) {
+  const img = await loadImage(src);
+  const s = Math.min(1, max / Math.max(img.width, img.height));
+  const c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+  const k = Math.max(c.width, c.height) / 400, step = 28 * k;     // the poster's 400px photo box, scaled up
+  x.font = 'italic ' + posterFont(9 * k, 800);
+  x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = 'rgba(255,255,255,0.3)';
+  for (let row = 0, y = 12 * k; y < c.height + step; y += step, row++)
+    for (let px = row % 2 ? step / 2 : 0; px < c.width + step; px += step) {
+      x.save(); x.translate(px, y); x.rotate(-Math.PI / 3); x.fillText('LDA', 0, 0); x.restore();
+    }
+  return c.toDataURL('image/jpeg', 0.88);
+}
+
 async function asJpeg(src, max) {
   const img = await loadImage(src);
   const s = Math.min(1, max / Math.max(img.width, img.height));
@@ -5911,7 +5928,7 @@ async function facebookDraftForDog(dogId) {
   if (std && $('#' + std + '-img')) {
     label = (POSTER_NAMES[std] || st.label) + ' poster';
     images.push({ src: await asJpeg($('#' + std + '-img').src, 1080), caption: 'Picture 1: poster' });
-    if (photoSrc) images.push({ src: await asJpeg(photoSrc, 1400), caption: 'Picture 2: dog’s photo' });
+    if (photoSrc) images.push({ src: await asJpegMarked(photoSrc, 1400), caption: 'Picture 2: dog’s photo (with the LDA watermark)' });
     const post = $('#' + std + ' .post');
     var template = post ? post.getAttribute('data-template') : '';
     text = post ? (place ? template.replace(/\{location\}/g, place) : template.replace(/\{location\}/g, '[Town/Village]')) : (st.label || '');
