@@ -108,7 +108,11 @@ exports.notify = onCall(async request => {
     return sendTo(everyoneElse, 'New dog: ' + label, say(where, dog.askAvailability ? (neededText ? 'Can you help? Please give your availability. ' + neededText : 'Can you help? Please give your availability.') : '') || 'Open the app for details.', link, 'dog');
   }
   if (type === 'availability') {
-    return sendTo(everyoneElse, 'Availability needed', say(where, neededText || 'Can you help with this search?'), link, 'availability');
+    // Nobody is asked while they are on holiday (dates they have added in My Profile).
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
+    const away = new Set((await db.collection('holidays').get()).docs
+      .filter(h => (h.data().ranges || []).some(r => r && r.from <= today && today <= r.to)).map(h => h.id));
+    return sendTo(everyoneElse.filter(id => !away.has(id)), 'Availability needed', say(where, neededText || 'Can you help with this search?'), link, 'availability');
   }
   // A coordinator has asked for a dog's post to be removed: tell the admins.
   if (type === 'removal') {
@@ -169,6 +173,7 @@ exports.deleteVolunteer = onCall(async request => {
   const gone = [];
   const drop = async ref => { await ref.delete(); gone.push(ref.path); };
   await drop(db.collection('profiles').doc(uid));
+  await drop(db.collection('holidays').doc(uid));
   await drop(db.collection('agreements').doc(uid));
   for (const d of (await db.collection('sopReads').where('uid', '==', uid).get()).docs) await drop(d.ref);
   for (const d of (await db.collection('devices').where('uid', '==', uid).get()).docs) await drop(d.ref);
