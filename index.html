@@ -1099,6 +1099,21 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 .popup .popup-warn { padding: 10px 12px; border-radius: 12px; background: #fff4d6; border: 2px solid #e08a00; font-weight: 800; }
 .popup .btn.ghost { color: var(--purple); box-shadow: inset 0 0 0 3px var(--purple); background: #fff; }
 .avail-lists .need-chip { background: var(--yellow); color: var(--purple); }
+
+/* ---- Public report photos: blurred until checked ---- */
+.report-card img.unchecked { filter: blur(10px) brightness(.75); }
+.photo-cover { position: relative; overflow: hidden; height: 250px; margin-top: 12px; border-radius: 14px; border: 4px solid var(--yellow); }
+.photo-cover img { width: 100%; height: 100%; object-fit: cover; display: block; filter: blur(24px) brightness(.65); transform: scale(1.25); }
+.photo-cover > div { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 16px; text-align: center; background: rgba(42,11,120,.55); }
+.photo-cover strong { font-size: 1.1rem; font-weight: 900; }
+.photo-cover span { font-size: .9rem; font-weight: 600; color: #e9e2ff; }
+.photo-decide { margin-top: 10px; padding: 12px; border-radius: 14px; border: 3px dashed var(--yellow); }
+.photo-decide > p { font-weight: 800; text-align: center; }
+.photo-decide .row { margin-top: 8px; }
+.photo-ok { margin-top: 6px; }
+.popup.bad { border-top-color: #e11d2e; }
+.popup.bad .popup-icon { background: #e11d2e; }
+.popup .btn.danger { background: #e11d2e; color: #fff; box-shadow: none; }
 </style>
 </head>
 <body>
@@ -3341,7 +3356,7 @@ function showReports() {
     shown.forEach(r => {
       const t = reportType(r);
       list.appendChild(h('button', { class: 'report-card', type: 'button', 'data-go': 'report/' + r.id },
-        r.thumb ? h('img', { alt: '', src: r.thumb }) : h('span', { class: 'report-noimg' }, reportIcon()),
+        r.thumb ? h('img', { alt: '', src: r.thumb, class: r.photoReview === 'safe' ? null : 'unchecked' }) : h('span', { class: 'report-noimg' }, reportIcon()),
         h('span', { class: 'report-info' },
           h('span', { class: 'report-tags' }, h('span', { class: 'report-tag ' + t.cls }, t.label),
             REPORT_DANGER[r.danger] ? h('span', { class: 'report-tag urgent' }, 'Urgent \u00b7 ' + REPORT_DANGER[r.danger].label) : null),
@@ -3357,7 +3372,7 @@ function showReports() {
 
 function showReport(id) {
   const fb = state.fb, root = $('#report-body'), ref = fb.doc(fb.db, 'reports', id);
-  const live = { r: null, photo: null, dogs: [], map: null, claimed: false, mode: null };
+  const live = { r: null, photo: null, dogs: [], map: null, claimed: false, mode: null, reveal: false };
   root.textContent = '';
   root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
   state.subs.push(() => { if (live.map) { live.map.remove(); live.map = null; } });
@@ -3399,8 +3414,43 @@ function showReport(id) {
       h('div', null, h('strong', null, reportOutcome(r)),
         r.outcomeDogId ? h('br') : null, r.outcomeDogId ? h('button', { class: 'link', type: 'button', 'data-go': 'dog/' + r.outcomeDogId }, 'Open the dog') : null)));
 
+    // Photos from the public stay blurred until someone chooses to look, then get a one-time decision:
+    // safe (shown from then on), or inappropriate (the whole report is rejected and deleted).
     const pic = live.photo || r.thumb;
-    if (pic) root.appendChild(h('img', { class: 'full-image', alt: 'Photo sent with the report', src: pic }));
+    const photoPending = !!pic && r.photoReview !== 'safe';
+    if (pic && !photoPending) {
+      root.appendChild(h('img', { class: 'full-image', alt: 'Photo sent with the report', src: pic }));
+      root.appendChild(h('p', { class: 'hint photo-ok' }, 'Photo checked as safe by ' + (r.photoReviewBy || 'an admin') + (r.photoReviewAt ? ', ' + when(r.photoReviewAt) : '') + '.'));
+    } else if (pic && !live.reveal) {
+      root.appendChild(h('div', { class: 'photo-cover' },
+        h('img', { alt: '', src: pic, 'aria-hidden': 'true' }),
+        h('div', null,
+          h('strong', null, 'Photo hidden'),
+          h('span', null, r.photoAuto === 'passed' ? 'Passed the automatic check, but not looked at by the team yet.' : 'Sent by a member of the public and not checked yet.'),
+          h('button', { class: 'btn', type: 'button', id: 'photo-show', onclick: () => { live.reveal = true; draw(); } }, 'Tap to show photo'))));
+    } else if (pic) {
+      root.appendChild(h('img', { class: 'full-image', alt: 'Photo sent with the report', src: pic }));
+      const pmsg = h('p', { class: 'form-msg' });
+      root.appendChild(h('div', { class: 'photo-decide' },
+        h('p', null, 'Is this photo OK? You only need to decide once.'),
+        h('div', { class: 'row' },
+          h('button', { class: 'btn', type: 'button', id: 'photo-safe', onclick: async e => {
+            e.target.disabled = true;
+            try { await fb.updateDoc(ref, { photoReview: 'safe', photoReviewBy: state.profile.name || '', photoReviewByUid: state.user.uid, photoReviewAt: fb.serverTimestamp() }); }
+            catch (err) { e.target.disabled = false; pmsg.textContent = err && err.code === 'permission-denied' ? 'Not allowed yet. The new security rules need pasting into Firebase first.' : friendlyError(err); }
+          } }, 'Photo is safe'),
+          h('button', { class: 'btn danger', type: 'button', id: 'photo-bad', onclick: () => popup({ tone: 'bad', title: 'Inappropriate photo?',
+            lines: ['The whole report will be rejected and deleted for good: the photo, the details and the reporter\u2019s name and number.', 'Nobody will contact the person who sent it.'],
+            buttons: [{ label: 'Reject and delete report', danger: true, onclick: async () => {
+              try {
+                clearSubs();
+                await fb.deleteDoc(fb.doc(fb.db, 'reports', id, 'images', 'main')).catch(() => {});
+                await fb.deleteDoc(ref);
+                go('reports');
+              } catch (err) { alert(friendlyError(err)); go('reports'); }
+            } }, { label: 'Cancel' }] }) }, 'Inappropriate photo')),
+        pmsg));
+    }
     const rows = [
       [r.type === 'posts' ? 'About' : 'Dog', r.dogName], ['Where', r.town], ['When', reportSeen(r)],
       ['Owner', r.type === 'lost' && r.ownerConfirmed ? 'The reporter confirmed they are the owner'
@@ -3468,14 +3518,14 @@ function showReport(id) {
       } });
       box.appendChild(h('label', { class: 'report-consent' }, tick, h('span', null, 'I have spoken to the owner and they agree to Lost Dogs Ayrshire acting.')));
     }
-    const locked = behalf && !r.ownerConsent;
+    const locked = (behalf && !r.ownerConsent) || photoPending;
     const createBtn = REPORT_STATUS_FOR[r.type] ? h('button', { class: 'btn wide', type: 'button', disabled: locked, onclick: () => {
       if (locked) return;
       reportPrefill = { ...r, photoData: live.photo || '' };
       go('dog-edit/new');
     } }, 'Accept: create the dog') : null;
     const sightBtn = h('button', { class: 'btn wide' + (r.type === 'posts' ? '' : ' ghost'), type: 'button', onclick: () => { live.mode = live.mode === 'sighting' ? null : 'sighting'; draw(); } }, 'Add as a sighting to a dog');
-    if (r.type === 'posts') box.appendChild(sightBtn); else { box.appendChild(createBtn); box.appendChild(h('p', { class: 'hint' }, locked ? 'Locked until you have phoned the owner and ticked that they agree.' : 'Opens Add a dog with the photo, place, time and details filled in.')); box.appendChild(sightBtn); }
+    if (r.type === 'posts') box.appendChild(sightBtn); else { box.appendChild(createBtn); box.appendChild(h('p', { class: 'hint' }, photoPending ? 'Locked until the photo has been checked: tap \u201cTap to show photo\u201d above, then mark it.' : locked ? 'Locked until you have phoned the owner and ticked that they agree.' : 'Opens Add a dog with the photo, place, time and details filled in.')); box.appendChild(sightBtn); }
 
     if (live.mode === 'sighting') {
       const pick = h('select', { id: 'report-dog' }, h('option', { value: '' }, live.dogs.length ? 'Choose the dog…' : 'No active dogs'),
@@ -6319,11 +6369,11 @@ function popup({ tone, title, lines, warn, buttons }) {
   const back = h('div', { class: 'popup-back', role: 'dialog', 'aria-modal': 'true', 'aria-label': title });
   const close = () => back.remove();
   back.appendChild(h('div', { class: 'popup ' + (tone || '') },
-    h('div', { class: 'popup-icon', 'aria-hidden': 'true' }, tone === 'good' ? '\u2713' : '!'),
+    h('div', { class: 'popup-icon', 'aria-hidden': 'true' }, tone === 'good' ? '\u2713' : tone === 'bad' ? '\u00d7' : '!'),
     h('h3', null, title),
     (lines || []).map(t => h('p', null, t)),
     warn ? h('p', { class: 'popup-warn' }, warn) : null,
-    (buttons || [{ label: 'OK', primary: true }]).map(b => h('button', { class: 'btn wide' + (b.primary ? '' : ' ghost'), type: 'button',
+    (buttons || [{ label: 'OK', primary: true }]).map(b => h('button', { class: 'btn wide' + (b.danger ? ' danger' : b.primary ? '' : ' ghost'), type: 'button',
       onclick: () => { close(); if (b.onclick) b.onclick(); } }, b.label))));
   document.body.appendChild(back);
   const first = back.querySelector('button'); if (first) first.focus();
