@@ -403,6 +403,32 @@ function cleanText(v, max, multiline) {
 }
 function bad(msg) { return new HttpsError('invalid-argument', msg); }
 
+// ---- Automatic photo check (Google Cloud Vision "SafeSearch") ----
+// Google gives 1,000 checks free each month. We never go past that: once the month's checks are used,
+// photos simply arrive unchecked (still blurred in the app until an admin looks), so it can never cost anything.
+// Returns 'unsafe', 'passed' or 'skipped' (not checked: cap reached, service switched off, or any error).
+const VISION_MONTHLY_FREE = 1000;
+async function checkPhotos(images) {
+  try {
+    const db = admin.firestore(), ref = db.collection('usage').doc('vision-' + new Date().toISOString().slice(0, 7));
+    const snap = await ref.get(), used = snap.exists ? Number(snap.data().n || 0) : 0;
+    if (used + images.length > VISION_MONTHLY_FREE) return 'skipped';
+    await ref.set({ n: used + images.length, updatedAt: Date.now() });
+    const tok = await (await fetch('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token', { headers: { 'Metadata-Flavor': 'Google' } })).json();
+    const res = await fetch('https://vision.googleapis.com/v1/images:annotate', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + tok.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: images.map(i => ({ image: { content: String(i).split(',')[1] }, features: [{ type: 'SAFE_SEARCH_DETECTION' }] })) })
+    });
+    if (!res.ok) { console.warn('Photo check unavailable:', res.status); return 'skipped'; }
+    const out = await res.json(), responses = (out && out.responses) || [];
+    if (responses.length !== images.length || responses.some(r => !r.safeSearchAnnotation)) return 'skipped';
+    // Adult content (likely or very likely), or very likely racy, is refused. "Violence" is deliberately not used:
+    // a photo of an injured dog is a real report and must never be turned away.
+    const unsafe = responses.some(r => { const a = r.safeSearchAnnotation; return ['LIKELY', 'VERY_LIKELY'].includes(a.adult) || a.racy === 'VERY_LIKELY'; });
+    return unsafe ? 'unsafe' : 'passed';
+  } catch (e) { console.warn('Photo check skipped:', e && e.message); return 'skipped'; }
+}
+
 // ---- A report from the public ----
 exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request => {
   const d = request.data || {}, db = admin.firestore(), now = Date.now();
@@ -484,10 +510,20 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
     if (!dogName) throw bad("Please add your dog's name.");
   }
 
+  // Automatic photo check. A refused photo still counts towards this connection's report limit.
+  let photoAuto = '';
+  if (photo || thumb) {
+    photoAuto = await checkPhotos([photo, thumb].filter(Boolean));
+    if (photoAuto === 'unsafe') {
+      await limitRef.set({ times: times.concat(now), updatedAt: now });
+      throw bad("This photo can't be used. It didn't pass our automatic photo check. Please choose a different photo of the dog, or send your report without one.");
+    }
+  }
+
   // Save it. The full photo is kept separately so the list of reports stays quick to open.
   const ref = await db.collection('reports').add({
     type, status: 'new', dogId, dogName, town, lat, lng, seenDate, seenTime, details,
-    reporterName: name, reporterPhone: phone, thumb: thumb || '', hasPhoto: !!photo,
+    reporterName: name, reporterPhone: phone, thumb: thumb || '', hasPhoto: !!photo, photoAuto,
     ownerConfirmed: type === 'lost' && !behalf,
     danger: danger || '', urgent: !!DANGER[danger],
     ...(behalf ? { reportedFor: 'owner', relationship: behalf.relationship, ownerName: behalf.ownerName, ownerPhone: behalf.ownerPhone, ownerConsent: false } : {}),
