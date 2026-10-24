@@ -1145,6 +1145,8 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 .hol-dates label { min-width: 0; }
 .holidays input[type="date"] { -webkit-appearance: none; appearance: none; display: block; width: 100%; min-width: 0; max-width: 100%; min-height: 54px; box-sizing: border-box; text-align: left; }
 .holidays input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+#profile-holidays .holidays { margin-top: 12px; }
+#profile-holidays { margin-bottom: 16px; }
 </style>
 </head>
 <body>
@@ -1817,6 +1819,8 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
   <button class="back" data-go="home">&larr; Home</button>
   <h2 class="page-title">My Profile</h2>
   <div class="card member" id="profile-who"></div>
+  <!-- Holidays and time away: shown as not available on those dates (used most, so near the top) -->
+  <div id="profile-holidays"></div>
   <div class="card" id="profile-checklist"></div>
   <div id="profile-done"></div>
 
@@ -1843,9 +1847,6 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <button class="save" id="profile-save" type="submit">Save my profile</button>
     <button class="btn wide ghost" id="profile-cancel" type="button" hidden>Cancel</button>
   </form>
-
-  <!-- Holidays and time away: shown as not available on those dates -->
-  <div id="profile-holidays"></div>
 
   <!-- Volunteer agreement, signed as part of the profile -->
   <div id="profile-agreement">
