@@ -1132,6 +1132,19 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 .holiday-tag { padding: 2px 9px; border-radius: 999px; background: #6b6385; color: #fff; font-size: .78rem; font-weight: 900; flex-basis: auto; }
 .avail-tag.holiday { background: #6b6385; }
 .vol-people li.on-holiday { opacity: .65; }
+
+/* Facebook post: watermark on/off */
+.fb-mark { display: flex; align-items: flex-start; gap: 12px; margin: 12px 0 4px; padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; font-weight: 700; }
+.fb-mark input { flex-shrink: 0; width: 26px; height: 26px; margin: 0; accent-color: var(--yellow); }
+.fb-mark span { display: flex; flex-direction: column; gap: 2px; }
+.fb-mark small { font-size: .85rem; font-weight: 600; opacity: .85; }
+#fbpost-body label.fb-mark { display: flex !important; flex-direction: row; text-align: left; }
+#fbpost-body .fb-mark input[type="checkbox"] { display: inline-block; width: 26px !important; height: 26px; min-height: 0; padding: 0; margin: 2px 0 0; flex: 0 0 26px; }
+/* Holiday dates: one under the other, and iPhone date boxes kept inside the screen */
+.hol-dates { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.hol-dates label { min-width: 0; }
+.holidays input[type="date"] { -webkit-appearance: none; appearance: none; display: block; width: 100%; min-width: 0; max-width: 100%; min-height: 54px; box-sizing: border-box; text-align: left; }
+.holidays input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 </style>
 </head>
 <body>
@@ -6004,7 +6017,11 @@ async function facebookDraftForDog(dogId) {
   if (std && $('#' + std + '-img')) {
     label = (POSTER_NAMES[std] || st.label) + ' poster';
     images.push({ src: await asJpeg($('#' + std + '-img').src, 1080), caption: 'Picture 1: poster' });
-    if (photoSrc) images.push({ src: await asJpegMarked(photoSrc, 1400), caption: 'Picture 2: dog’s photo (with the LDA watermark)' });
+    if (photoSrc) {
+      // Both versions are kept so the watermark can be switched on or off before posting (on to start with).
+      const marked = await asJpegMarked(photoSrc, 1400), plain = await asJpeg(photoSrc, 1400);
+      images.push({ src: marked, marked, plain, mark: true, caption: 'Picture 2: dog’s photo (with the LDA watermark)' });
+    }
     const post = $('#' + std + ' .post');
     var template = post ? post.getAttribute('data-template') : '';
     text = post ? (place ? template.replace(/\{location\}/g, place) : template.replace(/\{location\}/g, '[Town/Village]')) : (st.label || '');
@@ -6036,6 +6053,19 @@ function showFacebookPost(arg) {
       ? 'A Lost Dog poster has been made from the dog’s details and photo.'
       : 'The ' + draft.label + ' is used for this status' + (draft.images.length > 1 ? ', with the dog’s photo as a second picture.' : '.')));
     root.appendChild(h('div', { class: 'fb-pics' }, draft.images.map(im => h('figure', null, h('img', { src: im.src, alt: im.caption }), h('figcaption', null, im.caption)))));
+    // Watermark on the dog's photo: on unless switched off here.
+    if (draft.images.some(im => im.mark)) {
+      const on = draft.watermark !== false;
+      root.appendChild(h('label', { class: 'fb-mark' },
+        h('input', { type: 'checkbox', id: 'fbpost-mark', checked: on, onchange: e => {
+          draft.watermark = e.target.checked;
+          draft.images.forEach(im => { if (!im.mark) return;
+            im.src = draft.watermark ? im.marked : im.plain;
+            im.caption = 'Picture 2: dog’s photo' + (draft.watermark ? ' (with the LDA watermark)' : ''); });
+          draw(draft);
+        } }),
+        h('span', null, h('strong', null, 'LDA watermark on the dog’s photo'), h('small', null, on ? 'On: pale “LDA” marks across the photo, so it can’t easily be copied.' : 'Off: the photo is posted as it is.'))));
+    }
     const ta = h('textarea', { id: 'fbpost-text', rows: '12' }); ta.value = draft.text;
     ta.addEventListener('input', () => { draft.text = ta.value; });
     // No "Last seen (place)" on the dog: ask for it here and fill it into the wording.
