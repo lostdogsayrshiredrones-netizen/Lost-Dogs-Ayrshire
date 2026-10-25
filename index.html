@@ -1836,10 +1836,10 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
       <div class="map" id="profile-map"></div>
       <p class="field-help" id="profile-pin-status" role="status">No pin placed yet. Tap the map.</p>
     </div>
-    <label for="profile-postcode">Postcode <span class="opt">(optional, for more accurate distances)</span></label>
+    <label for="profile-postcode">Postcode</label>
     <input id="profile-postcode" type="text" maxlength="8" autocomplete="postal-code" autocapitalize="characters" spellcheck="false" placeholder="e.g. KA1 2AB">
     <p class="field-help" id="profile-postarea" hidden></p>
-    <p class="field-help">We only keep the first part (e.g. <b>KA1 2</b>) and a rough spot for that area, never your full postcode or address. Only admins can see it.</p>
+    <p class="field-help">Your postcode lets the team see who really is closest to a missing dog. We only keep the first part (e.g. <b>KA1 2</b>) and a rough spot for that area, never your full postcode or address. Only admins can see it.</p>
 
     <h3 class="section">My equipment</h3>
     <p class="intro" style="text-align:left">Tell us what search equipment you have. Pick each item from the lists, then add its serial number. Leave this empty if you have none.</p>
@@ -2508,7 +2508,7 @@ function showHome() {
   const todo = { place: null, signed: null };
   const drawTodo = () => { $('#me-count').hidden = todo.place === null || todo.signed === null || (todo.place && todo.signed); };
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'profiles', state.user.uid),
-    snap => { todo.place = snap.exists() && !!snap.data().town; drawTodo(); }, () => { todo.place = true; drawTodo(); }));
+    snap => { todo.place = snap.exists() && !!snap.data().town && !!snap.data().postArea; drawTodo(); }, () => { todo.place = true; drawTodo(); }));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'holidays', state.user.uid),
     snap => { state.holidays = snap.exists() ? (snap.data().ranges || []) : []; }, () => { state.holidays = []; }));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', state.user.uid),
@@ -4091,7 +4091,7 @@ function drawChecklist() {
     h('span', { class: 'chk-detail' }, detail));
   box.textContent = '';
   box.appendChild(h('ul', { class: 'chk-list' },
-    item(!!checklist.place, 'Where I am based', checklist.place || 'Not set yet', '#profile-done'),
+    item(!!checklist.place && !checklist.needsPostcode, 'Where I am based', checklist.needsPostcode ? 'Add your postcode' : checklist.place || 'Not set yet', '#profile-done'),
     item(checklist.kit > 0, 'My equipment', checklist.kit ? checklist.kit + (checklist.kit === 1 ? ' item' : ' items') : 'Optional', '#profile-done', true),
     item(!!checklist.signed, 'Volunteer agreement', checklist.signed === null ? 'Checking\u2026' : checklist.signed ? 'Signed' : 'Not signed yet', '#profile-agreement')));
 }
@@ -4196,13 +4196,12 @@ function showProfile() {
     el.textContent = '';
     el.hidden = !(p && p.postArea && keepArea);
     if (el.hidden) return;
-    el.appendChild(document.createTextNode('Saved area: ' + p.postArea + '. Type a new postcode to change it, or '));
-    el.appendChild(h('button', { class: 'link', type: 'button', onclick: () => { keepArea = false; drawArea(p); } }, 'use the town centre instead'));
-    el.appendChild(document.createTextNode('.'));
+    el.appendChild(document.createTextNode('Saved area: ' + p.postArea + '. Leave the box empty to keep it, or type a new postcode to change it.'));
   }
 
   function draw() {
-    checklist.place = saved && saved.town ? saved.town : '';
+    checklist.place = saved && saved.town ? saved.town + (saved.postArea ? ' \u00b7 ' + saved.postArea : '') : '';
+    checklist.needsPostcode = !!(saved && saved.town && !saved.postArea);
     checklist.kit = saved ? (saved.equipment || []).length : 0;
     drawChecklist();
     done.textContent = '';
@@ -4262,9 +4261,9 @@ function showProfile() {
       const round = v => Math.round(Math.round(v / 0.002) * 0.002 * 1000) / 1000;
       data.lat = round(found.latitude); data.lng = round(found.longitude);
       data.postArea = pc.slice(0, -3) + ' ' + pc.slice(-3, -2);
-    } else if (keepArea && saved && saved.postArea && saved.town === data.town && hasSpot(saved)) {
+    } else if (keepArea && saved && saved.postArea && hasSpot(saved)) {
       data.lat = saved.lat; data.lng = saved.lng; data.postArea = saved.postArea;   // unchanged: keep the saved area
-    }
+    } else { msg.textContent = 'Please add your postcode. It helps the team see who is really closest to a missing dog.'; $('#profile-postcode').focus(); return; }
     msg.textContent = '';
     const recs = editor.read();
     if (!recs) { msg.textContent = 'Check the devices marked in red.'; return; }
