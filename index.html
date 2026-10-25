@@ -1836,6 +1836,10 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
       <div class="map" id="profile-map"></div>
       <p class="field-help" id="profile-pin-status" role="status">No pin placed yet. Tap the map.</p>
     </div>
+    <label for="profile-postcode">Postcode <span class="opt">(optional, for more accurate distances)</span></label>
+    <input id="profile-postcode" type="text" maxlength="8" autocomplete="postal-code" autocapitalize="characters" spellcheck="false" placeholder="e.g. KA1 2AB">
+    <p class="field-help" id="profile-postarea" hidden></p>
+    <p class="field-help">We only keep the first part (e.g. <b>KA1 2</b>) and a rough spot for that area, never your full postcode or address. Only admins can see it.</p>
 
     <h3 class="section">My equipment</h3>
     <p class="intro" style="text-align:left">Tell us what search equipment you have. Pick each item from the lists, then add its serial number. Leave this empty if you have none.</p>
@@ -2860,7 +2864,7 @@ function showDog(id) {
               h('strong', null, m.name || 'No name'),
               h('span', { class: 'vol-miles' }, milesText(miles)),
               avail === 'now' ? h('span', { class: 'avail-tag now' }, 'Available now') : avail === 'later' ? h('span', { class: 'avail-tag later' }, 'Available from ' + (from || '?')) : holiday ? h('span', { class: 'avail-tag holiday' }, 'On holiday') : null,
-              h('span', { class: 'vol-sub' }, (m.team ? 'Team \u00b7 ' : '') + (pr.town || '')),
+              h('span', { class: 'vol-sub' }, (m.team ? 'Team \u00b7 ' : '') + (pr.town || '') + (pr.postArea ? ' \u00b7 ' + pr.postArea : '')),
               kitTags(pr)))))
         : h('p', { class: 'avail-none' }, 'Nobody has set where they are based yet.'));
       box.appendChild(h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'volunteers/' + id }, 'Open Members & Map'));
@@ -4072,7 +4076,7 @@ function equipmentEditor(box, records) {
 function profileCard(p) {
   return h('div', { class: 'card signed-form' },
     h('dl', { class: 'details' },
-      h('dt', null, 'Based in'), h('dd', null, p.town || 'Not set'),
+      h('dt', null, 'Based in'), h('dd', null, (p.town || 'Not set') + (p.postArea ? ' \u00b7 ' + p.postArea + ' area' : '')),
       h('dt', null, 'Equipment'), h('dd', null, kitList(p))));
 }
 
@@ -4181,6 +4185,20 @@ function showProfile() {
     $('#profile-pin-status').textContent = spot ? 'Pin placed. Tap the map again to move it.' : 'No pin placed yet. Tap the map.';
     editor = equipmentEditor($('#profile-devices'), (p && p.equipment) || []);
     showOther(town.value === KIT_OTHER);
+    // The full postcode is never kept, so the box starts empty; say which area is saved.
+    $('#profile-postcode').value = '';
+    keepArea = !!(p && p.postArea);
+    drawArea(p);
+  }
+  let keepArea = false;
+  function drawArea(p) {
+    const el = $('#profile-postarea');
+    el.textContent = '';
+    el.hidden = !(p && p.postArea && keepArea);
+    if (el.hidden) return;
+    el.appendChild(document.createTextNode('Saved area: ' + p.postArea + '. Type a new postcode to change it, or '));
+    el.appendChild(h('button', { class: 'link', type: 'button', onclick: () => { keepArea = false; drawArea(p); } }, 'use the town centre instead'));
+    el.appendChild(document.createTextNode('.'));
   }
 
   function draw() {
@@ -4228,6 +4246,26 @@ function showProfile() {
     } else {
       data.town = town.value; data.lat = TOWNS[town.value][0]; data.lng = TOWNS[town.value][1];
     }
+    // Postcode (optional): looked up for free on postcodes.io. Only the area (e.g. "KA1 2") and a rounded
+    // spot (to about 200 m) are kept, never the full postcode.
+    const pc = $('#profile-postcode').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (pc) {
+      if (!/^[A-Z]{1,2}[0-9][A-Z0-9]?[0-9][A-Z]{2}$/.test(pc)) { msg.textContent = 'That doesn\u2019t look like a postcode. Check it, or leave the box empty.'; $('#profile-postcode').focus(); return; }
+      msg.textContent = 'Checking your postcode\u2026';
+      let found = null;
+      try {
+        const res = await fetch('https://api.postcodes.io/postcodes/' + encodeURIComponent(pc));
+        if (res.status === 404) { msg.textContent = 'We couldn\u2019t find that postcode. Check it, or leave the box empty.'; $('#profile-postcode').focus(); return; }
+        found = res.ok ? (await res.json()).result : null;
+      } catch (err) { found = null; }
+      if (!found || typeof found.latitude !== 'number') { msg.textContent = 'The postcode couldn\u2019t be checked just now. Try again, or leave the box empty.'; return; }
+      const round = v => Math.round(Math.round(v / 0.002) * 0.002 * 1000) / 1000;
+      data.lat = round(found.latitude); data.lng = round(found.longitude);
+      data.postArea = pc.slice(0, -3) + ' ' + pc.slice(-3, -2);
+    } else if (keepArea && saved && saved.postArea && saved.town === data.town && hasSpot(saved)) {
+      data.lat = saved.lat; data.lng = saved.lng; data.postArea = saved.postArea;   // unchanged: keep the saved area
+    }
+    msg.textContent = '';
     const recs = editor.read();
     if (!recs) { msg.textContent = 'Check the devices marked in red.'; return; }
     data.equipment = recs;
