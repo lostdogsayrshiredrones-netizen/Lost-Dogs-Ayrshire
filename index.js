@@ -461,6 +461,17 @@ const connectionId = request => {
 
 // ---- Check a photo the moment it is chosen on the report page ----
 // The website's advice topics (Fireworks, Stormy weather…): only the published ones, in the admins' order.
+// Each topic can have Facebook (or YouTube) video links; the videos themselves stay on Facebook, so they cost nothing to show.
+const TOPIC_KINDS = ['video'];
+const VIDEO_LINK = /^https:\/\/(www\.|m\.|web\.)?(facebook\.com|fb\.watch|youtube\.com|youtu\.be)\//i;
+function publicFiles(list) {
+  return (Array.isArray(list) ? list : []).filter(f => f && TOPIC_KINDS.includes(f.kind) && typeof f.id === 'string').slice(0, 30).map(f => {
+    const out = { id: String(f.id).slice(0, 40), kind: f.kind, label: String(f.label || f.name || '').slice(0, 100), under: String(f.under || '').slice(0, 120) };
+    if (f.kind === 'video') out.url = VIDEO_LINK.test(String(f.url || '')) ? String(f.url).slice(0, 500) : '';
+    else out.size = Number(f.size) || 0;
+    return out;
+  }).filter(f => f.kind !== 'video' || f.url);
+}
 let topicCache = { at: 0, topics: null };
 exports.publicTopics = onCall({ cors: true }, async () => {
   if (topicCache.topics && Date.now() - topicCache.at < 60 * 1000) return { topics: topicCache.topics };
@@ -468,7 +479,7 @@ exports.publicTopics = onCall({ cors: true }, async () => {
   const topics = snap.docs.map(d => {
     const x = d.data();
     return { id: d.id, title: String(x.title || '').slice(0, 60), icon: String(x.icon || '').slice(0, 16),
-      body: String(x.body || '').slice(0, 10000), order: Number(x.order) || 0, updated: millis(x.updatedAt) };
+      body: String(x.body || '').slice(0, 10000), order: Number(x.order) || 0, updated: millis(x.updatedAt), files: publicFiles(x.files) };
   }).filter(t => t.title).sort((a, b) => a.order - b.order).slice(0, 30);
   topicCache = { at: Date.now(), topics };
   return { topics };
