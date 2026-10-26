@@ -460,6 +460,20 @@ const connectionId = request => {
 };
 
 // ---- Check a photo the moment it is chosen on the report page ----
+// The website's advice topics (Fireworks, Stormy weather…): only the published ones, in the admins' order.
+let topicCache = { at: 0, topics: null };
+exports.publicTopics = onCall({ cors: true }, async () => {
+  if (topicCache.topics && Date.now() - topicCache.at < 60 * 1000) return { topics: topicCache.topics };
+  const snap = await admin.firestore().collection('topics').where('published', '==', true).get();
+  const topics = snap.docs.map(d => {
+    const x = d.data();
+    return { id: d.id, title: String(x.title || '').slice(0, 60), icon: String(x.icon || '').slice(0, 16),
+      body: String(x.body || '').slice(0, 10000), order: Number(x.order) || 0, updated: millis(x.updatedAt) };
+  }).filter(t => t.title).sort((a, b) => a.order - b.order).slice(0, 30);
+  topicCache = { at: Date.now(), topics };
+  return { topics };
+});
+
 exports.checkReportPhoto = onCall({ cors: true, timeoutSeconds: 30 }, async request => {
   const d = request.data || {}, db = admin.firestore(), now = Date.now();
   const isJpeg = (v, max) => typeof v === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(v) && v.length <= max;
