@@ -1174,6 +1174,22 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 .topic-box h3 { margin: 0 0 6px; color: #3e12a3; font-size: 1.05rem; }
 .topic-box p { margin: 0 0 6px; } .topic-box ul { margin: 0; padding-left: 20px; } .topic-box li { margin: 3px 0; }
 .topic-box a { color: #3e12a3; word-break: break-word; }
+
+.tf-row { margin: 0 0 10px; padding: 10px; border-radius: 12px; background: rgba(255,255,255,.12); display: flex; flex-direction: column; gap: 8px; }
+.tf-row .tf-top { display: flex; align-items: center; gap: 10px; }
+.tf-row img, .tf-row .tf-kind { width: 52px; height: 52px; flex-shrink: 0; border-radius: 8px; object-fit: cover; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.2); font-size: 1.5rem; }
+.tf-row .tf-what { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.tf-row .tf-what small { font-size: .8rem; opacity: .85; overflow-wrap: anywhere; }
+.tf-row .topic-move .link { color: #fdf90f; }
+.tf-row select, .tf-row input { width: 100%; }
+.tf-row .link.danger { align-self: flex-start; }
+.tp-video-add { display: flex; gap: 8px; margin-top: 10px; }
+.tp-video-add input { flex: 1 1 auto; min-width: 0; }
+.tf-pics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.tf-pics img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
+.tf-ph, .tf-pdf, .tf-vid { display: block; margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: #efeafd; font-size: .9rem; overflow-wrap: anywhere; }
+.tf-pdf small, .tf-vid small { color: #5b4f80; }
+.tf-row .link.danger { color: #ffd0d0; font-weight: 800; }
 </style>
 </head>
 <body>
@@ -1761,6 +1777,13 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <label for="tp-body">Information</label>
     <textarea id="tp-body" rows="12" maxlength="10000" placeholder="# Before fireworks night&#10;- Walk your dog in daylight&#10;- Check your fences and gates&#10;&#10;# On the night&#10;- Keep doors and windows closed"></textarea>
     <p class="field-help">Start a line with <b>#</b> for a heading (each heading gets its own box), and with <b>-</b> for a bullet point. Put words between <b>**</b> to make them bold. Web links work as they are.</p>
+    <label>Videos <span class="opt">(optional)</span></label>
+    <div id="tp-files"></div>
+    <div class="tp-video-add">
+      <input id="tp-video" type="url" inputmode="url" autocomplete="off" placeholder="Paste a Facebook video link">
+      <button class="btn" id="tp-add-video" type="button">Add video</button>
+    </div>
+    <p class="field-help">Post the video on our Facebook Page first, then copy its link and paste it here. Pick which heading each video shows under; you can put several under the same heading. Links with <b>/videos/</b> or <b>/reel/</b> in them play on the website; other links show a &ldquo;Watch on Facebook&rdquo; button.</p>
     <label class="tp-check"><input type="checkbox" id="tp-published"> <span><b>Show on the website</b><small>Untick to hide it while you work on it.</small></span></label>
     <h3 class="tp-prev-head">Preview</h3>
     <div class="tp-preview" id="tp-preview"></div>
@@ -3549,12 +3572,10 @@ function showReports() {
 // The website reads the published ones through the publicTopics function.
 const TOPIC_ICONS = ['🎆', '⛈️', '❄️', '☀️', '🎄', '🌧️', '🌬️', '🐾', '⚠️', '🏖️', '🚗', '🐑', '🦮', '💛'];
 // Same simple formatting as the website: "# Heading" starts a box, "- " is a bullet, **bold**, web links.
-function topicBodyHtml(body) {
-  const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const inline = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
-    .replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)])/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+// Files (pictures, PDFs, videos) go under the heading they were given ('#top' / '#end' / heading text).
+function topicBoxes(body, files) {
   const boxes = []; let box = null, list = null;
-  const newBox = head => { box = { head, parts: [] }; boxes.push(box); list = null; };
+  const newBox = head => { box = { head, parts: [], files: [] }; boxes.push(box); list = null; };
   String(body || '').replace(/\r/g, '').split('\n').forEach(raw => {
     const line = raw.trim();
     if (!line) { list = null; return; }
@@ -3563,8 +3584,36 @@ function topicBodyHtml(body) {
     if (/^[-*•]\s+/.test(line)) { if (!list) { list = []; box.parts.push(list); } list.push(line.replace(/^[-*•]\s+/, '')); return; }
     list = null; box.parts.push(line);
   });
-  return boxes.map(b => '<div class="topic-box">' + (b.head ? '<h3>' + inline(b.head) + '</h3>' : '') +
-    b.parts.map(x => Array.isArray(x) ? '<ul>' + x.map(li => '<li>' + inline(li) + '</li>').join('') + '</ul>' : '<p>' + inline(x) + '</p>').join('') + '</div>').join('');
+  const norm = t => String(t || '').trim().toLowerCase();
+  let top = null, end = null;
+  (files || []).forEach(f => {
+    let b = f.under && f.under !== '#top' && f.under !== '#end' ? boxes.find(x => x.head && norm(x.head) === norm(f.under)) : null;
+    if (!b && f.under === '#top') { if (!top) { top = { head: '', parts: [], files: [] }; boxes.unshift(top); } b = top; }
+    if (!b) { if (!end) { end = { head: '', parts: [], files: [] }; boxes.push(end); } b = end; }
+    b.files.push(f);
+  });
+  return boxes;
+}
+const topicHeadings = body => String(body || '').split('\n').map(l => l.trim()).filter(l => /^#+\s*\S/.test(l)).map(l => l.replace(/^#+\s*/, ''));
+function topicBodyHtml(body, files) {
+  const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const inline = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)])/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  const fileHtml = fs => {
+    const pics = fs.filter(f => f.kind === 'photo'), rest = fs.filter(f => f.kind !== 'photo');
+    return (pics.length ? '<div class="tf-pics">' + pics.map(f => f.data ? '<img src="' + esc(f.data) + '" alt="">' : '<span class="tf-ph">📷 ' + esc(f.label || 'Picture') + '</span>').join('') + '</div>' : '') +
+      rest.map(f => f.kind === 'pdf' ? '<span class="tf-pdf">📄 <b>' + esc(f.label || 'PDF') + '</b> <small>PDF' + (f.size ? ' · ' + docSize(f.size) : '') + '</small></span>'
+        : '<span class="tf-vid">▶ <b>' + esc(f.label || 'Video') + '</b> <small>' + esc(f.url || '') + '</small></span>').join('');
+  };
+  return topicBoxes(body, files).map(b => '<div class="topic-box">' + (b.head ? '<h3>' + inline(b.head) + '</h3>' : '') +
+    b.parts.map(x => Array.isArray(x) ? '<ul>' + x.map(li => '<li>' + inline(li) + '</li>').join('') + '</ul>' : '<p>' + inline(x) + '</p>').join('') +
+    (b.files.length ? fileHtml(b.files) : '') + '</div>').join('');
+}
+const TOPIC_VIDEO = /^https:\/\/(www\.|m\.|web\.)?(facebook\.com|fb\.watch|youtube\.com|youtu\.be)\/\S+$/i;
+const newFileId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+async function deleteTopicFile(topicId, f) {
+  const fb = state.fb;
+  for (let i = 0; i < (f.chunks || 0); i++) await fb.deleteDoc(fb.doc(fb.db, 'topics', topicId, 'chunks', f.id + '_' + i)).catch(() => {});
 }
 function showTopics() {
   const fb = state.fb, list = $('#topics-list'), msg = $('#topics-msg');
@@ -3595,7 +3644,7 @@ function showTopics() {
 }
 function showTopicEdit(id) {
   const fb = state.fb, form = $('#tp-form'), msg = $('#tp-msg'), isNew = !id || id === 'new';
-  let icon = TOPIC_ICONS[0];
+  let icon = TOPIC_ICONS[0], files = [], removed = [];
   $('#tp-title').textContent = isNew ? 'Add a topic' : 'Edit topic';
   form.reset(); msg.textContent = '';
   $('#tp-published').checked = true;
@@ -3607,36 +3656,87 @@ function showTopicEdit(id) {
   const preview = () => {
     const t = $('#tp-name').value.trim();
     $('#tp-preview').innerHTML = '<div class="topic-prev-title">' + (icon ? icon + ' ' : '') + (t ? t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])) : 'Topic name') + '</div>' +
-      (topicBodyHtml($('#tp-body').value) || '<p class="empty">The information will show here.</p>');
+      (topicBodyHtml($('#tp-body').value, files) || '<p class="empty">The information will show here.</p>');
   };
-  $('#tp-name').oninput = $('#tp-body').oninput = () => { msg.textContent = ''; preview(); };
-  drawIcons(); preview();
+  // The list of pictures, PDFs and videos, each with "Show under" and its place in the order.
+  const drawFiles = () => {
+    const box = $('#tp-files'), heads = topicHeadings($('#tp-body').value);
+    box.textContent = '';
+    files.forEach((f, i) => {
+      const where = f.under === '#top' || f.under === '#end' || heads.some(x => x.toLowerCase() === String(f.under || '').toLowerCase()) ? f.under : '#end';
+      const sel = h('select', { 'aria-label': 'Show under', onchange: e => { f.under = e.target.value; preview(); } },
+        h('option', { value: '#top' }, 'At the top'), ...heads.map(x => h('option', { value: x }, 'Under: ' + x)), h('option', { value: '#end' }, 'At the end'));
+      sel.value = heads.find(x => x.toLowerCase() === String(where).toLowerCase()) || where;
+      const lab = h('input', { type: 'text', maxlength: '100', value: f.label || '', placeholder: f.kind === 'video' ? 'Video title' : 'Name shown on the website', oninput: e => { f.label = e.target.value; preview(); } });
+      box.appendChild(h('div', { class: 'tf-row' },
+        h('div', { class: 'tf-top' },
+          f.kind === 'photo' && f.data ? h('img', { src: f.data, alt: '' }) : h('span', { class: 'tf-kind' }, f.kind === 'pdf' ? '📄' : f.kind === 'video' ? '▶' : '📷'),
+          h('span', { class: 'tf-what' }, h('strong', null, f.kind === 'pdf' ? 'PDF' : f.kind === 'video' ? 'Facebook / YouTube video' : 'Picture'),
+            h('small', null, f.kind === 'video' ? f.url : (f.name || '') + (f.size ? ' · ' + docSize(f.size) : '') + (f.data ? ' · not saved yet' : ''))),
+          h('span', { class: 'topic-move' },
+            h('button', { type: 'button', class: 'link', 'aria-label': 'Move up', disabled: i === 0, onclick: () => { files.splice(i - 1, 0, files.splice(i, 1)[0]); drawFiles(); preview(); } }, '▲'),
+            h('button', { type: 'button', class: 'link', 'aria-label': 'Move down', disabled: i === files.length - 1, onclick: () => { files.splice(i + 1, 0, files.splice(i, 1)[0]); drawFiles(); preview(); } }, '▼'))),
+        lab, sel,
+        h('button', { type: 'button', class: 'link danger', onclick: () => { if (!f.data) removed.push(f); files.splice(i, 1); drawFiles(); preview(); } }, 'Remove')));
+    });
+  };
+  const defaultUnder = () => { const heads = topicHeadings($('#tp-body').value); return heads.length ? heads[heads.length - 1] : '#end'; };
+  $('#tp-name').oninput = () => { msg.textContent = ''; preview(); };
+  $('#tp-body').oninput = () => { msg.textContent = ''; drawFiles(); preview(); };
+  $('#tp-add-video').onclick = () => {
+    const url = $('#tp-video').value.trim();
+    if (!TOPIC_VIDEO.test(url)) { msg.textContent = 'Paste the full link of a Facebook (or YouTube) video, starting https://'; return; }
+    if (files.length >= 30) { msg.textContent = 'A topic can have up to 30 videos.'; return; }
+    files.push({ id: newFileId(), kind: 'video', url: url.slice(0, 500), label: '', under: defaultUnder() });
+    $('#tp-video').value = ''; msg.textContent = ''; drawFiles(); preview();
+  };
+  drawIcons(); drawFiles(); preview();
   if (!isNew) fb.getDoc(fb.doc(fb.db, 'topics', id)).then(snap => {
     if (!snap.exists()) { go('topics'); return; }
     const t = snap.data();
     icon = t.icon || icon; $('#tp-name').value = t.title || ''; $('#tp-body').value = t.body || ''; $('#tp-published').checked = !!t.published;
-    drawIcons(); preview();
+    files = (Array.isArray(t.files) ? t.files : []).map(f => ({ ...f }));
+    drawIcons(); drawFiles(); preview();
   }).catch(err => { msg.textContent = friendlyError(err); });
   form.onsubmit = async e => {
     e.preventDefault();
     const title = $('#tp-name').value.trim(), body = $('#tp-body').value.trim();
     if (!title) { msg.textContent = 'Give the topic a name.'; return; }
-    if (!body) { msg.textContent = 'Write the information for this topic.'; return; }
+    if (!body && !files.length) { msg.textContent = 'Write the information for this topic, or add a video.'; return; }
     const btn = $('#tp-save'); btn.disabled = true; msg.textContent = 'Saving…';
     const data = { title, icon, body, published: $('#tp-published').checked, updatedAt: fb.serverTimestamp(), updatedBy: state.profile.name || '' };
     try {
+      let tid = id;
       if (isNew) {
         const snap = await fb.getDocs(fb.collection(fb.db, 'topics'));
         data.order = snap.docs.reduce((m, d) => Math.max(m, Number(d.data().order) || 0), -1) + 1;   // goes to the bottom of the list
-        await fb.addDoc(fb.collection(fb.db, 'topics'), data);
-      } else await fb.updateDoc(fb.doc(fb.db, 'topics', id), data);
+        tid = (await fb.addDoc(fb.collection(fb.db, 'topics'), { ...data, files: [] })).id;
+      }
+      // Upload new pictures and PDFs in pieces, then save the list.
+      const fresh = files.filter(f => f.data);
+      for (let n = 0; n < fresh.length; n++) {
+        const f = fresh[n], size = docChunkSize(), pieces = [];
+        for (let i = 0; i < f.data.length; i += size) pieces.push(f.data.slice(i, i + size));
+        for (let i = 0; i < pieces.length; i++) {
+          msg.textContent = 'Uploading ' + (fresh.length > 1 ? 'file ' + (n + 1) + ' of ' + fresh.length : f.name || 'the file') + (pieces.length > 1 ? ' (part ' + (i + 1) + ' of ' + pieces.length + ')' : '') + '…';
+          await fb.setDoc(fb.doc(fb.db, 'topics', tid, 'chunks', f.id + '_' + i), { data: pieces[i] });
+        }
+        f.chunks = pieces.length; delete f.data;
+      }
+      const meta = files.map(f => { const m = { id: f.id, kind: f.kind, label: String(f.label || '').trim().slice(0, 100), under: String(f.under || '#end').slice(0, 120) };
+        if (f.kind === 'video') m.url = f.url; else { m.name = f.name || ''; m.size = f.size || 0; m.chunks = f.chunks || 0; } return m; });
+      await fb.updateDoc(fb.doc(fb.db, 'topics', tid), isNew ? { files: meta } : { ...data, files: meta });
+      for (const f of removed) await deleteTopicFile(tid, f);
       go('topics');
     } catch (err) { msg.textContent = err && err.code === 'permission-denied' ? 'Not saved: the new security rules need pasting into Firebase first.' : friendlyError(err); }
     finally { btn.disabled = false; }
   };
   $('#tp-delete').onclick = async () => {
     if (!confirm('Delete this topic? It will be removed from the website.')) return;
-    try { await fb.deleteDoc(fb.doc(fb.db, 'topics', id)); go('topics'); } catch (err) { msg.textContent = friendlyError(err); }
+    try {
+      for (const f of files.concat(removed)) if (f.chunks) await deleteTopicFile(id, f);
+      await fb.deleteDoc(fb.doc(fb.db, 'topics', id)); go('topics');
+    } catch (err) { msg.textContent = friendlyError(err); }
   };
 }
 
