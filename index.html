@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow"><!-- volunteers only: keep the app out of Google and other search engines -->
 <title>Lost Dogs Ayrshire</title>
 
 <!-- Home screen app settings -->
@@ -1147,6 +1148,32 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 .holidays input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 #profile-holidays .holidays { margin-top: 12px; }
 #profile-holidays { margin-bottom: 16px; }
+
+/* ---- Website topics (admins) ---- */
+.topic-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 6px 8px 6px 6px; border-radius: 14px; background: #fff; color: #1c1530; }
+.topic-row.hidden-topic { opacity: .7; }
+.topic-open { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 8px; border: 0; background: none; font: inherit; color: inherit; text-align: left; }
+.topic-ic { font-size: 1.8rem; line-height: 1; }
+.topic-txt { display: flex; flex-direction: column; min-width: 0; }
+.topic-txt strong { font-size: 1.05rem; }
+.topic-txt small { font-size: .85rem; color: #4a3f6b; }
+.topic-move { display: flex; flex-direction: column; }
+.topic-move .link { padding: 4px 10px; font-size: 1rem; color: #5220c4; }
+.topic-move .link[disabled] { opacity: .25; }
+.tp-icons { display: flex; flex-wrap: wrap; gap: 8px; }
+.tp-ic { width: 46px; height: 46px; border-radius: 12px; border: 3px solid transparent; background: rgba(255,255,255,.15); font-size: 1.5rem; line-height: 1; }
+.tp-ic.on { border-color: #fdf90f; background: rgba(253,249,15,.25); }
+.tp-check { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; }
+.tp-check input { width: 24px; height: 24px; margin: 2px 0 0; flex-shrink: 0; }
+.tp-check span { display: flex; flex-direction: column; }
+.tp-check small { font-weight: 600; opacity: .85; }
+.tp-prev-head { margin: 18px 0 6px; color: #fdf90f; }
+.tp-preview { padding: 12px; border-radius: 14px; border: 3px dashed #fdf90f; display: flex; flex-direction: column; gap: 10px; }
+.topic-prev-title { padding: 8px 10px; border-radius: 10px; background: #fdf90f; color: #5220c4; font-weight: 900; text-align: center; text-transform: uppercase; }
+.topic-box { padding: 12px 14px; border-radius: 12px; background: #fff; color: #1c1530; }
+.topic-box h3 { margin: 0 0 6px; color: #3e12a3; font-size: 1.05rem; }
+.topic-box p { margin: 0 0 6px; } .topic-box ul { margin: 0; padding-left: 20px; } .topic-box li { margin: 3px 0; }
+.topic-box a { color: #3e12a3; word-break: break-word; }
 </style>
 </head>
 <body>
@@ -1218,6 +1245,12 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
       <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true"><path d="M8 6h48c3 0 5 2 5 5v28c0 3-2 5-5 5H26L13 55V44H8c-3 0-5-2-5-5V11c0-3 2-5 5-5z M15 18v5h34v-5z M15 29v5h22v-5z" fill-rule="evenodd"/></svg></span>
       <span class="count" id="reports-count" hidden>0</span>
       <span class="tile-name">Public Reports</span>
+    </button>
+
+    <!-- TILE: Website Topics (admins): advice pages on the website, e.g. Fireworks, Stormy weather -->
+    <button class="tile admin-only" data-go="topics">
+      <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true"><path d="M32 4a26 26 0 1 0 0 52a26 26 0 0 0 0-52zm0 5c2.6 0 5.6 4.4 7 12H25c1.4-7.6 4.4-12 7-12zm-8.6 2.2C21.8 14 20.6 17.3 20 21h-8.4a21 21 0 0 1 11.8-9.8zm17.2 0A21 21 0 0 1 52.4 21H44c-.6-3.7-1.8-7-3.4-9.8zM10 26h9.5c-.1 1.3-.1 2.6-.1 4s0 2.7.1 4H10a21 21 0 0 1 0-8zm14.5 0h15c.1 1.3.2 2.6.2 4s-.1 2.7-.2 4h-15c-.1-1.3-.2-2.6-.2-4s.1-2.7.2-4zm20 0H54a21 21 0 0 1 0 8h-9.5c.1-1.3.1-2.6.1-4s0-2.7-.1-4zM11.6 39H20c.6 3.7 1.8 7 3.4 9.8A21 21 0 0 1 11.6 39zm13.4 0h14c-1.4 7.6-4.4 12-7 12s-5.6-4.4-7-12zm19 0h8.4a21 21 0 0 1-11.8 9.8c1.6-2.8 2.8-6.1 3.4-9.8z"/></svg></span>
+      <span class="tile-name">Website Topics</span>
     </button>
 
     <!-- (The WhatsApp tile moved to a button on each dog's page in 5.3) -->
@@ -1569,6 +1602,17 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 </section>
 
 <!-- ================= WAITING FOR APPROVAL ================= -->
+<section class="screen center-screen" id="verify">
+  <img class="logo" alt="" data-from="logo-img">
+  <h2 class="page-title">Confirm your email</h2>
+  <p class="intro">We&rsquo;ve sent an email to <b id="verify-email"></b>. Tap the link in it to confirm it&rsquo;s you, then come back here.</p>
+  <p class="intro" style="font-size:.95rem">Can&rsquo;t see it? Check your junk or spam folder. It comes from <b>noreply@lost-dogs-ayrshire.firebaseapp.com</b>.</p>
+  <button class="btn wide" id="verify-check" type="button">I&rsquo;ve confirmed my email</button>
+  <button class="btn wide ghost" id="verify-resend" type="button">Send the email again</button>
+  <p class="form-msg" id="verify-msg" role="status"></p>
+  <button class="btn wide ghost" data-signout>Sign out</button>
+</section>
+
 <section class="screen center-screen" id="pending">
   <img class="logo" alt="" data-from="logo-img">
   <h2 class="page-title" id="pending-title">Waiting for approval</h2>
@@ -1693,6 +1737,37 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 <section class="screen" id="report">
   <button class="back" data-go="reports">&larr; Public Reports</button>
   <div id="report-body" style="margin-top:20px"></div>
+</section>
+
+<!-- ================= WEBSITE TOPICS (admins) ================= -->
+<section class="screen" id="topics">
+  <button class="back" data-go="home">&larr; Home</button>
+  <h2 class="page-title">Website Topics</h2>
+  <p class="intro">Advice pages on the website, for example Fireworks or Stormy weather. They show under &ldquo;Advice &amp; seasonal tips&rdquo; on the home page.</p>
+  <button class="btn wide" data-go="topic-edit/new" style="margin:0 0 16px">Add a topic</button>
+  <div id="topics-list"></div>
+  <p class="form-msg" id="topics-msg" role="status"></p>
+  <a class="btn wide ghost" href="https://lostdogsayrshire.org.uk/" target="_blank" rel="noopener">Open the website</a>
+</section>
+
+<section class="screen" id="topic-edit">
+  <button class="back" data-go="topics">&larr; Cancel</button>
+  <h2 class="page-title" id="tp-title">Add a topic</h2>
+  <form class="form" id="tp-form" novalidate>
+    <label>Picture</label>
+    <div class="tp-icons" id="tp-icons"></div>
+    <label for="tp-name">Topic name</label>
+    <input id="tp-name" type="text" maxlength="60" autocomplete="off" autocapitalize="sentences" placeholder="e.g. Fireworks">
+    <label for="tp-body">Information</label>
+    <textarea id="tp-body" rows="12" maxlength="10000" placeholder="# Before fireworks night&#10;- Walk your dog in daylight&#10;- Check your fences and gates&#10;&#10;# On the night&#10;- Keep doors and windows closed"></textarea>
+    <p class="field-help">Start a line with <b>#</b> for a heading (each heading gets its own box), and with <b>-</b> for a bullet point. Put words between <b>**</b> to make them bold. Web links work as they are.</p>
+    <label class="tp-check"><input type="checkbox" id="tp-published"> <span><b>Show on the website</b><small>Untick to hide it while you work on it.</small></span></label>
+    <h3 class="tp-prev-head">Preview</h3>
+    <div class="tp-preview" id="tp-preview"></div>
+    <button class="save" id="tp-save" type="submit">Save topic</button>
+    <p class="form-msg" id="tp-msg" role="status"></p>
+    <button class="btn wide ghost danger" id="tp-delete" type="button" hidden>Delete this topic</button>
+  </form>
 </section>
 
 <!-- ================= FACEBOOK PAGE LINK (developer) ================= -->
@@ -2206,6 +2281,7 @@ function render() {
   // Not connected yet / not signed in / not approved: those screens take over.
   if (!state.fb)      return activate(state.loadError ? 'offline' : 'loading');
   if (!state.user)    return activate('auth');
+  if (state.needVerify) return showVerify();
   if (!state.profile) return activate('loading');
   if (!isMember())    return showPending();
 
@@ -2226,6 +2302,8 @@ function render() {
   if (name === 'fbupdate')  { if (!isCoord()) return go('home'); activate('fbupdate'); return showFacebookUpdate(arg); }
   if (name === 'reports')   { if (!canSeeReports()) return go('home'); activate('reports'); return showReports(); }
   if (name === 'report')    { if (!canSeeReports()) return go('home'); activate('report'); return showReport(arg); }
+  if (name === 'topics')    { if (!isAdmin()) return go('home'); activate('topics'); return showTopics(); }
+  if (name === 'topic-edit') { if (!isAdmin()) return go('home'); activate('topic-edit'); return showTopicEdit(arg); }
   if (name === 'facebook')  { if (!isDev()) return go('home'); activate('facebook'); return showFacebookLink(); }
   if (name === 'documents') { if (arg) { activate('doclist'); return showDocList(arg); } activate('documents'); return showDocuments(); }
   if (name === 'document')  { activate('docview'); return showDocument(arg); }
@@ -2385,6 +2463,7 @@ function onUser(user) {
   if (stopProfile) { stopProfile(); stopProfile = null; }
   state.user = user;
   state.profile = null;
+  state.needVerify = false;
   endAlerts();
   render();
   if (!user) return;
@@ -2394,6 +2473,9 @@ function onUser(user) {
   // Watch our own member record live, so approval takes effect straight away.
   stopProfile = fb.onSnapshot(ref, async snap => {
     if (!snap.exists()) {
+      // New person: they must confirm their email address first (stops made-up addresses reaching the admins).
+      if (!user.emailVerified) { state.needVerify = true; render(); return; }
+      state.needVerify = false;
       // First sign-in: ask to join. An admin then approves.
       try {
         await fb.setDoc(ref, {
@@ -2452,6 +2534,7 @@ $('#auth-form').addEventListener('submit', async e => {
       // The member record (waiting for approval) is created in onUser, using pendingName.
       const cred = await fb.createUserWithEmailAndPassword(fb.auth, email, password);
       await fb.updateProfile(cred.user, { displayName: name });
+      try { await fb.sendEmailVerification(cred.user); verifySentAt = Date.now(); } catch (e) { console.error(e); }
     } else {
       await fb.signInWithEmailAndPassword(fb.auth, email, password);
     }
@@ -2467,6 +2550,37 @@ async function signOut() {
   location.hash = '';
 }
 $$('[data-signout]').forEach(b => b.addEventListener('click', signOut));
+
+// ---------- Confirm your email (new accounts only) ----------
+let verifySentAt = 0;
+function showVerify() {
+  activate('verify');
+  $('#verify-email').textContent = (state.user && state.user.email) || 'your email address';
+  $('#verify-msg').textContent = '';
+}
+// Checks with Firebase whether the link in the email has been tapped; if so, carries on to "Waiting for approval".
+async function checkVerified(quiet) {
+  const fb = state.fb, u = fb && fb.auth.currentUser;
+  if (!u || !state.needVerify) return;
+  try {
+    await fb.reload(u);
+    if (u.emailVerified) {
+      await u.getIdToken(true);          // fresh sign-in token that says the email is confirmed
+      $('#verify-msg').textContent = 'Email confirmed. Thank you!';
+      onUser(u);
+    } else if (!quiet) $('#verify-msg').textContent = 'Not confirmed yet. Tap the link in the email first (check your junk or spam folder too).';
+  } catch (err) { if (!quiet) $('#verify-msg').textContent = friendlyError(err); }
+}
+$('#verify-check').addEventListener('click', () => checkVerified(false));
+$('#verify-resend').addEventListener('click', async () => {
+  const fb = state.fb, u = fb && fb.auth.currentUser;
+  if (!u) return;
+  if (Date.now() - verifySentAt < 60000) { $('#verify-msg').textContent = 'Email just sent. Please wait a minute before asking for another.'; return; }
+  try { await fb.sendEmailVerification(u); verifySentAt = Date.now(); $('#verify-msg').textContent = 'Sent again to ' + u.email + '.'; }
+  catch (err) { $('#verify-msg').textContent = err && err.code === 'auth/too-many-requests' ? 'Too many emails sent. Please wait a few minutes and try again.' : friendlyError(err); }
+});
+// Coming back to the app after tapping the link in the email: check straight away.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVerified(true); });
 
 function showPending() {
   activate('pending');
@@ -3428,6 +3542,102 @@ function showReports() {
           r.status !== 'new' ? h('span', { class: 'report-outcome' }, reportOutcome(r)) : null)));
     });
   }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
+}
+
+// ---------- Website topics (admins): advice pages on the public website, e.g. Fireworks ----------
+// Stored in topics/{id} = { title, icon, body, order, published, updatedAt, updatedBy }.
+// The website reads the published ones through the publicTopics function.
+const TOPIC_ICONS = ['🎆', '⛈️', '❄️', '☀️', '🎄', '🌧️', '🌬️', '🐾', '⚠️', '🏖️', '🚗', '🐑', '🦮', '💛'];
+// Same simple formatting as the website: "# Heading" starts a box, "- " is a bullet, **bold**, web links.
+function topicBodyHtml(body) {
+  const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const inline = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)])/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  const boxes = []; let box = null, list = null;
+  const newBox = head => { box = { head, parts: [] }; boxes.push(box); list = null; };
+  String(body || '').replace(/\r/g, '').split('\n').forEach(raw => {
+    const line = raw.trim();
+    if (!line) { list = null; return; }
+    if (/^#+\s*/.test(line)) { newBox(line.replace(/^#+\s*/, '')); return; }
+    if (!box) newBox('');
+    if (/^[-*•]\s+/.test(line)) { if (!list) { list = []; box.parts.push(list); } list.push(line.replace(/^[-*•]\s+/, '')); return; }
+    list = null; box.parts.push(line);
+  });
+  return boxes.map(b => '<div class="topic-box">' + (b.head ? '<h3>' + inline(b.head) + '</h3>' : '') +
+    b.parts.map(x => Array.isArray(x) ? '<ul>' + x.map(li => '<li>' + inline(li) + '</li>').join('') + '</ul>' : '<p>' + inline(x) + '</p>').join('') + '</div>').join('');
+}
+function showTopics() {
+  const fb = state.fb, list = $('#topics-list'), msg = $('#topics-msg');
+  list.textContent = ''; msg.textContent = '';
+  list.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'topics'), snap => {
+    const all = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })).sort((a, b) => (a.order || 0) - (b.order || 0));
+    list.textContent = '';
+    if (!all.length) { list.appendChild(h('p', { class: 'empty' }, 'No topics yet. Tap “Add a topic” to write the first one.')); return; }
+    const move = async (i, dir) => {
+      const a = all[i], b = all[i + dir]; if (!a || !b) return;
+      msg.textContent = '';
+      try {   // swap their places (orders made distinct first)
+        await fb.updateDoc(fb.doc(fb.db, 'topics', a.id), { order: i + dir });
+        await fb.updateDoc(fb.doc(fb.db, 'topics', b.id), { order: i });
+      } catch (err) { msg.textContent = friendlyError(err); }
+    };
+    all.forEach((t, i) => list.appendChild(h('div', { class: 'topic-row' + (t.published ? '' : ' hidden-topic') },
+      h('button', { class: 'topic-open', type: 'button', 'data-go': 'topic-edit/' + t.id },
+        h('span', { class: 'topic-ic' }, t.icon || '🐾'),
+        h('span', { class: 'topic-txt' }, h('strong', null, t.title || 'Untitled'),
+          h('small', null, (t.published ? 'On the website' : 'Hidden') + (t.updatedAt ? ' · updated ' + when(t.updatedAt) : '')))),
+      h('span', { class: 'topic-move' },
+        h('button', { type: 'button', class: 'link', 'aria-label': 'Move up', disabled: i === 0, onclick: () => move(i, -1) }, '▲'),
+        h('button', { type: 'button', class: 'link', 'aria-label': 'Move down', disabled: i === all.length - 1, onclick: () => move(i, 1) }, '▼')))));
+  }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, err && err.code === 'permission-denied'
+    ? 'Topics will show once the new security rules are pasted into Firebase.' : friendlyError(err))); }));
+}
+function showTopicEdit(id) {
+  const fb = state.fb, form = $('#tp-form'), msg = $('#tp-msg'), isNew = !id || id === 'new';
+  let icon = TOPIC_ICONS[0];
+  $('#tp-title').textContent = isNew ? 'Add a topic' : 'Edit topic';
+  form.reset(); msg.textContent = '';
+  $('#tp-published').checked = true;
+  $('#tp-delete').hidden = isNew;
+  const drawIcons = () => {
+    const box = $('#tp-icons'); box.textContent = '';
+    TOPIC_ICONS.concat(TOPIC_ICONS.includes(icon) ? [] : [icon]).forEach(ic => box.appendChild(h('button', { type: 'button', class: 'tp-ic' + (ic === icon ? ' on' : ''), 'aria-pressed': String(ic === icon), onclick: () => { icon = ic; drawIcons(); preview(); } }, ic)));
+  };
+  const preview = () => {
+    const t = $('#tp-name').value.trim();
+    $('#tp-preview').innerHTML = '<div class="topic-prev-title">' + (icon ? icon + ' ' : '') + (t ? t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])) : 'Topic name') + '</div>' +
+      (topicBodyHtml($('#tp-body').value) || '<p class="empty">The information will show here.</p>');
+  };
+  $('#tp-name').oninput = $('#tp-body').oninput = () => { msg.textContent = ''; preview(); };
+  drawIcons(); preview();
+  if (!isNew) fb.getDoc(fb.doc(fb.db, 'topics', id)).then(snap => {
+    if (!snap.exists()) { go('topics'); return; }
+    const t = snap.data();
+    icon = t.icon || icon; $('#tp-name').value = t.title || ''; $('#tp-body').value = t.body || ''; $('#tp-published').checked = !!t.published;
+    drawIcons(); preview();
+  }).catch(err => { msg.textContent = friendlyError(err); });
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const title = $('#tp-name').value.trim(), body = $('#tp-body').value.trim();
+    if (!title) { msg.textContent = 'Give the topic a name.'; return; }
+    if (!body) { msg.textContent = 'Write the information for this topic.'; return; }
+    const btn = $('#tp-save'); btn.disabled = true; msg.textContent = 'Saving…';
+    const data = { title, icon, body, published: $('#tp-published').checked, updatedAt: fb.serverTimestamp(), updatedBy: state.profile.name || '' };
+    try {
+      if (isNew) {
+        const snap = await fb.getDocs(fb.collection(fb.db, 'topics'));
+        data.order = snap.docs.reduce((m, d) => Math.max(m, Number(d.data().order) || 0), -1) + 1;   // goes to the bottom of the list
+        await fb.addDoc(fb.collection(fb.db, 'topics'), data);
+      } else await fb.updateDoc(fb.doc(fb.db, 'topics', id), data);
+      go('topics');
+    } catch (err) { msg.textContent = err && err.code === 'permission-denied' ? 'Not saved: the new security rules need pasting into Firebase first.' : friendlyError(err); }
+    finally { btn.disabled = false; }
+  };
+  $('#tp-delete').onclick = async () => {
+    if (!confirm('Delete this topic? It will be removed from the website.')) return;
+    try { await fb.deleteDoc(fb.doc(fb.db, 'topics', id)); go('topics'); } catch (err) { msg.textContent = friendlyError(err); }
+  };
 }
 
 function showReport(id) {
