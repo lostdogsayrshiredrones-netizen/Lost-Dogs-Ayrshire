@@ -1265,6 +1265,33 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 .av-edit input, .av-sec input[type=date] { display: block; width: 100%; min-width: 0; padding: 12px; border: 3px solid #fdf90f; border-radius: 12px; background: #fff; color: #1c1530; font: inherit; font-size: 16px; font-weight: 700; -webkit-appearance: none; appearance: none; box-sizing: border-box; }
 .av-days { flex-wrap: nowrap; gap: 5px; }
 .av-day { flex: 1 1 0; width: auto; min-width: 0; height: 44px; padding: 0; }
+
+/* ---- Volunteer activity (admins) ---- */
+.act-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.act-tab { flex: 1; padding: 10px 4px; border-radius: 12px; border: 3px solid #fdf90f; background: transparent; color: #fdf90f; font: inherit; font-weight: 900; }
+.act-tab.on { background: #fdf90f; color: #5220c4; }
+.act-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+.act-sum div { background: rgba(255,255,255,.12); border-radius: 12px; padding: 10px; text-align: center; display: flex; flex-direction: column; }
+.act-sum b { font-size: 1.4rem; } .act-sum span { font-size: .8rem; opacity: .85; }
+.act-key { display: flex; flex-wrap: wrap; gap: 10px; font-size: .8rem; margin: 0 0 10px; }
+.act-key i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.act-h { margin: 14px 0 8px; color: #fdf90f; letter-spacing: .12em; text-transform: uppercase; font-size: .85rem; }
+.act-card { display: flex; flex-direction: column; gap: 6px; width: 100%; margin: 0 0 10px; padding: 12px; border-radius: 14px; border: 0; background: #fff; color: #1c1530; font: inherit; text-align: left; }
+.act-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; } .act-top b { font-size: 1.05rem; }
+.act-flag { padding: 3px 9px; border-radius: 999px; font-size: .7rem; font-weight: 900; color: #fff; text-transform: uppercase; white-space: nowrap; }
+.act-flag.red { background: #e11d2e; } .act-flag.amb { background: #e08a00; } .act-flag.gry { background: #6b6385; } .act-flag.grn { background: #1d8a3a; }
+.act-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: #eee; } .act-bar i { display: block; }
+.act-n { font-size: .85rem; color: #4a3f6b; }
+.act-r { display: flex; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 8px; background: #f3effe; }
+.act-r b { text-align: right; }
+.act-o.yes { color: #1d8a3a; } .act-o.no { color: #e11d2e; } .act-o.away { color: #6b6385; } .act-o.none { color: #888; }
+
+/* ---- Members & Map: available now / busy / holiday ---- */
+.vol-now { margin: 4px 0 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.12); font-weight: 800; }
+.vol-avail-tabs { margin-top: 0; }
+.vol-now-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+.vol-now-tag { padding: 3px 10px; border-radius: 999px; font-size: .78rem; font-weight: 900; color: #fff; }
+.vol-now-tag.free { background: #1d8a3a; } .vol-now-tag.busy { background: #e08a00; } .vol-now-tag.holiday { background: #6b6385; }
 </style>
 </head>
 <body>
@@ -1826,6 +1853,13 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
   <div id="report-body" style="margin-top:20px"></div>
 </section>
 
+<!-- ================= VOLUNTEER ACTIVITY (admins) ================= -->
+<section class="screen" id="activity">
+  <button class="back" id="act-back" data-go="volunteers">&larr; Members &amp; Map</button>
+  <h2 class="page-title" id="act-title">Volunteer activity</h2>
+  <div id="act-body"></div>
+</section>
+
 <!-- ================= MY AVAILABILITY (everyone) ================= -->
 <section class="screen" id="availability">
   <button class="back" data-go="home">&larr; Home</button>
@@ -2146,6 +2180,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <button class="btn" type="button" data-go="equipment">Equipment list</button>
     <button class="btn" type="button" data-go="agreements">Signed forms</button>
   </div>
+  <button class="btn wide" type="button" data-go="activity" style="margin:0 0 14px">Volunteer activity</button>
   <div class="form">
     <label for="vol-dog">Show distance from</label>
     <select id="vol-dog"></select>
@@ -2159,6 +2194,12 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <button class="btn" type="button" data-vol-kit="thermal">Has a thermal</button>
     <button class="btn" type="button" data-vol-kit="drone">Has a drone</button>
     <button class="btn" type="button" data-vol-kit="scanner">Has a scanner</button>
+  </div>
+  <p class="vol-now" id="vol-now" hidden></p>
+  <div class="tabs vol-tabs vol-avail-tabs">
+    <button class="btn" type="button" data-vol-avail="">Any time</button>
+    <button class="btn" type="button" data-vol-avail="free">Available now</button>
+    <button class="btn" type="button" data-vol-avail="away">Busy / holiday</button>
   </div>
   <div id="vol-list"></div>
 </section>
@@ -2452,6 +2493,7 @@ function render() {
   if (name === 'fbupdate')  { if (!isCoord()) return go('home'); activate('fbupdate'); return showFacebookUpdate(arg); }
   if (name === 'reports')   { if (!canSeeReports()) return go('home'); activate('reports'); return showReports(); }
   if (name === 'report')    { if (!canSeeReports()) return go('home'); activate('report'); return showReport(arg); }
+  if (name === 'activity')  { if (!isAdmin()) return go('home'); activate('activity'); return showActivity(arg); }
   if (name === 'availability') { activate('availability'); return showAvailability(); }
   if (name === 'topics')    { if (!isAdmin()) return go('home'); activate('topics'); return showTopics(); }
   if (name === 'topic-edit') { if (!isAdmin()) return go('home'); activate('topic-edit'); return showTopicEdit(arg); }
@@ -2732,6 +2774,100 @@ $('#verify-resend').addEventListener('click', async () => {
 });
 // Coming back to the app after tapping the link in the email: check straight away.
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVerified(true); });
+
+// ---------- Volunteer activity (admins): who replies to availability requests ----------
+// Uses asks/{id} (written by the server each time availability is asked for: who was asked, who was away)
+// and each dog's availability replies. Counting starts from when this was installed.
+let actPeriod = 90;
+async function showActivity(who) {
+  const fb = state.fb, root = $('#act-body');
+  $('#act-title').textContent = 'Volunteer activity';
+  $('#act-back').setAttribute('data-go', who ? 'activity' : 'volunteers');
+  $('#act-back').textContent = who ? '← Volunteer activity' : '← Members & Map';
+  root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  let asks, users, replies = new Map();
+  try {
+    const [a, u] = await Promise.all([fb.getDocs(fb.collection(fb.db, 'asks')), fb.getDocs(fb.collection(fb.db, 'users'))]);
+    asks = a.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => typeof x.atMs === 'number').sort((x, y) => x.atMs - y.atMs);
+    users = new Map(u.docs.map(d => [d.id, d.data()]).filter(([, v]) => ACCESS.includes(v.role)));
+    const dogIds = [...new Set(asks.map(x => x.dogId))];
+    await Promise.all(dogIds.map(async id => {
+      const r = await fb.getDocs(fb.collection(fb.db, 'dogs', id, 'availability')).catch(() => null);
+      replies.set(id, new Map(r ? r.docs.map(d => [d.id, d.data({ serverTimestamps: 'estimate' })]) : []));
+    }));
+  } catch (err) {
+    root.textContent = '';
+    root.appendChild(h('p', { class: 'empty' }, err && err.code === 'permission-denied' ? 'This will work once the new security rules are pasted into Firebase.' : friendlyError(err)));
+    return;
+  }
+  const since = actPeriod ? Date.now() - actPeriod * 864e5 : 0;
+  const inPeriod = asks.filter(x => x.atMs >= since);
+  // What each person did for each request. A reply counts for a request if it came after it (and before the next request for the same dog).
+  const outcome = (ask, uid) => {
+    const next = asks.find(x => x.dogId === ask.dogId && x.atMs > ask.atMs);
+    const r = (replies.get(ask.dogId) || new Map()).get(uid);
+    const at = r ? millis(r.updatedAt) : 0;
+    if (r && at >= ask.atMs - 60000 && (!next || at < next.atMs)) return r.status === 'no' ? 'no' : 'yes';
+    return (ask.away || []).includes(uid) ? 'away' : 'none';
+  };
+  const stats = uid => {
+    const mine = inPeriod.filter(x => (x.asked || []).includes(uid));
+    const c = { asked: mine.length, yes: 0, no: 0, away: 0, none: 0, last: 0, list: [] };
+    mine.forEach(x => { const o = outcome(x, uid); c[o]++; c.list.push({ ask: x, o });
+      if (o === 'yes' || o === 'no') { const r = replies.get(x.dogId).get(uid); c.last = Math.max(c.last, millis(r.updatedAt)); } });
+    const replied = c.yes + c.no, rate = c.asked ? replied / c.asked : 0;
+    c.flag = c.asked < 3 ? null
+      : replied === 0 && c.none >= 3 ? { t: 'Never replies', cls: 'red' }
+      : replied >= 3 && c.yes === 0 ? { t: 'Always not available', cls: 'amb' }
+      : c.away / c.asked >= 0.6 ? { t: 'Mostly away', cls: 'gry' }
+      : rate < 0.34 ? { t: 'Rarely replies', cls: 'amb' }
+      : c.yes / c.asked >= 0.5 ? { t: 'Very active', cls: 'grn' } : null;
+    return c;
+  };
+  const ago = ms => { if (!ms) return 'never'; const d = Math.floor((Date.now() - ms) / 864e5); return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago'; };
+  const bar = c => h('div', { class: 'act-bar' }, [['yes', '#1d8a3a'], ['no', '#e11d2e'], ['away', '#6b6385'], ['none', '#dddddd']]
+    .map(([k, col]) => c[k] ? h('i', { style: 'width:' + (100 * c[k] / c.asked) + '%;background:' + col }) : null));
+  root.textContent = '';
+  root.appendChild(h('div', { class: 'act-tabs' }, [[30, '30 days'], [90, '90 days'], [0, 'All']].map(([v, l]) =>
+    h('button', { type: 'button', class: 'act-tab' + (actPeriod === v ? ' on' : ''), onclick: () => { actPeriod = v; showActivity(who); } }, l))));
+  if (!asks.length) { root.appendChild(h('p', { class: 'empty' }, 'Nothing recorded yet. Every availability request from now on is counted here.')); return; }
+
+  if (who) {   // one volunteer
+    const u = users.get(who) || {}, c = stats(who);
+    $('#act-title').textContent = u.name || 'Volunteer';
+    const busy = await fb.getDoc(fb.doc(fb.db, 'busy', who)).then(x => x.exists() ? x.data() : null).catch(() => null);
+    const weekly = busy && Array.isArray(busy.weekly) && busy.weekly.length ? busy.weekly.map(w => daysText(w.days) + ' ' + w.from + '–' + w.to).join(', ') : 'None';
+    const R = (k, v) => h('div', { class: 'act-r' }, h('span', null, k), h('b', null, v));
+    root.appendChild(h('div', { class: 'act-card' }, h('strong', null, actPeriod ? 'Last ' + actPeriod + ' days' : 'Since recording began'),
+      R('Asked', String(c.asked)), R('Available now / later', String(c.yes)), R('Not available', String(c.no)), R('Away (holiday or busy)', String(c.away)), R('No reply', String(c.none)),
+      R('Weekly busy times', weekly), R('Last reply', ago(c.last))));
+    const label = { yes: ['Available', 'yes'], no: ['Not available', 'no'], away: ['Away', 'away'], none: ['No reply', 'none'] };
+    root.appendChild(h('div', { class: 'act-card' }, h('strong', null, 'Each request'),
+      c.list.length ? c.list.slice().reverse().map(({ ask, o }) => h('div', { class: 'act-r' }, h('span', null, (ask.dogName || 'A dog') + ' · ' + new Date(ask.atMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })), h('b', { class: 'act-o ' + label[o][1] }, label[o][0])))
+        : h('p', { class: 'empty' }, 'Not asked in this period.')));
+    root.appendChild(h('p', { class: 'hint' }, 'Only admins can see this.'));
+    return;
+  }
+
+  const people = [...users.keys()].map(uid => ({ uid, name: users.get(uid).name || 'Unnamed', c: stats(uid) })).filter(p => p.c.asked);
+  const totalAsked = people.reduce((n, p) => n + p.c.asked, 0), totalReplied = people.reduce((n, p) => n + p.c.yes + p.c.no, 0);
+  const check = people.filter(p => p.c.flag && p.c.flag.cls !== 'grn').sort((a, b) => (a.c.yes + a.c.no) / a.c.asked - (b.c.yes + b.c.no) / b.c.asked);
+  const rest = people.filter(p => !check.includes(p)).sort((a, b) => b.c.yes / b.c.asked - a.c.yes / a.c.asked || a.name.localeCompare(b.name));
+  root.appendChild(h('div', { class: 'act-sum' },
+    h('div', null, h('b', null, String(inPeriod.length)), h('span', null, 'requests')),
+    h('div', null, h('b', null, totalAsked ? Math.round(100 * totalReplied / totalAsked) + '%' : '–'), h('span', null, 'reply rate')),
+    h('div', null, h('b', null, String(check.length)), h('span', null, 'to check'))));
+  root.appendChild(h('p', { class: 'act-key' }, h('span', null, h('i', { style: 'background:#1d8a3a' }), 'Available'), h('span', null, h('i', { style: 'background:#e11d2e' }), 'Not available'),
+    h('span', null, h('i', { style: 'background:#6b6385' }), 'Away (holiday/busy)'), h('span', null, h('i', { style: 'background:#ddd' }), 'No reply')));
+  const card = p => h('button', { type: 'button', class: 'act-card act-person', 'data-go': 'activity/' + p.uid },
+    h('span', { class: 'act-top' }, h('b', null, p.name), p.c.flag ? h('span', { class: 'act-flag ' + p.c.flag.cls }, p.c.flag.t) : null),
+    bar(p.c),
+    h('span', { class: 'act-n' }, 'Asked ' + p.c.asked + ' · replied ' + (p.c.yes + p.c.no) + ' · available ' + p.c.yes + (p.c.away ? ' · away ' + p.c.away : '') + ' · last reply ' + ago(p.c.last)));
+  if (check.length) { root.appendChild(h('h3', { class: 'act-h' }, 'Worth a check')); check.forEach(p => root.appendChild(card(p))); }
+  if (rest.length) { root.appendChild(h('h3', { class: 'act-h' }, check.length ? 'Everyone else' : 'Volunteers')); rest.forEach(p => root.appendChild(card(p))); }
+  if (!people.length) root.appendChild(h('p', { class: 'empty' }, 'No availability requests in this period.'));
+  root.appendChild(h('p', { class: 'hint' }, 'Flags appear once someone has been asked at least 3 times. Only admins can see this.'));
+}
 
 // ---------- My Availability: weekly busy times (like work), one-off busy times and holidays ----------
 // Busy times are kept in busy/{uid} = { uid, weekly: [{ days: [0..6], from, to }], oneoff: [{ date, from, to }], updatedAt }.
@@ -4898,9 +5034,10 @@ function showProfile() {
 
 // ---- Admins: everyone on a map, and who is nearest to a dog
 let volKit = '';
+let volAvail = '';   // Members & Map: '' any time, 'free' available now, 'away' busy or on holiday
 function showVolunteers(dogId) {
   const fb = state.fb, list = $('#vol-list'), mapEl = $('#vol-map'), dogSelect = $('#vol-dog');
-  const live = { users: null, profiles: null, dogs: [], dog: dogId || '', map: null, turn: 0 };
+  const live = { users: null, profiles: null, dogs: [], dog: dogId || '', map: null, turn: 0, hols: new Map(), busy: new Map() };
   list.textContent = '';
   list.appendChild(h('p', { class: 'empty' }, 'Loading…'));
   state.subs.push(() => { live.turn++; if (live.map) { try { live.map.remove(); } catch (e) {} live.map = null; } });
@@ -4911,6 +5048,21 @@ function showVolunteers(dogId) {
     b.onclick = () => { volKit = b.getAttribute('data-vol-kit'); $$('[data-vol-kit]').forEach(o => o.classList.toggle('on', o === b)); draw(); };
   });
   dogSelect.onchange = () => { live.dog = dogSelect.value; draw(); };
+  // Available right now, or busy / on holiday (from everyone's My Availability)
+  $$('[data-vol-avail]').forEach(b => {
+    b.classList.toggle('on', b.getAttribute('data-vol-avail') === volAvail);
+    b.onclick = () => { volAvail = b.getAttribute('data-vol-avail'); $$('[data-vol-avail]').forEach(o => o.classList.toggle('on', o === b)); draw(); };
+  });
+  const awayOf = id => awayNow(live.hols.get(id), live.busy.get(id));
+  const availTags = p => {
+    const away = p.members.map(m => ({ m, a: awayOf(m.id) })).filter(x => x.a);
+    if (!away.length) return h('span', { class: 'vol-now-tag free' }, 'Available now');
+    return away.map(({ m, a }) => h('span', { class: 'vol-now-tag ' + a.kind }, (p.members.length > 1 ? String(m.name || '').split(/\s+/)[0] + ': ' : '') + a.text));
+  };
+  const unitAway = p => p.members.every(m => awayOf(m.id));   // a team counts as away only if all of it is
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'holidays'), snap => { live.hols = new Map(snap.docs.map(d => [d.id, d.data().ranges || []])); draw(); }, () => {}));
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'busy'), snap => { live.busy = new Map(snap.docs.map(d => [d.id, d.data()])); draw(); }, () => {}));
+  const tick = setInterval(() => draw(), 60000); state.subs.push(() => clearInterval(tick));
 
   function draw() {
     if (!live.users || !live.profiles) return;
@@ -4930,7 +5082,11 @@ function showVolunteers(dogId) {
     const placed = people.filter(p => hasSpot(p.profile));
     const unplaced = people.filter(p => !hasSpot(p.profile));
 
-    const match = p => !volKit || kitKinds(p.profile).includes(volKit);
+    const match = p => (!volKit || kitKinds(p.profile).includes(volKit)) && (!volAvail || (volAvail === 'away') === unitAway(p));
+    // Right now: how many are available, busy or on holiday
+    const states = everyone.map(u => awayOf(u.id));
+    $('#vol-now').hidden = false;
+    $('#vol-now').textContent = 'Right now: ' + states.filter(a => !a).length + ' available \u00b7 ' + states.filter(a => a && a.kind === 'busy').length + ' busy \u00b7 ' + states.filter(a => a && a.kind === 'holiday').length + ' on holiday';
     const rows = placed.filter(match).map(p => ({ p, miles: dogAt ? milesBetween([p.profile.lat, p.profile.lng], dogAt) : null }))
       .sort((a, b) => dogAt ? a.miles - b.miles : String(a.p.name || '').localeCompare(String(b.p.name || '')));
 
@@ -4942,9 +5098,10 @@ function showVolunteers(dogId) {
             h('strong', null, p.name || 'No name'),
             h('span', { class: 'vol-miles' }, miles === null ? 'Open ›' : milesText(miles)),
             h('span', { class: 'vol-sub' }, (p.team ? 'Team · ' : '') + (p.profile.town || '')),
+            h('span', { class: 'vol-now-tags' }, availTags(p)),
             kitTags(p.profile)))))
       : h('p', { class: 'empty' }, placed.length ? 'Nobody matches that filter.' : 'Nobody has set where they are based yet.'));
-    if (unplaced.length && !volKit) {
+    if (unplaced.length && !volKit && !volAvail) {
       list.appendChild(h('h3', { class: 'section' }, 'Not set yet (' + unplaced.length + ')'));
       list.appendChild(h('ul', { class: 'card feed' }, unplaced.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
         .map(p => h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name')))));
