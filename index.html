@@ -1190,6 +1190,9 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 .tf-ph, .tf-pdf, .tf-vid { display: block; margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: #efeafd; font-size: .9rem; overflow-wrap: anywhere; }
 .tf-pdf small, .tf-vid small { color: #5b4f80; }
 .tf-row .link.danger { color: #ffd0d0; font-weight: 800; }
+
+.report-email { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.12); overflow-wrap: anywhere; }
+.report-email .btn { flex-shrink: 0; padding: 8px 14px; }
 </style>
 </head>
 <body>
@@ -3848,7 +3851,10 @@ function showReport(id) {
     root.appendChild(h('div', { class: 'report-who' },
       h('div', null, h('span', { class: 'report-who-label' }, behalf ? 'Reported by (' + (r.relationship || 'for the owner').toLowerCase() + ')' : 'Reported by'), h('strong', null, r.reporterName || 'No name'), h('span', null, prettyPhone(r.reporterPhone))),
       r.reporterPhone ? h('a', { class: 'btn report-call', href: 'tel:' + r.reporterPhone }, behalf ? 'Call reporter' : 'Call') : null));
-    root.appendChild(h('p', { class: 'hint', style: 'margin-top:4px' }, (behalf ? 'These names and phone numbers are' : "The reporter's name and phone are") + ' only shown to coordinators and admins.'));
+    // Optional email, in case the phone number doesn't get through.
+    if (r.reporterEmail) root.appendChild(h('div', { class: 'report-email' }, h('span', null, 'Email: ', h('b', null, r.reporterEmail)),
+      h('a', { class: 'btn ghost', href: 'mailto:' + r.reporterEmail + '?subject=' + encodeURIComponent('Your report to Lost Dogs Ayrshire') }, 'Email')));
+    root.appendChild(h('p', { class: 'hint', style: 'margin-top:4px' }, (behalf ? 'These names and phone numbers are' : "The reporter's name, phone" + (r.reporterEmail ? ' and email are' : ' are')) + ' only shown to coordinators and admins.'));
 
     if (!isNew) {
       if (r.status === 'rejected') {
