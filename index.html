@@ -1193,6 +1193,48 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 
 .report-email { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.12); overflow-wrap: anywhere; }
 .report-email .btn { flex-shrink: 0; padding: 8px 14px; }
+
+/* ---- Owner permission (dogs reported on the owner's behalf) ---- */
+.perm-banner { display: flex; flex-direction: column; gap: 4px; margin: 10px 0 14px; padding: 12px 14px; border-radius: 14px; border: 3px solid; background: #fff; color: #1c1530; }
+.perm-banner.waiting { border-color: #e08a00; background: #fff4d6; }
+.perm-banner.refused { border-color: #e11d2e; background: #ffe3e5; }
+.perm-banner.given { border-color: #1d8a3a; background: #e3f6e8; }
+.perm-banner strong { font-size: 1.05rem; }
+.perm-banner.refused strong { color: #b0101f; }
+.perm-banner small { color: #4a3f6b; }
+.perm-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.perm-actions .btn { flex: 1 1 140px; }
+.perm-banner .btn.ghost { color: #5220c4; border-color: #5220c4; }
+.perm-tag { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 900; text-transform: uppercase; }
+.perm-tag.waiting { background: #e08a00; color: #fff; }
+.perm-tag.refused { background: #e11d2e; color: #fff; }
+.ask-locked { margin: 10px 0; padding: 10px 12px; border-radius: 12px; background: rgba(224,138,0,.25); font-weight: 700; }
+.perm-q { margin: 0 0 6px; font-weight: 800; }
+.perm-pick { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.perm-btn { padding: 11px; border-radius: 12px; border: 3px solid rgba(255,255,255,.5); background: transparent; color: #fff; font: inherit; font-weight: 800; text-align: left; }
+.perm-btn.on.waiting { background: #e08a00; border-color: #e08a00; }
+.perm-btn.on.given { background: #1d8a3a; border-color: #1d8a3a; }
+.perm-btn.on.refused { background: #e11d2e; border-color: #e11d2e; }
+.perm-btn.on::before { content: "\2713  "; }
+.report-behalf.no { border-color: #e11d2e; }
+.report-behalf-line.no { color: #ffb3b3; }
+.perm-banner .perm-actions .btn.ghost { color: #5220c4 !important; border-color: #5220c4 !important; background: #fff !important; }
+
+/* ---- Who is dealing with a public report ---- */
+.handle-box { display: flex; flex-direction: column; gap: 8px; margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; border: 3px solid; }
+.handle-box.none { border-color: #e08a00; background: rgba(224,138,0,.18); }
+.handle-box.me { border-color: #1d8a3a; background: rgba(29,138,58,.2); }
+.handle-box.other { border-color: #fdf90f; background: rgba(253,249,15,.12); }
+.handle-box strong { font-size: 1.08rem; }
+.handle-last { font-weight: 700; }
+.handle-quiet { color: #ffd0a0; font-weight: 800; }
+.handle-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.handle-quick .btn { flex: 1 1 120px; padding: 9px 8px; font-size: .85rem; }
+.handle-box .link { align-self: flex-start; color: #fdf90f; }
+.handle-log summary { cursor: pointer; font-weight: 800; }
+.handle-log ul { margin: 6px 0 0; padding-left: 18px; }
+.handle-log li { margin: 4px 0; } .handle-log small { display: block; opacity: .8; }
+.report-looking.none { color: #b35c00; }
 </style>
 </head>
 <body>
@@ -2725,6 +2767,7 @@ function showDogs() {
         h('span', { class: 'tile-name' }, h('span', { class: 'name-label' }, 'Name: '), d.name || 'Unnamed dog'),
         statusBadge(d.status),
         d.status === 'found' && d.foundWhere ? h('span', { class: 'found-where tile-where' }, d.foundWhere) : null,
+        noSearchYet(d) ? h('span', { class: 'perm-tag ' + d.ownerPermission }, OWNER_PERM[d.ownerPermission].tag) : null,
         fresh ? h('span', { class: 'count dog-new', title: 'New updates' }, String(fresh)) : null));
     });
   }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
@@ -2743,6 +2786,16 @@ function pawIcon() {
 // ============================================================
 //  Missing dogs: one dog
 // ============================================================
+// Owner permission for dogs reported by someone else on the owner's behalf.
+// 'waiting' = not spoken to the owner yet, 'given' = owner agreed, 'refused' = owner said no. No search until 'given'.
+const OWNER_PERM = {
+  waiting: { tag: 'Owner permission: waiting', title: 'Owner has not given permission yet', text: 'No search by Lost Dogs Ayrshire until the owner agrees. We can still post to raise awareness and take sightings.', cls: 'waiting' },
+  refused: { tag: 'Owner said no', title: 'Owner has NOT given permission', text: 'Do not search for this dog. Posts to raise awareness and sightings only.', cls: 'refused' },
+  given: { tag: '', title: 'Owner has given permission', text: '', cls: 'given' }
+};
+const ownerPerm = r => r.reportedFor !== 'owner' ? '' : r.ownerConsent ? 'given' : r.ownerRefused ? 'refused' : 'waiting';
+const noSearchYet = d => d.ownerPermission === 'waiting' || d.ownerPermission === 'refused';
+
 function showDog(id) {
   const fb = state.fb, root = $('#dog-body');
   const dogRef = fb.doc(fb.db, 'dogs', id);
@@ -2797,6 +2850,7 @@ function showDog(id) {
   // Asking for availability: tick to confirm, then tick what is needed (V6).
   function askPanel() {
     const d = live.dog;
+    if (noSearchYet(d) && !d.askAvailability) return h('p', { class: 'ask-locked' }, 'Asking for availability is locked: the owner has ' + (d.ownerPermission === 'refused' ? 'said no to a search.' : 'not given permission for a search yet.'));
     if (d.askAvailability) {
       const needs = needsOf(d);
       return h('div', { class: 'ask-on' },
@@ -2833,6 +2887,28 @@ function showDog(id) {
     return panel;
   }
 
+  function permBanner(d) {
+    const P = OWNER_PERM[d.ownerPermission] || OWNER_PERM.waiting;
+    const setPerm = async v => {
+      if (v === d.ownerPermission) return;
+      if (!confirm(v === 'given' ? 'Record that the owner has agreed to a search by Lost Dogs Ayrshire?' : v === 'refused' ? 'Record that the owner has said NO to a search?' : 'Mark the owner\u2019s permission as not given yet?')) return;
+      try {
+        await fb.updateDoc(dogRef, { ownerPermission: v, ownerPermissionBy: state.profile.name || '', ownerPermissionByUid: state.user.uid, ownerPermissionAt: fb.serverTimestamp(), updatedAt: fb.serverTimestamp() });
+        await fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'), { kind: 'permission', text: v === 'given' ? 'The owner has given permission for a search.' : v === 'refused' ? 'The owner has said no to a search by Lost Dogs Ayrshire.' : 'Owner permission marked as not given yet.',
+          byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() });
+        fb.updateDoc(dogRef, { updateCount: fb.increment(1), lastUpdateAt: fb.serverTimestamp() }).catch(() => {});
+      } catch (err) { alert(friendlyError(err)); }
+    };
+    const by = d.ownerPermissionBy ? (d.ownerPermission === 'given' ? 'Confirmed by ' : 'Recorded by ') + d.ownerPermissionBy + (d.ownerPermissionAt ? ', ' + when(d.ownerPermissionAt) : '') : '';
+    return h('div', { class: 'perm-banner ' + P.cls, id: 'perm-banner' },
+      h('strong', null, (d.ownerPermission === 'given' ? '\u2713 ' : '\u26a0 ') + P.title + (d.ownerName ? ' (' + d.ownerName + ')' : '')),
+      P.text ? h('span', null, P.text) : null,
+      by ? h('small', null, by) : null,
+      isCoord() && d.ownerPermission !== 'given' ? h('div', { class: 'perm-actions' },
+        h('button', { class: 'btn', type: 'button', id: 'perm-yes', onclick: () => setPerm('given') }, 'Owner has agreed'),
+        d.ownerPermission !== 'refused' ? h('button', { class: 'btn ghost', type: 'button', id: 'perm-no', onclick: () => setPerm('refused') }, 'Owner said no') : null) : null);
+  }
+
   function draw() {
     const d = live.dog;
     if (!d) return;
@@ -2853,6 +2929,9 @@ function showDog(id) {
       d.askAvailability && !onStandby && holidayNow(live.myHolidays) ? h('span', { class: 'standby-tag holiday' }, 'On holiday') : null));
     if (d.statusBy) root.appendChild(h('p', { class: 'status-by' },
       (st.active === false ? 'Closed by ' : 'Status set by ') + d.statusBy + (d.statusAt ? ', ' + when(d.statusAt) : '')));
+
+    // Reported on the owner's behalf: what the owner has said about a search, for everyone to see.
+    if (d.ownerPermission) root.appendChild(permBanner(d));
 
     if (photo) root.appendChild(h('img', { class: 'full-image', alt: 'Photo of ' + (d.name || 'the dog'), src: photo.data }));
     else if (d.thumb) root.appendChild(h('img', { class: 'full-image', alt: 'Photo of ' + (d.name || 'the dog'), src: d.thumb }));
@@ -3356,7 +3435,7 @@ function showDogEdit(id) {
     if (r.seenDate) el.lastSeenAt.value = r.seenDate + 'T' + (r.seenTime || '12:00');
     el.description.value = (r.details || '') + (REPORT_DANGER[r.danger] ? (r.details ? '\n\n' : '') + 'Reported in immediate danger: ' + REPORT_DANGER[r.danger].text.split('.')[0] + '.' : '');
     el.notes.value = r.reportedFor === 'owner'
-      ? 'From a public report made for the owner by ' + (r.reporterName || 'someone') + (r.relationship ? ' (' + r.relationship.toLowerCase() + ')' : '') + '. Owner agreed' + (r.ownerConsentBy ? ' (confirmed by ' + r.ownerConsentBy + ')' : '') + '. Phone numbers are in Public Reports.'
+      ? 'From a public report made for the owner by ' + (r.reporterName || 'someone') + (r.relationship ? ' (' + r.relationship.toLowerCase() + ')' : '') + '. ' + (ownerPerm(r) === 'given' ? 'Owner agreed' + (r.ownerConsentBy ? ' (confirmed by ' + r.ownerConsentBy + ')' : '') : ownerPerm(r) === 'refused' ? 'Owner said NO to a search' + (r.ownerConsentBy ? ' (recorded by ' + r.ownerConsentBy + ')' : '') : 'Owner NOT yet asked for permission') + '. Phone numbers are in Public Reports.'
       : 'From a public report (' + (r.reporterName || 'no name') + '). Their phone number is in Public Reports.';
     if (typeof r.lat === 'number') edit.spot = { lat: r.lat, lng: r.lng };
     const pic = r.photoData || r.thumb;
@@ -3384,6 +3463,7 @@ function showDogEdit(id) {
       NEED_ORDER.forEach(n => { $('#dog-need-' + n).checked = needsOf(d).includes(n); });
       $('#dog-needs').hidden = !d.askAvailability;
       edit.wasAsking = !!d.askAvailability;
+      edit.ownerPermission = d.ownerPermission || '';
       edit.existingThumb = d.thumb || null;
       if (d.thumb) { $('#dog-photo-preview').src = d.thumb; $('#dog-photo-preview').hidden = false; }
       if (typeof d.lat === 'number') edit.spot = { lat: d.lat, lng: d.lng };
@@ -3415,6 +3495,8 @@ function showDogEdit(id) {
     if (v('status') === 'found' && !v('foundWhere')) { msg.textContent = 'Found: choose where the dog is now.'; $('#dog-found-where').focus(); return; }
     const needs = NEED_ORDER.filter(n => $('#dog-need-' + n).checked);
     if ($('#dog-ask').checked && !needs.length) { msg.textContent = 'Asking for availability: tick what is needed (ground search, drones or scan dog).'; return; }
+    const perm = edit.report ? ownerPerm(edit.report) : (edit.ownerPermission || '');
+    if ($('#dog-ask').checked && (perm === 'waiting' || perm === 'refused')) { msg.textContent = 'You can\u2019t ask for availability yet: the owner has not given permission for a search.'; return; }
     const data = {
       name: v('name'), status: v('status') || 'missing', foundWhere: v('status') === 'found' ? v('foundWhere') : '', breed: v('breed'), colour: v('colour'), sex: v('sex'), age: v('age'),
       lastSeenPlace: v('lastSeenPlace'), lastSeenAt: v('lastSeenAt'), description: v('description'), notes: v('notes'),
@@ -3429,8 +3511,13 @@ function showDogEdit(id) {
     try {
       let dogId = id;
       if (isNew) {
+        const extra = {};
+        if (edit.report && edit.report.reportedFor === 'owner') {   // the owner's answer comes over from the report
+          const r = edit.report;
+          Object.assign(extra, { ownerPermission: ownerPerm(r), ownerName: r.ownerName || '', ownerPermissionBy: r.ownerConsentBy || '', ownerPermissionAt: r.ownerConsentAt || null });
+        }
         const ref = await fb.addDoc(fb.collection(fb.db, 'dogs'),
-          { ...data, thumb: edit.thumb || null, createdAt: fb.serverTimestamp(), createdBy: state.profile.name || '', createdByUid: state.user.uid });
+          { ...data, ...extra, thumb: edit.thumb || null, createdAt: fb.serverTimestamp(), createdBy: state.profile.name || '', createdByUid: state.user.uid });
         dogId = ref.id;
         if (edit.report) await fb.updateDoc(fb.doc(fb.db, 'reports', edit.report.id),
           { status: 'accepted', outcomeDogId: dogId, outcomeDogName: data.name, ...reportStamp() }).catch(err => console.warn('Report not marked:', err && err.message));
@@ -3563,8 +3650,10 @@ function showReports() {
           h('strong', null, r.town || 'No place given'),
           r.dogName ? h('span', null, (r.type === 'posts' ? 'About: ' : 'Dog: ') + r.dogName) : null,
           h('span', null, (reportSeen(r) ? 'Seen ' + reportSeen(r) + ' · ' : '') + 'sent ' + when(r.createdAt)),
-          r.reportedFor === 'owner' ? h('span', { class: 'report-behalf-line' + (r.ownerConsent ? ' ok' : '') }, r.ownerConsent ? 'For the owner \u00b7 owner has agreed' : 'For the owner \u00b7 owner not yet confirmed') : null,
-          r.status === 'new' && r.lookingBy ? h('span', { class: 'report-looking' }, 'Being looked at by ' + r.lookingBy) : null,
+          r.reportedFor === 'owner' ? h('span', { class: 'report-behalf-line' + (r.ownerConsent ? ' ok' : r.ownerRefused ? ' no' : '') }, r.ownerConsent ? 'For the owner \u00b7 owner has agreed' : r.ownerRefused ? 'For the owner \u00b7 owner said no to a search' : 'For the owner \u00b7 owner not yet confirmed') : null,
+          r.status === 'new' ? h('span', { class: 'report-looking' + (r.lookingBy ? '' : ' none') }, r.lookingBy
+            ? (r.lookingByUid === state.user.uid ? 'You are dealing with this' : r.lookingBy + ' is dealing with this') + (Array.isArray(r.actions) && r.actions.length ? ' \u00b7 ' + r.actions[r.actions.length - 1].what : '')
+            : 'Nobody dealing with it yet') : null,
           r.status !== 'new' ? h('span', { class: 'report-outcome' }, reportOutcome(r)) : null)));
     });
   }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
@@ -3753,11 +3842,6 @@ function showReport(id) {
   state.subs.push(fb.onSnapshot(ref, snap => {
     if (!snap.exists()) { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, 'This report is no longer here. Reports are deleted 30 days after they are dealt with.')); live.r = null; return; }
     live.r = { id: snap.id, ...snap.data({ serverTimestamps: 'estimate' }) };
-    // Opening a new report tells everyone else who is dealing with it, so two people do not phone the same person.
-    if (live.r.status === 'new' && !live.r.lookingByUid && !live.claimed) {
-      live.claimed = true;
-      fb.updateDoc(ref, { lookingBy: state.profile.name || '', lookingByUid: state.user.uid, lookingAt: fb.serverTimestamp() }).catch(() => {});
-    }
     draw();
   }, err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
   fb.getDoc(fb.doc(fb.db, 'reports', id, 'images', 'main')).then(snap => { if (snap.exists()) { live.photo = snap.data().data; draw(); } }).catch(() => {});
@@ -3766,6 +3850,45 @@ function showReport(id) {
       .sort((a, b) => millis(b.createdAt) - millis(a.createdAt));
     if (live.mode === 'sighting') draw();
   }, () => {}));
+
+  // Who is dealing with the report, and what they have done. Nobody "owns" a report just by opening it:
+  // they tap "I'll deal with this" (or a Call button), and others can take over.
+  async function logAction(what, opts) {
+    const r = live.r, me = state.profile.name || '', o = opts || {};
+    const change = { actions: (Array.isArray(r.actions) ? r.actions : []).concat([{ what, by: me, byUid: state.user.uid, at: Date.now() }]).slice(-50) };
+    if (o.claim) Object.assign(change, { lookingBy: me, lookingByUid: state.user.uid, lookingAt: fb.serverTimestamp() });
+    if (o.release) Object.assign(change, { lookingBy: '', lookingByUid: '', lookingAt: null });
+    try { await fb.updateDoc(ref, change); } catch (err) { alert(err && err.code === 'permission-denied' ? 'Not saved: the new security rules need pasting into Firebase first.' : friendlyError(err)); }
+  }
+  const mine = r => r.lookingByUid === state.user.uid;
+  // Tapping Call or Email: log it (and take the report if nobody has it), then let the phone carry on.
+  const contactLog = (who, how) => () => { const r = live.r; if (r.status !== 'new') return;
+    logAction((how === 'email' ? 'Emailing ' : 'Calling ') + who, { claim: !r.lookingByUid || mine(r) }); };
+
+  function handlingPanel(r) {
+    const acts = Array.isArray(r.actions) ? r.actions : [], last = acts[acts.length - 1];
+    const quiet = r.lookingByUid && last && Date.now() - last.at > 2 * 3600e3;
+    const box = h('div', { class: 'handle-box' + (r.lookingByUid ? (mine(r) ? ' me' : ' other') : ' none'), id: 'handle-box' });
+    if (!r.lookingByUid) {
+      box.appendChild(h('strong', null, 'Nobody is dealing with this yet'));
+      box.appendChild(h('button', { class: 'btn wide', type: 'button', id: 'handle-take', onclick: () => logAction('Is dealing with this report', { claim: true }) }, 'I\u2019ll deal with this'));
+    } else {
+      box.appendChild(h('strong', null, mine(r) ? 'You are dealing with this' : r.lookingBy + ' is dealing with this'));
+      if (last) box.appendChild(h('span', { class: 'handle-last' }, 'Latest: ' + last.what + (last.by && last.by !== r.lookingBy ? ' (' + last.by + ')' : '') + ' \u00b7 ' + when(last.at)));
+      if (quiet) box.appendChild(h('span', { class: 'handle-quiet' }, 'Nothing logged for over 2 hours.'));
+      if (mine(r)) {
+        box.appendChild(h('div', { class: 'handle-quick' },
+          [['No answer \u2013 will try again', 'Called: no answer'], ['Left a message', 'Left a message'], ['Spoke to them', 'Spoke to the reporter']]
+            .map(([label, what]) => h('button', { class: 'btn ghost', type: 'button', onclick: () => logAction(what) }, label))));
+        box.appendChild(h('button', { class: 'link', type: 'button', id: 'handle-release', onclick: () => { if (confirm('Hand this report back so someone else can pick it up?')) logAction('Handed it back', { release: true }); } }, 'Hand it back for someone else'));
+      } else box.appendChild(h('button', { class: 'btn wide ghost', type: 'button', id: 'handle-over', onclick: () => {
+        if (confirm('Take over this report from ' + r.lookingBy + '?')) logAction('Took over from ' + r.lookingBy, { claim: true });
+      } }, 'Take over from ' + r.lookingBy));
+    }
+    if (acts.length) box.appendChild(h('details', { class: 'handle-log' }, h('summary', null, 'What\u2019s been done (' + acts.length + ')'),
+      h('ul', null, acts.slice().reverse().map(a => h('li', null, h('b', null, a.by || 'Someone'), ' ' + a.what.charAt(0).toLowerCase() + a.what.slice(1), h('small', null, when(a.at)))))));
+    return box;
+  }
 
   function draw() {
     const r = live.r;
@@ -3780,8 +3903,7 @@ function showReport(id) {
       h('strong', null, 'Immediate danger: ' + REPORT_DANGER[r.danger].label),
       h('span', null, 'The reporter felt the dog was in immediate danger. ' + REPORT_DANGER[r.danger].text)));
     else if (r.danger === 'no') root.appendChild(h('p', { class: 'hint', style: 'margin:-4px 0 10px' }, 'The reporter said the dog was not in immediate danger.'));
-    if (isNew && r.lookingBy) root.appendChild(h('p', { class: 'report-looking-box' },
-      r.lookingByUid === state.user.uid ? 'You are looking at this report.' : 'Being looked at by ' + r.lookingBy + (r.lookingAt ? ' (' + when(r.lookingAt) + ')' : '') + '.'));
+    if (isNew) root.appendChild(handlingPanel(r));
     if (!isNew) root.appendChild(h('div', { class: 'fb-posted report-done' },
       h('span', { class: 'ok' }, tickIcon('#ffffff', 24)),
       h('div', null, h('strong', null, reportOutcome(r)),
@@ -3840,20 +3962,21 @@ function showReport(id) {
 
     const behalf = r.reportedFor === 'owner';
     if (behalf) {
-      root.appendChild(h('div', { class: 'report-behalf' + (r.ownerConsent ? ' ok' : '') },
-        h('strong', null, r.ownerConsent ? 'The owner has agreed' : 'Phone the owner first'),
+      root.appendChild(h('div', { class: 'report-behalf' + (r.ownerConsent ? ' ok' : r.ownerRefused ? ' no' : '') },
+        h('strong', null, r.ownerConsent ? 'The owner has agreed' : r.ownerRefused ? 'The owner said no to a search' : 'Phone the owner'),
         h('span', null, 'Reported for the owner by ' + (r.reporterName || 'someone') + (r.relationship ? ' (' + r.relationship.toLowerCase() + ')' : '') + '. '
-          + (r.ownerConsent ? 'Agreement confirmed by ' + (r.ownerConsentBy || 'a coordinator') + (r.ownerConsentAt ? ', ' + when(r.ownerConsentAt) : '') + '.' : 'Nothing can be acted on until the owner agrees.'))));
+          + (r.ownerConsent || r.ownerRefused ? (r.ownerConsent ? 'Agreement' : 'Answer') + ' recorded by ' + (r.ownerConsentBy || 'a coordinator') + (r.ownerConsentAt ? ', ' + when(r.ownerConsentAt) : '') + '.'
+            : 'No search until the owner agrees. You can still accept it as a live case for posts and sightings.'))));
       root.appendChild(h('div', { class: 'report-who owner' },
         h('div', null, h('span', { class: 'report-who-label' }, 'Owner'), h('strong', null, r.ownerName || 'No name'), h('span', null, prettyPhone(r.ownerPhone))),
-        r.ownerPhone ? h('a', { class: 'btn report-call', href: 'tel:' + r.ownerPhone }, 'Call owner') : null));
+        r.ownerPhone ? h('a', { class: 'btn report-call', href: 'tel:' + r.ownerPhone, onclick: contactLog('the owner') }, 'Call owner') : null));
     }
     root.appendChild(h('div', { class: 'report-who' },
       h('div', null, h('span', { class: 'report-who-label' }, behalf ? 'Reported by (' + (r.relationship || 'for the owner').toLowerCase() + ')' : 'Reported by'), h('strong', null, r.reporterName || 'No name'), h('span', null, prettyPhone(r.reporterPhone))),
-      r.reporterPhone ? h('a', { class: 'btn report-call', href: 'tel:' + r.reporterPhone }, behalf ? 'Call reporter' : 'Call') : null));
+      r.reporterPhone ? h('a', { class: 'btn report-call', href: 'tel:' + r.reporterPhone, onclick: contactLog('the reporter') }, behalf ? 'Call reporter' : 'Call') : null));
     // Optional email, in case the phone number doesn't get through.
     if (r.reporterEmail) root.appendChild(h('div', { class: 'report-email' }, h('span', null, 'Email: ', h('b', null, r.reporterEmail)),
-      h('a', { class: 'btn ghost', href: 'mailto:' + r.reporterEmail + '?subject=' + encodeURIComponent('Your report to Lost Dogs Ayrshire') }, 'Email')));
+      h('a', { class: 'btn ghost', href: 'mailto:' + r.reporterEmail + '?subject=' + encodeURIComponent('Your report to Lost Dogs Ayrshire'), onclick: contactLog('the reporter', 'email') }, 'Email')));
     root.appendChild(h('p', { class: 'hint', style: 'margin-top:4px' }, (behalf ? 'These names and phone numbers are' : "The reporter's name, phone" + (r.reporterEmail ? ' and email are' : ' are')) + ' only shown to coordinators and admins.'));
 
     if (!isNew) {
@@ -3882,26 +4005,30 @@ function showReport(id) {
     // --- What to do with it
     const msg = h('p', { class: 'form-msg', role: 'status' });
     const box = h('div', { class: 'admin-box report-actions' }, h('h3', null, 'What would you like to do?'));
-    // Reported for the owner: the coordinator must phone the owner and confirm their agreement before the dog can be created.
+    // Reported for the owner: record what the owner said. The dog can be accepted as a live case either way;
+    // the owner's answer goes with it, and no search can be asked for until the owner agrees.
     if (behalf) {
-      const tick = h('input', { type: 'checkbox', id: 'report-consent', checked: !!r.ownerConsent, onchange: async e => {
-        const on = e.target.checked;
+      const cur = ownerPerm(r);
+      const setPerm = async v => {
         try {
-          await fb.updateDoc(ref, on
-            ? { ownerConsent: true, ownerConsentBy: state.profile.name || '', ownerConsentByUid: state.user.uid, ownerConsentAt: fb.serverTimestamp() }
-            : { ownerConsent: false, ownerConsentBy: '', ownerConsentByUid: '', ownerConsentAt: null });
-        } catch (err) { e.target.checked = !on; msg.textContent = friendlyError(err); }
-      } });
-      box.appendChild(h('label', { class: 'report-consent' }, tick, h('span', null, 'I have spoken to the owner and they agree to Lost Dogs Ayrshire acting.')));
+          await fb.updateDoc(ref, v === 'waiting'
+            ? { ownerConsent: false, ownerRefused: false, ownerConsentBy: '', ownerConsentByUid: '', ownerConsentAt: null }
+            : { ownerConsent: v === 'given', ownerRefused: v === 'refused', ownerConsentBy: state.profile.name || '', ownerConsentByUid: state.user.uid, ownerConsentAt: fb.serverTimestamp() });
+        } catch (err) { msg.textContent = friendlyError(err); }
+      };
+      box.appendChild(h('p', { class: 'perm-q' }, 'Owner permission for a search by Lost Dogs Ayrshire'));
+      box.appendChild(h('div', { class: 'perm-pick', role: 'group' },
+        [['waiting', 'Not spoken to them yet'], ['given', 'Owner agreed'], ['refused', 'Owner said no']].map(([v, label]) =>
+          h('button', { type: 'button', id: 'perm-' + v, class: 'perm-btn ' + v + (cur === v ? ' on' : ''), 'aria-pressed': String(cur === v), onclick: () => setPerm(v) }, label))));
     }
-    const locked = (behalf && !r.ownerConsent) || photoPending;
+    const locked = photoPending;
     const createBtn = REPORT_STATUS_FOR[r.type] ? h('button', { class: 'btn wide', type: 'button', disabled: locked, onclick: () => {
       if (locked) return;
       reportPrefill = { ...r, photoData: live.photo || '' };
       go('dog-edit/new');
     } }, 'Accept: create the dog') : null;
     const sightBtn = h('button', { class: 'btn wide' + (r.type === 'posts' ? '' : ' ghost'), type: 'button', onclick: () => { live.mode = live.mode === 'sighting' ? null : 'sighting'; draw(); } }, 'Add as a sighting to a dog');
-    if (r.type === 'posts') box.appendChild(sightBtn); else { box.appendChild(createBtn); box.appendChild(h('p', { class: 'hint' }, photoPending ? 'Locked until the photo has been checked: tap \u201cTap to show photo\u201d above, then mark it.' : locked ? 'Locked until you have phoned the owner and ticked that they agree.' : 'Opens Add a dog with the photo, place, time and details filled in.')); box.appendChild(sightBtn); }
+    if (r.type === 'posts') box.appendChild(sightBtn); else { box.appendChild(createBtn); box.appendChild(h('p', { class: 'hint' }, photoPending ? 'Locked until the photo has been checked: tap \u201cTap to show photo\u201d above, then mark it.' : behalf && ownerPerm(r) !== 'given' ? 'Opens Add a dog filled in from the report. The owner\u2019s answer goes with it: no search can be asked for until the owner agrees.' : 'Opens Add a dog with the photo, place, time and details filled in.')); box.appendChild(sightBtn); }
 
     if (live.mode === 'sighting') {
       const pick = h('select', { id: 'report-dog' }, h('option', { value: '' }, live.dogs.length ? 'Choose the dog…' : 'No active dogs'),
