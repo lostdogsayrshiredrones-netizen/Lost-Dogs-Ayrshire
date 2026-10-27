@@ -108,10 +108,11 @@ exports.notify = onCall(async request => {
     return sendTo(everyoneElse, 'New dog: ' + label, say(where, dog.askAvailability ? (neededText ? 'Can you help? Please give your availability. ' + neededText : 'Can you help? Please give your availability.') : '') || 'Open the app for details.', link, 'dog');
   }
   if (type === 'availability') {
-    // Nobody is asked while they are on holiday (dates they have added in My Profile).
+    // Nobody is asked while they are on holiday or marked busy (My Availability), in UK time.
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
     const away = new Set((await db.collection('holidays').get()).docs
       .filter(h => (h.data().ranges || []).some(r => r && r.from <= today && today <= r.to)).map(h => h.id));
+    (await db.collection('busy').get()).docs.filter(b => busyNow(b.data())).forEach(b => away.add(b.id));
     return sendTo(everyoneElse.filter(id => !away.has(id)), 'Availability needed', say(where, neededText || 'Can you help with this search?'), link, 'availability');
   }
   // A coordinator has asked for a dog's post to be removed: tell the admins.
@@ -174,6 +175,7 @@ exports.deleteVolunteer = onCall(async request => {
   const drop = async ref => { await ref.delete(); gone.push(ref.path); };
   await drop(db.collection('profiles').doc(uid));
   await drop(db.collection('holidays').doc(uid));
+  await drop(db.collection('busy').doc(uid));
   await drop(db.collection('agreements').doc(uid));
   for (const d of (await db.collection('sopReads').where('uid', '==', uid).get()).docs) await drop(d.ref);
   for (const d of (await db.collection('devices').where('uid', '==', uid).get()).docs) await drop(d.ref);
@@ -412,6 +414,25 @@ function realUkPhone(d) {
   return !(/^(\d)\1+$/.test(d.slice(2)) || /(\d)\1{6,}/.test(d) || /0123456|1234567|2345678|3456789|9876543|8765432|7654321/.test(d)
     || /^07700900\d{3}$|^01632960\d{3}$|^01\d1496\d{4}$|^0[23]\d{2}4960\d{3}$/.test(d));
 }
+// Busy right now (UK time)? Weekly times (days 0 = Mon … 6 = Sun) and one-off times; an end before the start runs overnight.
+function londonNow(at) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', weekday: 'short' })
+    .formatToParts(at || new Date()).map(p => [p.type, p.value]));
+  return { date: parts.year + '-' + parts.month + '-' + parts.day, mins: +parts.hour * 60 + +parts.minute, dow: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(parts.weekday) };
+}
+function busyNow(b, at) {
+  if (!b) return false;
+  const n = londonNow(at), y = londonNow(new Date((at || new Date()).getTime() - 864e5));
+  const hm = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || '')); return m ? +m[1] * 60 + +m[2] : null; };
+  const hit = (x, isToday, isYesterday) => {
+    const f = hm(x && x.from), t = hm(x && x.to); if (f == null || t == null || f === t) return false;
+    const over = t < f;
+    return (isToday && n.mins >= f && (over || n.mins < t)) || (isYesterday && over && n.mins < t);
+  };
+  return (Array.isArray(b.weekly) ? b.weekly : []).some(w => hit(w, (w.days || []).includes(n.dow), (w.days || []).includes((n.dow + 6) % 7)))
+    || (Array.isArray(b.oneoff) ? b.oneoff : []).some(o => hit(o, o.date === n.date, o.date === y.date));
+}
+if (process.env.LDA_TEST) exports._busyNow = busyNow;   // for the tests only
 function bad(msg) { return new HttpsError('invalid-argument', msg); }
 
 // ---- Automatic photo check (Google Cloud Vision "SafeSearch") ----
