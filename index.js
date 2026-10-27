@@ -103,16 +103,32 @@ exports.notify = onCall(async request => {
   const needed = ['ground', 'drone', 'scan'].filter(n => Array.isArray(dog.availNeeds) && dog.availNeeds.includes(n)).map(n => NEED_WORDS[n]);
   const neededText = needed.length ? 'Needed: ' + needed.join(', ') : '';
 
-  if (type === 'dog') {
-    const label = STATUS[dog.status] || 'Missing';
-    return sendTo(everyoneElse, 'New dog: ' + label, say(where, dog.askAvailability ? (neededText ? 'Can you help? Please give your availability. ' + neededText : 'Can you help? Please give your availability.') : '') || 'Open the app for details.', link, 'dog');
-  }
-  if (type === 'availability') {
-    // Nobody is asked while they are on holiday or marked busy (My Availability), in UK time.
+  // Who is away right now (holiday or a busy time, UK time).
+  const awayNowSet = async () => {
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
     const away = new Set((await db.collection('holidays').get()).docs
       .filter(h => (h.data().ranges || []).some(r => r && r.from <= today && today <= r.to)).map(h => h.id));
     (await db.collection('busy').get()).docs.filter(b => busyNow(b.data())).forEach(b => away.add(b.id));
+    return away;
+  };
+  // Keep a record of each availability request: who was asked, and who was away at the time.
+  // Admins use it in Volunteer activity to see who replies. Only the server writes these.
+  const recordAsk = async away => {
+    try {
+      await db.collection('asks').add({ dogId, dogName: name || where || 'Unknown', atMs: Date.now(), at: admin.firestore.FieldValue.serverTimestamp(),
+        askedByUid: uid, needs: Array.isArray(dog.availNeeds) ? dog.availNeeds.slice(0, 3) : [], asked: everyoneElse.slice(0, 500), away: everyoneElse.filter(id => away.has(id)) });
+    } catch (e) { console.error('ask not recorded', e); }
+  };
+
+  if (type === 'dog') {
+    const label = STATUS[dog.status] || 'Missing';
+    if (dog.askAvailability) await recordAsk(await awayNowSet());
+    return sendTo(everyoneElse, 'New dog: ' + label, say(where, dog.askAvailability ? (neededText ? 'Can you help? Please give your availability. ' + neededText : 'Can you help? Please give your availability.') : '') || 'Open the app for details.', link, 'dog');
+  }
+  if (type === 'availability') {
+    // Nobody is asked while they are on holiday or marked busy (My Availability), in UK time.
+    const away = await awayNowSet();
+    await recordAsk(away);
     return sendTo(everyoneElse.filter(id => !away.has(id)), 'Availability needed', say(where, neededText || 'Can you help with this search?'), link, 'availability');
   }
   // A coordinator has asked for a dog's post to be removed: tell the admins.
