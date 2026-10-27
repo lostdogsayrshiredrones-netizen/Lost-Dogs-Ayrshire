@@ -1434,7 +1434,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
   <p class="version">Version 6.0 · 24 Oct 2026</p>
-  <p class="credit">Built for Lost Dogs Ayrshire.<br>For any issues, please contact Lost Dogs Ayrshire.</p>
+  <p class="credit">Built for Lost Dogs Ayrshire.<br>For any issues, please contact Lost Dogs Ayrshire.<br>&copy; 2026 Lost Dogs Ayrshire. All rights reserved.</p>
 </main>
 
 <!-- ================= POSTERS MENU ================= -->
@@ -1712,7 +1712,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
   <p class="version">Version 6.0 · 24 Oct 2026</p>
-  <p class="credit">Built for Lost Dogs Ayrshire.<br>For any issues, please contact Lost Dogs Ayrshire.</p>
+  <p class="credit">Built for Lost Dogs Ayrshire.<br>For any issues, please contact Lost Dogs Ayrshire.<br>&copy; 2026 Lost Dogs Ayrshire. All rights reserved.</p>
 </section>
 
 <!-- ================= WAITING FOR APPROVAL ================= -->
@@ -3776,6 +3776,7 @@ function showDogEdit(id) {
     el.notes.value = r.reportedFor === 'owner'
       ? 'From a public report made for the owner by ' + (r.reporterName || 'someone') + (r.relationship ? ' (' + r.relationship.toLowerCase() + ')' : '') + '. ' + (ownerPerm(r) === 'given' ? 'Owner agreed' + (r.ownerConsentBy ? ' (confirmed by ' + r.ownerConsentBy + ')' : '') : ownerPerm(r) === 'refused' ? 'Owner said NO to a search' + (r.ownerConsentBy ? ' (recorded by ' + r.ownerConsentBy + ')' : '') : 'Owner NOT yet asked for permission') + '. Phone numbers are in Public Reports.'
       : 'From a public report (' + (r.reporterName || 'no name') + '). Their phone number is in Public Reports.';
+    if (r.chip) el.notes.value += ' Microchipped, details up to date: ' + ({ yes: 'Yes', no: 'No', unknown: 'Unknown' })[r.chip] + '.';
     if (typeof r.lat === 'number') edit.spot = { lat: r.lat, lng: r.lng };
     const pic = r.photoData || r.thumb;
     if (pic) fetch(pic).then(res => res.blob()).then(async blob => {
@@ -4289,6 +4290,7 @@ function showReport(id) {
       [r.type === 'posts' ? 'About' : 'Dog', r.dogName], ['Where', r.town], ['When', reportSeen(r)],
       ['Owner', r.type === 'lost' && r.ownerConfirmed ? 'The reporter confirmed they are the owner'
         : r.reportedFor === 'owner' ? (r.ownerName || 'Name not given') + (r.ownerConsent ? ' \u00b7 agreement confirmed by ' + (r.ownerConsentBy || 'a coordinator') + (r.ownerConsentAt ? ', ' + when(r.ownerConsentAt) : '') : ' \u00b7 not yet confirmed') : ''],
+      ['Microchipped, details up to date', r.chip ? ({ yes: 'Yes', no: 'No', unknown: 'Unknown' })[r.chip] : ''],
       ['Details', r.details], ['Sent', when(r.createdAt)]
     ].filter(x => x[1]);
     root.appendChild(h('dl', { class: 'card details' }, rows.map(x => [h('dt', null, x[0]), h('dd', null, x[1])])));
