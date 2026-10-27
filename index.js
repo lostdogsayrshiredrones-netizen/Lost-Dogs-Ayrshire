@@ -406,6 +406,12 @@ function cleanText(v, max, multiline) {
   s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim();
   return s.length > max ? s.slice(0, max) : s;
 }
+// A real-looking UK number (mobile 07…, landline 01…/02…, or 03…), not an obviously made-up one.
+function realUkPhone(d) {
+  if (!/^(07[1-57-9]\d{8}|01\d{8,9}|0[23]\d{9})$/.test(d)) return false;
+  return !(/^(\d)\1+$/.test(d.slice(2)) || /(\d)\1{6,}/.test(d) || /0123456|1234567|2345678|3456789|9876543|8765432|7654321/.test(d)
+    || /^07700900\d{3}$|^01632960\d{3}$|^01\d1496\d{4}$|^0[23]\d{2}4960\d{3}$/.test(d));
+}
 function bad(msg) { return new HttpsError('invalid-argument', msg); }
 
 // ---- Automatic photo check (Google Cloud Vision "SafeSearch") ----
@@ -534,7 +540,9 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   const name = cleanText(d.name, 60);
   if (!name) throw bad('Please add your name.');
   const phone = String(d.phone || '').replace(/[\s()\-.]/g, '').replace(/^\+44/, '0').replace(/^0044/, '0');
-  if (!/^0\d{9,10}$/.test(phone)) throw bad('Please add a UK phone number.');
+  if (!realUkPhone(phone)) throw bad('Please check your phone number. It should be a UK number, like 07700 123456.');
+  const email = String(d.email || '').trim().toLowerCase().slice(0, 120);
+  if (email && !/^[^\s@]{1,64}@[^\s@]+\.[a-z]{2,}$/.test(email)) throw bad('Please check your email address, or leave it empty.');
   const seenDate = String(d.date || '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(seenDate)) throw bad('Please add the date.');
   const dayMs = Date.parse(seenDate + 'T12:00:00Z');
@@ -574,7 +582,7 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
       const ownerPhone = String(d.ownerPhone || '').replace(/[\s()\-.]/g, '').replace(/^\+44/, '0').replace(/^0044/, '0');
       if (!RELATIONSHIPS.includes(relationship)) throw bad('Please choose your relationship to the owner.');
       if (!ownerName) throw bad("Please add the owner's name.");
-      if (!/^0\d{9,10}$/.test(ownerPhone)) throw bad("Please add the owner's UK phone number.");
+      if (!realUkPhone(ownerPhone)) throw bad("Please check the owner's phone number.");
       if (ownerPhone === phone) throw bad("Please give the owner's own number, not yours.");
       if (d.ownerKnows !== true) throw bad('Please tick to confirm the owner knows you are reporting this.');
       behalf = { relationship, ownerName, ownerPhone };
@@ -597,7 +605,7 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   // Save it. The full photo is kept separately so the list of reports stays quick to open.
   const ref = await db.collection('reports').add({
     type, status: 'new', dogId, dogName, town, lat, lng, seenDate, seenTime, details,
-    reporterName: name, reporterPhone: phone, thumb: thumb || '', hasPhoto: !!photo, photoAuto,
+    reporterName: name, reporterPhone: phone, ...(email ? { reporterEmail: email } : {}), thumb: thumb || '', hasPhoto: !!photo, photoAuto,
     ownerConfirmed: type === 'lost' && !behalf,
     danger: danger || '', urgent: !!DANGER[danger],
     ...(behalf ? { reportedFor: 'owner', relationship: behalf.relationship, ownerName: behalf.ownerName, ownerPhone: behalf.ownerPhone, ownerConsent: false } : {}),
