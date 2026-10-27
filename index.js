@@ -574,6 +574,9 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   if (town.length < 2) throw bad('Please add the Town/Village.');
   const details = cleanText(d.details, 1000, true);
   if (type !== 'posts' && details.length < 5) throw bad('Please add a short description.');
+  // Lost dog: is it microchipped, with the details up to date? (yes / no / unknown)
+  const chip = type === 'lost' ? String(d.chip || '') : '';
+  if (type === 'lost' && !['yes', 'no', 'unknown'].includes(chip)) throw bad('Please answer the microchip question: Yes, No or Unknown.');
   const name = cleanText(d.name, 60);
   if (!name) throw bad('Please add your name.');
   const phone = String(d.phone || '').replace(/[\s()\-.]/g, '').replace(/^\+44/, '0').replace(/^0044/, '0');
@@ -642,6 +645,7 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   // Save it. The full photo is kept separately so the list of reports stays quick to open.
   const ref = await db.collection('reports').add({
     type, status: 'new', dogId, dogName, town, lat, lng, seenDate, seenTime, details,
+    ...(chip ? { chip } : {}),
     reporterName: name, reporterPhone: phone, ...(email ? { reporterEmail: email } : {}), thumb: thumb || '', hasPhoto: !!photo, photoAuto,
     ownerConfirmed: type === 'lost' && !behalf,
     danger: danger || '', urgent: !!DANGER[danger],
