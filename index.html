@@ -1235,6 +1235,36 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 .handle-log ul { margin: 6px 0 0; padding-left: 18px; }
 .handle-log li { margin: 4px 0; } .handle-log small { display: block; opacity: .8; }
 .report-looking.none { color: #b35c00; }
+
+/* ---- Tile icons (emoji) ---- */
+.tile .art.icon.emoji { display: flex; align-items: center; justify-content: center; font-size: 76px; line-height: 1; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.tile .av-badge { position: absolute; left: 50%; transform: translateX(-50%); bottom: 64px; padding: 3px 10px; border-radius: 999px; font-size: .72rem; font-weight: 900; white-space: nowrap; color: #fff; }
+.tile .av-badge.free { background: #1d8a3a; } .tile .av-badge.away { background: #e08a00; }
+/* ---- My Availability ---- */
+.av-now { margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; font-weight: 800; font-size: 1.05rem; }
+.av-now.free { background: #1d8a3a; } .av-now.away { background: #e08a00; }
+.av-sec { margin: 0 0 16px; padding: 14px; border: 3px dashed #fdf90f; border-radius: 14px; }
+.av-sec h3 { margin: 0 0 4px; color: #fdf90f; letter-spacing: .12em; text-transform: uppercase; font-size: .9rem; }
+.av-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.12); }
+.av-row > div { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.av-row small { opacity: .85; }
+.av-row .btn { flex-shrink: 0; padding: 8px 12px; }
+.av-empty { margin: 6px 0 10px; opacity: .8; }
+.av-edit { margin-top: 10px; padding: 12px; border-radius: 12px; background: rgba(0,0,0,.15); display: flex; flex-direction: column; gap: 8px; }
+.av-q { margin: 6px 0 0; font-weight: 900; }
+.av-days { display: flex; gap: 6px; flex-wrap: wrap; }
+.av-day { width: 42px; height: 42px; border-radius: 12px; border: 3px solid #fdf90f; background: transparent; color: #fdf90f; font: inherit; font-weight: 900; }
+.av-day.on { background: #fdf90f; color: #5220c4; }
+.av-quicks { display: flex; gap: 6px; flex-wrap: wrap; }
+.av-quick { padding: 6px 10px; border-radius: 10px; border: 2px solid #fdf90f; background: transparent; color: #fdf90f; font: inherit; font-size: .85rem; font-weight: 800; }
+.av-times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.av-times label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: .9rem; }
+.av-times input, .av-edit input[type=date] { min-width: 0; width: 100%; -webkit-appearance: none; appearance: none; }
+#avail-holidays .av-sec h3 { margin-bottom: 4px; }
+
+.av-edit input, .av-sec input[type=date] { display: block; width: 100%; min-width: 0; padding: 12px; border: 3px solid #fdf90f; border-radius: 12px; background: #fff; color: #1c1530; font: inherit; font-size: 16px; font-weight: 700; -webkit-appearance: none; appearance: none; box-sizing: border-box; }
+.av-days { flex-wrap: nowrap; gap: 5px; }
+.av-day { flex: 1 1 0; width: auto; min-width: 0; height: 44px; padding: 0; }
 </style>
 </head>
 <body>
@@ -1296,22 +1326,23 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 
     <!-- TILE: Missing Dogs (live) -->
     <button class="tile" data-go="dogs">
-      <span class="art icon alert"><svg viewBox="0 0 64 60" aria-hidden="true"><use href="#paw-shape"/></svg></span>
+      <span class="art icon emoji alert" aria-hidden="true">🐾</span>
       <span class="count" id="dogs-count" hidden>0</span>
       <span class="tile-name">Missing Dogs</span>
     </button>
 
     <!-- TILE: Public Reports (coordinators and admins): reports sent in from the public reporting page -->
     <button class="tile admin-only" data-go="reports">
-      <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true"><path d="M8 6h48c3 0 5 2 5 5v28c0 3-2 5-5 5H26L13 55V44H8c-3 0-5-2-5-5V11c0-3 2-5 5-5z M15 18v5h34v-5z M15 29v5h22v-5z" fill-rule="evenodd"/></svg></span>
+      <span class="art icon emoji" aria-hidden="true">💬</span>
       <span class="count" id="reports-count" hidden>0</span>
       <span class="tile-name">Public Reports</span>
     </button>
 
-    <!-- TILE: Website Topics (admins): advice pages on the website, e.g. Fireworks, Stormy weather -->
-    <button class="tile admin-only" data-go="topics">
-      <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true"><path d="M32 4a26 26 0 1 0 0 52a26 26 0 0 0 0-52zm0 5c2.6 0 5.6 4.4 7 12H25c1.4-7.6 4.4-12 7-12zm-8.6 2.2C21.8 14 20.6 17.3 20 21h-8.4a21 21 0 0 1 11.8-9.8zm17.2 0A21 21 0 0 1 52.4 21H44c-.6-3.7-1.8-7-3.4-9.8zM10 26h9.5c-.1 1.3-.1 2.6-.1 4s0 2.7.1 4H10a21 21 0 0 1 0-8zm14.5 0h15c.1 1.3.2 2.6.2 4s-.1 2.7-.2 4h-15c-.1-1.3-.2-2.6-.2-4s.1-2.7.2-4zm20 0H54a21 21 0 0 1 0 8h-9.5c.1-1.3.1-2.6.1-4s0-2.7-.1-4zM11.6 39H20c.6 3.7 1.8 7 3.4 9.8A21 21 0 0 1 11.6 39zm13.4 0h14c-1.4 7.6-4.4 12-7 12s-5.6-4.4-7-12zm19 0h8.4a21 21 0 0 1-11.8 9.8c1.6-2.8 2.8-6.1 3.4-9.8z"/></svg></span>
-      <span class="tile-name">Website Topics</span>
+    <!-- TILE: My Availability (everyone): weekly busy times, one-off times and holidays -->
+    <button class="tile" data-go="availability">
+      <span class="art icon emoji" aria-hidden="true">📅</span>
+      <span class="av-badge" id="avail-badge" hidden></span>
+      <span class="tile-name">My Availability</span>
     </button>
 
     <!-- (The WhatsApp tile moved to a button on each dog's page in 5.3) -->
@@ -1324,28 +1355,19 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 
     <!-- TILE: Posters -->
     <button class="tile" data-go="posters">
-      <span class="art">
-        <img alt="" data-from="loose-dog-img">
-        <img alt="" data-from="found-dog-img">
-        <img alt="" data-from="home-safe-img">
-        <img alt="" data-from="reunited-img">
-      </span>
+      <span class="art icon emoji" aria-hidden="true">🖼️</span>
       <span class="tile-name">Posters</span>
     </button>
 
     <!-- TILE: SOPs -->
     <button class="tile" data-go="sops">
-      <span class="art fan">
-        <img alt="" data-from="highway-sop-img">
-        <img alt="" data-from="water-sop-img">
-        <img alt="" data-from="railway-sop-img">
-      </span>
+      <span class="art icon emoji" aria-hidden="true">📑</span>
       <span class="tile-name">Lost Dogs Ayrshire SOPs</span>
     </button>
 
     <!-- TILE: Documents (Training, Forms, Guidance) -->
     <button class="tile" data-go="documents">
-      <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true"><path d="M4 12c0-3 2-5 5-5h14l6 6h26c3 0 5 2 5 5v31c0 3-2 5-5 5H9c-3 0-5-2-5-5z"/></svg></span>
+      <span class="art icon emoji" aria-hidden="true">📁</span>
       <span class="count" id="docs-count" hidden>0</span>
       <span class="tile-name">Documents</span>
     </button>
@@ -1353,17 +1375,21 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 
     <!-- TILE: Members & Map (admins only): who is where, and their equipment -->
     <button class="tile admin-only" data-go="volunteers">
-      <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true">
-        <path fill-rule="evenodd" d="M32 2c-11 0-20 9-20 20 0 14 20 36 20 36s20-22 20-36c0-11-9-20-20-20z M32 9a6 6 0 1 0 0 12 6 6 0 0 0 0-12z M21 34c0-7 4-11 11-11s11 4 11 11z"/></svg></span>
+      <span class="art icon emoji" aria-hidden="true">📍</span>
       <span class="tile-name">Members &amp; Map</span>
     </button>
 
     <!-- TILE: Access & Roles (admins only): approve people and set roles -->
     <button class="tile admin-only" data-go="members">
-      <span class="art icon"><svg viewBox="0 0 64 60" aria-hidden="true">
-        <path fill-rule="evenodd" d="M18 14a16 16 0 1 0 15.500 20H44v8h8v-8h4v8h6V26H33.500A16 16 0 0 0 18 14z M18 23a7 7 0 1 1 0 14 7 7 0 0 1 0-14z"/></svg></span>
+      <span class="art icon emoji" aria-hidden="true">🔑</span>
       <span class="count" id="members-count" hidden>0</span>
       <span class="tile-name">Access &amp; Roles</span>
+    </button>
+
+    <!-- TILE: Website Topics (admins): advice pages on the website, e.g. Fireworks, Stormy weather -->
+    <button class="tile admin-only" data-go="topics">
+      <span class="art icon emoji" aria-hidden="true">🌐</span>
+      <span class="tile-name">Website Topics</span>
     </button>
 
   </nav>
@@ -1800,6 +1826,25 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
   <div id="report-body" style="margin-top:20px"></div>
 </section>
 
+<!-- ================= MY AVAILABILITY (everyone) ================= -->
+<section class="screen" id="availability">
+  <button class="back" data-go="home">&larr; Home</button>
+  <h2 class="page-title">My Availability</h2>
+  <p class="av-now" id="av-now"></p>
+  <div class="av-sec">
+    <h3>Every week</h3>
+    <p class="hol-intro">Times you’re always busy, like work. They repeat every week.</p>
+    <div id="av-weekly"></div>
+  </div>
+  <div class="av-sec">
+    <h3>One-off</h3>
+    <p class="hol-intro">A single day or time you’re busy.</p>
+    <div id="av-oneoff"></div>
+  </div>
+  <div id="avail-holidays"></div>
+  <p class="hint">While you’re busy or on holiday, you won’t get availability alerts and the admins see you as not available. You can still answer a request if you’re able to help.</p>
+</section>
+
 <!-- ================= WEBSITE TOPICS (admins) ================= -->
 <section class="screen" id="topics">
   <button class="back" data-go="home">&larr; Home</button>
@@ -1963,7 +2008,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
   <h2 class="page-title">My Profile</h2>
   <div class="card member" id="profile-who"></div>
   <!-- Holidays and time away: shown as not available on those dates (used most, so near the top) -->
-  <div id="profile-holidays"></div>
+  <button class="btn wide ghost" data-go="availability" style="margin:0 0 16px">Holidays &amp; busy times are now in My Availability</button>
   <div class="card" id="profile-checklist"></div>
   <div id="profile-done"></div>
 
@@ -2248,6 +2293,43 @@ const needsText = ns => ns.map(n => NEEDS[n].short).join(', ');
 // Holidays (My Profile): date ranges a volunteer is away. On those days they show as not available.
 const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const holidayNow = ranges => { const t = todayStr(); return (ranges || []).filter(r => r && r.from <= t && t <= r.to).sort((a, b) => b.to.localeCompare(a.to))[0] || null; };
+// Busy times (My Availability): weekly times like work (days 0 = Mon … 6 = Sun) and one-off times.
+// A time whose end is earlier than its start runs overnight into the next day (e.g. 22:00 – 06:00).
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const hm = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || '')); return m ? +m[1] * 60 + +m[2] : null; };
+const dayStr = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+function busyNow(b, now) {
+  if (!b) return null;
+  now = now || new Date();
+  const dow = (now.getDay() + 6) % 7, cur = now.getHours() * 60 + now.getMinutes();
+  const today = dayStr(now), y = new Date(now); y.setDate(y.getDate() - 1); const yday = dayStr(y);
+  const hits = [];
+  const check = (x, isToday, isYesterday) => {
+    const f = hm(x.from), t = hm(x.to); if (f == null || t == null || f === t) return;
+    const overnight = t < f;
+    if (isToday && cur >= f && (overnight || cur < t)) hits.push({ until: x.to, nextDay: overnight });
+    if (isYesterday && overnight && cur < t) hits.push({ until: x.to });
+  };
+  (b.weekly || []).forEach(w => check(w, (w.days || []).includes(dow), (w.days || []).includes((dow + 6) % 7)));
+  (b.oneoff || []).forEach(o => check(o, o.date === today, o.date === yday));
+  return hits[0] || null;
+}
+// Away right now for any reason: holiday (whole days) or a busy time. Used to skip alerts and show admins.
+function awayNow(ranges, busy) {
+  const hol = holidayNow(ranges);
+  if (hol) return { kind: 'holiday', to: hol.to, short: 'On holiday', text: 'On holiday until ' + niceDay(hol.to) };
+  const b = busyNow(busy);
+  if (b) return { kind: 'busy', until: b.until, short: 'Busy until ' + b.until, text: 'Busy until ' + b.until + (b.nextDay ? ' tomorrow' : '') };
+  return null;
+}
+const daysText = ds => {
+  const d = [...new Set(ds || [])].sort((a, b) => a - b);
+  if (d.length === 7) return 'Every day';
+  if (d.join() === '0,1,2,3,4') return 'Mon – Fri';
+  if (d.join() === '5,6') return 'Sat & Sun';
+  if (d.length > 2 && d.every((x, i) => !i || x === d[i - 1] + 1)) return WEEKDAYS[d[0]] + ' – ' + WEEKDAYS[d[d.length - 1]];
+  return d.map(x => WEEKDAYS[x]).join(', ');
+};
 const niceDay = s => { const d = new Date(s + 'T12:00:00'); return isNaN(d) ? s : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); };
 const STANDBY_LINES = ['You\u2019re on standby \u2013 communication will follow.', 'If your availability changes, please update accordingly!', 'Please don\u2019t go to the area until you hear from us.'];
 // "Found · Safe with finder" (or just the status label).
@@ -2370,6 +2452,7 @@ function render() {
   if (name === 'fbupdate')  { if (!isCoord()) return go('home'); activate('fbupdate'); return showFacebookUpdate(arg); }
   if (name === 'reports')   { if (!canSeeReports()) return go('home'); activate('reports'); return showReports(); }
   if (name === 'report')    { if (!canSeeReports()) return go('home'); activate('report'); return showReport(arg); }
+  if (name === 'availability') { activate('availability'); return showAvailability(); }
   if (name === 'topics')    { if (!isAdmin()) return go('home'); activate('topics'); return showTopics(); }
   if (name === 'topic-edit') { if (!isAdmin()) return go('home'); activate('topic-edit'); return showTopicEdit(arg); }
   if (name === 'facebook')  { if (!isDev()) return go('home'); activate('facebook'); return showFacebookLink(); }
@@ -2650,6 +2733,108 @@ $('#verify-resend').addEventListener('click', async () => {
 // Coming back to the app after tapping the link in the email: check straight away.
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVerified(true); });
 
+// ---------- My Availability: weekly busy times (like work), one-off busy times and holidays ----------
+// Busy times are kept in busy/{uid} = { uid, weekly: [{ days: [0..6], from, to }], oneoff: [{ date, from, to }], updatedAt }.
+// No reason is ever asked for: why someone is busy is their own business.
+// While busy or on holiday a volunteer gets no availability alert, and admins see them as not available.
+function showAvailability() {
+  const fb = state.fb, uid = state.user.uid, busyRef = fb.doc(fb.db, 'busy', uid);
+  let busy = { weekly: [], oneoff: [] }, hols = [], form = null;   // form: null | { kind: 'weekly' | 'oneoff', days: Set, date, from, to }
+  const fail = err => err && err.code === 'permission-denied' ? 'Not saved: the new security rules need pasting into Firebase first.' : friendlyError(err);
+  const tidy = list => (list || []).filter(o => o && o.date >= dayStr(new Date(Date.now() - 864e5)));   // one-offs from yesterday on
+  const save = (weekly, oneoff) => fb.setDoc(busyRef, { uid, weekly: weekly.map(w => ({ days: w.days, from: w.from, to: w.to })),
+    oneoff: tidy(oneoff).map(o => ({ date: o.date, from: o.from, to: o.to })), updatedAt: fb.serverTimestamp() });
+  const drawNow = () => {
+    const a = awayNow(hols, busy), box = $('#av-now');
+    box.className = 'av-now ' + (a ? 'away' : 'free');
+    box.textContent = a ? 'Right now: ' + a.text.charAt(0).toLowerCase() + a.text.slice(1) : '\u2713 Right now: available';
+  };
+  const row = (title, sub, onRemove) => {
+    const msg = h('span', { class: 'form-msg' });
+    return h('div', { class: 'av-row' }, h('div', null, h('strong', null, title), sub ? h('small', null, sub) : null, msg),
+      h('button', { class: 'btn ghost', type: 'button', onclick: async e => { e.target.disabled = true; try { await onRemove(); } catch (err) { e.target.disabled = false; msg.textContent = fail(err); } } }, 'Remove'));
+  };
+  const timeText = x => x.from + ' \u2013 ' + x.to + (hm(x.to) < hm(x.from) ? ' (next day)' : '');
+  const editor = kind => {
+    const f = form, msg = h('p', { class: 'form-msg', role: 'status' });
+    const dayBtns = kind === 'weekly' ? h('div', { class: 'av-days' }, WEEKDAYS.map((d, i) => h('button', { type: 'button', class: 'av-day' + (f.days.has(i) ? ' on' : ''), 'aria-pressed': String(f.days.has(i)), 'aria-label': d, 'data-day': i,
+      onclick: () => { if (f.days.has(i)) f.days.delete(i); else f.days.add(i); draw(); } }, d[0]))) : null;
+    const quick = (label, list) => h('button', { type: 'button', class: 'av-quick', onclick: () => { f.days = new Set(list); draw(); } }, label);
+    const inp = (type, key, attrs) => h('input', { type, value: f[key] || '', oninput: e => { f[key] = e.target.value; }, ...(attrs || {}) });
+    return h('div', { class: 'av-edit', id: 'av-edit-' + kind },
+      kind === 'weekly' ? [h('p', { class: 'av-q' }, 'Which days?'), dayBtns, h('div', { class: 'av-quicks' }, quick('Weekdays', [0, 1, 2, 3, 4]), quick('Weekends', [5, 6]), quick('Every day', [0, 1, 2, 3, 4, 5, 6]))]
+        : [h('p', { class: 'av-q' }, 'Which day?'), inp('date', 'date', { id: 'av-date', min: todayStr() })],
+      h('p', { class: 'av-q' }, 'What times?'),
+      h('div', { class: 'av-times' }, h('label', null, 'From', inp('time', 'from', { id: 'av-from' })), h('label', null, 'To', inp('time', 'to', { id: 'av-to' }))),
+      h('button', { class: 'btn wide', type: 'button', id: 'av-save', onclick: async e => {
+        if (kind === 'weekly' && !f.days.size) { msg.textContent = 'Tap at least one day.'; return; }
+        if (kind === 'oneoff' && !f.date) { msg.textContent = 'Choose the day.'; return; }
+        if (kind === 'oneoff' && f.date < todayStr()) { msg.textContent = 'That day has already passed.'; return; }
+        if (hm(f.from) == null || hm(f.to) == null) { msg.textContent = 'Choose both times.'; return; }
+        if (hm(f.from) === hm(f.to)) { msg.textContent = 'The start and end times are the same.'; return; }
+        const weekly = (busy.weekly || []).slice(), oneoff = (busy.oneoff || []).slice();
+        if (kind === 'weekly') { if (weekly.length >= 20) { msg.textContent = 'You have lots of weekly times already. Remove one first.'; return; } weekly.push({ days: [...f.days].sort((a, b) => a - b), from: f.from, to: f.to }); }
+        else { if (oneoff.length >= 30) { msg.textContent = 'You have lots of one-off times already. Remove one first.'; return; } oneoff.push({ date: f.date, from: f.from, to: f.to }); }
+        e.target.disabled = true;
+        try { await save(weekly, oneoff); form = null; draw(); } catch (err) { e.target.disabled = false; msg.textContent = fail(err); }
+      } }, 'Save'),
+      h('button', { class: 'link center', type: 'button', onclick: () => { form = null; draw(); } }, 'Cancel'),
+      msg,
+      h('p', { class: 'hint' }, 'Night shift? A time like 22:00 \u2013 06:00 runs into the next morning.'));
+  };
+  const draw = () => {
+    drawNow();
+    const wk = $('#av-weekly'), oo = $('#av-oneoff');
+    // keep what has been typed in an open form across redraws
+    wk.textContent = ''; oo.textContent = '';
+    const weekly = busy.weekly || [], oneoff = tidy(busy.oneoff).sort((a, b) => (a.date + a.from).localeCompare(b.date + b.from));
+    weekly.forEach(w => wk.appendChild(row(daysText(w.days) + ' \u00b7 ' + timeText(w), '', () => save(weekly.filter(x => x !== w), busy.oneoff || []))));
+    if (!weekly.length && !(form && form.kind === 'weekly')) wk.appendChild(h('p', { class: 'av-empty' }, 'None yet.'));
+    if (form && form.kind === 'weekly') wk.appendChild(editor('weekly'));
+    else wk.appendChild(h('button', { class: 'btn wide', type: 'button', id: 'av-add-weekly', onclick: () => { form = { kind: 'weekly', days: new Set(), from: '', to: '' }; draw(); } }, '+ Add a weekly time'));
+    oneoff.forEach(o => oo.appendChild(row(niceDay(o.date) + ' \u00b7 ' + timeText(o), '', () => save(weekly, (busy.oneoff || []).filter(x => x !== o)))));
+    if (!oneoff.length && !(form && form.kind === 'oneoff')) oo.appendChild(h('p', { class: 'av-empty' }, 'None yet.'));
+    if (form && form.kind === 'oneoff') oo.appendChild(editor('oneoff'));
+    else oo.appendChild(h('button', { class: 'btn wide', type: 'button', id: 'av-add-oneoff', onclick: () => { form = { kind: 'oneoff', date: todayStr(), from: '', to: '' }; draw(); } }, '+ Add a one-off time'));
+  };
+  state.subs.push(fb.onSnapshot(busyRef, snap => { busy = snap.exists() ? snap.data() : { weekly: [], oneoff: [] }; draw(); }, () => draw()));
+  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'holidays', uid), snap => { hols = snap.exists() ? (snap.data().ranges || []) : []; drawNow(); }, () => {}));
+  const tick = setInterval(drawNow, 60000); state.subs.push(() => clearInterval(tick));   // "Right now" keeps itself up to date
+  // Holidays (moved here from My Profile)
+  const holBox = $('#avail-holidays'), holRef = fb.doc(fb.db, 'holidays', uid);
+  let hol = { ranges: [] }, holDraft = { from: '', to: '' };
+  const drawHol = () => {
+    holBox.textContent = '';
+    const t = todayStr(), ranges = (hol.ranges || []).filter(r => r && r.to >= t).sort((a, b) => a.from.localeCompare(b.from));
+    const msg = h('p', { class: 'form-msg', role: 'status' });
+    const save = list => fb.setDoc(holRef, { uid, ranges: list.filter(r => r.to >= todayStr()).map(r => ({ from: r.from, to: r.to })), updatedAt: fb.serverTimestamp() });
+    const fail = err => err && err.code === 'permission-denied' ? 'Not allowed yet. The new security rules need pasting into Firebase first.' : friendlyError(err);
+    const from = h('input', { type: 'date', id: 'hol-from', value: holDraft.from, min: t, oninput: e => { holDraft.from = e.target.value; if (!to.value || to.value < e.target.value) { to.value = e.target.value; holDraft.to = e.target.value; } } });
+    const to = h('input', { type: 'date', id: 'hol-to', value: holDraft.to, min: t, oninput: e => { holDraft.to = e.target.value; } });
+    holBox.appendChild(h('div', { class: 'av-sec holidays' },
+      h('h3', null, 'Holidays'),
+      h('p', { class: 'hol-intro' }, 'Whole days you\u2019re away. On those days you\u2019ll show as not available and won\u2019t be asked for your availability.'),
+      ranges.map(r => { const now = r.from <= t; return h('div', { class: 'hol-row' + (now ? ' now' : '') },
+        h('div', null, h('strong', null, now ? 'On holiday now' : 'Coming up'), h('span', null, niceDay(r.from) + ' \u2013 ' + niceDay(r.to))),
+        h('button', { class: 'btn ghost', type: 'button', onclick: async e => { e.target.disabled = true; try { await save(ranges.filter(x => x !== r)); } catch (err) { e.target.disabled = false; msg.textContent = fail(err); } } }, 'Remove')); }),
+      h('p', { class: 'hol-sub' }, 'Add a holiday'),
+      h('div', { class: 'hol-dates' }, h('label', null, 'From', from), h('label', null, 'To (last day away)', to)),
+      h('button', { class: 'btn wide', type: 'button', id: 'hol-add', onclick: async e => {
+        const f = from.value, l = to.value;
+        if (!f || !l) { msg.textContent = 'Choose both dates.'; return; }
+        if (l < f) { msg.textContent = 'The last day can\u2019t be before the first day.'; return; }
+        if (l < todayStr()) { msg.textContent = 'Those dates have already passed.'; return; }
+        if (ranges.length >= 20) { msg.textContent = 'That\u2019s a lot of holidays! Remove one first.'; return; }
+        e.target.disabled = true;
+        try { await save(ranges.concat([{ from: f, to: l }])); holDraft = { from: '', to: '' }; }
+        catch (err) { e.target.disabled = false; msg.textContent = fail(err); }
+      } }, 'Add holiday'),
+      msg,
+      h('p', { class: 'hint' }, 'Past holidays tidy themselves away automatically.')));
+  };
+  state.subs.push(fb.onSnapshot(holRef, snap => { hol = snap.exists() ? snap.data() : { ranges: [] }; drawHol(); }, () => drawHol()));
+}
+
 function showPending() {
   activate('pending');
   const p = state.profile;
@@ -2673,8 +2858,17 @@ const initials = name => {
   return ((parts[0] || '?')[0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 };
 
+// The My Availability tile shows whether you're available right now.
+function updateAvailBadge() {
+  const el = $('#avail-badge'); if (!el) return;
+  const a = awayNow(state.holidays, state.busy);
+  el.textContent = a ? a.short : 'Available now'; el.className = 'av-badge ' + (a ? 'away' : 'free'); el.hidden = false;
+}
+setInterval(() => { if (state.user) updateAvailBadge(); }, 60000);
+
 function showHome() {
   drawAccount();
+  updateAvailBadge();
   const fb = state.fb;
   // Live count of active dogs on the Missing Dogs tile.
   state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'dogs'), snap => {
@@ -2692,7 +2886,9 @@ function showHome() {
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'profiles', state.user.uid),
     snap => { todo.place = snap.exists() && !!snap.data().town && !!snap.data().postArea; drawTodo(); }, () => { todo.place = true; drawTodo(); }));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'holidays', state.user.uid),
-    snap => { state.holidays = snap.exists() ? (snap.data().ranges || []) : []; }, () => { state.holidays = []; }));
+    snap => { state.holidays = snap.exists() ? (snap.data().ranges || []) : []; updateAvailBadge(); }, () => { state.holidays = []; }));
+  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'busy', state.user.uid),
+    snap => { state.busy = snap.exists() ? snap.data() : null; updateAvailBadge(); }, () => { state.busy = null; }));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'agreements', state.user.uid),
     snap => { todo.signed = snap.exists(); drawTodo(); }, () => { todo.signed = true; drawTodo(); }));
   // Whoever handles public reports sees how many nobody has dealt with yet.
@@ -2801,7 +2997,7 @@ function showDog(id) {
   const dogRef = fb.doc(fb.db, 'dogs', id);
   const live = { dog: null, images: [], updates: [], sightings: [], map: null, adding: null,
     mine: null, mineLoaded: false, replies: [], members: [], profiles: new Map(), teams: [], pickTime: false, timeDraft: '',
-    myKit: [], offerDraft: null, askOpen: false, askDraft: { confirm: false, needs: new Set() }, myHolidays: [], holidays: new Map() };
+    myKit: [], offerDraft: null, askOpen: false, askDraft: { confirm: false, needs: new Set() }, myHolidays: [], myBusy: null, holidays: new Map(), holRaw: new Map(), busyRaw: new Map() };
   root.textContent = '';
   root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
 
@@ -2822,6 +3018,7 @@ function showDog(id) {
   const myReply = fb.doc(fb.db, 'dogs', id, 'availability', state.user.uid);
   state.subs.push(fb.onSnapshot(myReply, snap => { live.mine = snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : null; live.mineLoaded = true; draw(); }, () => {}));
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'holidays', state.user.uid), snap => { live.myHolidays = snap.exists() ? (snap.data().ranges || []) : []; draw(); }, () => {}));
+  state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'busy', state.user.uid), snap => { live.myBusy = snap.exists() ? snap.data() : null; draw(); }, () => {}));
   // My own kit, so I can only offer drones or scanning if my profile says I have one.
   state.subs.push(fb.onSnapshot(fb.doc(fb.db, 'profiles', state.user.uid), snap => { live.myKit = snap.exists() ? kitKinds(snap.data()) : []; draw(); }, () => {}));
   if (isAdmin()) {
@@ -2832,8 +3029,13 @@ function showDog(id) {
     state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'profiles'),
       snap => { live.profiles = new Map(snap.docs.map(d => [d.id, d.data()])); draw(); }, () => {}));
     watchTeams(teams => { live.teams = teams; draw(); });
+    // Who is away right now (holiday or a busy time): live.holidays maps each of them to why.
+    const awayAll = () => { live.holidays = new Map([...new Set([...live.holRaw.keys(), ...live.busyRaw.keys()])]
+      .map(u => [u, awayNow(live.holRaw.get(u), live.busyRaw.get(u))]).filter(x => x[1])); draw(); };
     state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'holidays'),
-      snap => { live.holidays = new Map(snap.docs.map(d => [d.id, holidayNow(d.data().ranges)]).filter(x => x[1])); draw(); }, () => {}));
+      snap => { live.holRaw = new Map(snap.docs.map(d => [d.id, d.data().ranges || []])); awayAll(); }, () => {}));
+    state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'busy'),
+      snap => { live.busyRaw = new Map(snap.docs.map(d => [d.id, d.data()])); awayAll(); }, () => {}));
   }
   const answer = async (status, from, offers, quiet) => {
     try {
@@ -2926,7 +3128,7 @@ function showDog(id) {
     const onStandby = d.askAvailability && live.mine && (live.mine.status === 'now' || live.mine.status === 'later');
     root.appendChild(h('p', { class: 'status-line' }, statusBadge(d.status), d.status === 'found' && d.foundWhere ? h('span', { class: 'found-where' }, d.foundWhere) : null,
       onStandby ? h('span', { class: 'standby-tag' }, 'On standby') : null,
-      d.askAvailability && !onStandby && holidayNow(live.myHolidays) ? h('span', { class: 'standby-tag holiday' }, 'On holiday') : null));
+      d.askAvailability && !onStandby && awayNow(live.myHolidays, live.myBusy) ? h('span', { class: 'standby-tag holiday' }, awayNow(live.myHolidays, live.myBusy).short) : null));
     if (d.statusBy) root.appendChild(h('p', { class: 'status-by' },
       (st.active === false ? 'Closed by ' : 'Status set by ') + d.statusBy + (d.statusAt ? ', ' + when(d.statusAt) : '')));
 
@@ -2964,10 +3166,10 @@ function showDog(id) {
           if (status === 'later') { live.pickTime = true; draw(); } else answer('now', '', o);
         } }, label);
       const panel = h('div', { class: 'avail-box' }, h('h3', null, 'Can you help with this search?'));
-      const away = holidayNow(live.myHolidays);
+      const away = awayNow(live.myHolidays, live.myBusy);
       if (away && !picked) panel.appendChild(h('div', { class: 'holiday-box' },
-        h('strong', null, 'You\u2019re on holiday until ' + niceDay(away.to)),
-        h('span', null, 'You\u2019re shown to the admins as not available. Enjoy your break!'),
+        h('strong', null, away.kind === 'holiday' ? 'You\u2019re on holiday until ' + niceDay(away.to) : 'You\u2019re marked busy until ' + away.until),
+        h('span', null, away.kind === 'holiday' ? 'You\u2019re shown to the admins as not available. Enjoy your break!' : 'You\u2019re shown to the admins as not available, from My Availability.'),
         h('small', null, 'If you can help anyway, tap an answer below.')));
       if (needs.length) panel.appendChild(h('div', { class: 'need-chips' }, h('span', null, 'Needed:'), needs.map(n => h('span', { class: 'need-chip' }, NEEDS[n].label))));
       if (multi) {
@@ -2987,7 +3189,7 @@ function showDog(id) {
       panel.appendChild(h('div', { class: 'avail-row' },
           option('now', 'Available now'),
           option('later', picked === 'later' && mine.from ? 'Available from ' + mine.from : 'Available from\u2026'),
-          away && !picked ? h('button', { class: 'btn avail on', type: 'button', 'aria-pressed': 'true', onclick: () => answer('no') }, 'Not available (on holiday)') : option('no', 'Not available')));
+          away && !picked ? h('button', { class: 'btn avail on', type: 'button', 'aria-pressed': 'true', onclick: () => answer('no') }, away.kind === 'holiday' ? 'Not available (on holiday)' : 'Not available (busy)') : option('no', 'Not available')));
       panel.appendChild(msgBox);
       if (live.pickTime) {
         const timeBox = h('input', { id: 'avail-time', type: 'time', value: live.timeDraft || (picked === 'later' ? mine.from : '') || '' });
@@ -3016,7 +3218,7 @@ function showDog(id) {
           ['Available later', live.replies.filter(r => r.status === 'later').sort((x, y) => String(x.from).localeCompare(String(y.from)) || byName(x, y)), r => 'from ' + (r.from || '?')],
           ['Not available', live.replies.filter(r => r.status === 'no')
             .concat(live.members.filter(m => !replied.has(m.id) && live.holidays.has(m.id)).map(m => ({ ...m, holiday: live.holidays.get(m.id) }))).sort(byName),
-            r => r.holiday ? 'marked automatically from their profile' : 'replied ' + when(r.updatedAt)],
+            r => r.holiday ? 'marked automatically from My Availability' : 'replied ' + when(r.updatedAt)],
           ['No reply yet', live.members.filter(m => !replied.has(m.id) && !live.holidays.has(m.id)).sort(byName), () => '']
         ];
         const box = h('div', { class: 'admin-box avail-lists' }, h('h3', null, 'Availability (admins only)'));
@@ -3039,7 +3241,7 @@ function showDog(id) {
                 const note = [detail(p), far(p.id), teamWith(p.id, byTeam, nameOf)].filter(Boolean).join(' \u00b7 ');
                 const t = byTeam.get(p.id), kit = { equipment: mergeKit((t ? t.members : [p.id]).map(u => (live.profiles.get(u) || {}).equipment)).equipment };
                 return h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name'), note ? h('span', { class: 'feed-when' }, note) : null,
-                  p.holiday ? h('span', { class: 'holiday-tag' }, 'On holiday until ' + niceDay(p.holiday.to)) : null, offerTags(p), kitTags(kit));
+                  p.holiday ? h('span', { class: 'holiday-tag' }, p.holiday.text) : null, offerTags(p), kitTags(kit));
               }))
             : h('p', { class: 'avail-none' }, 'Nobody'));
         });
@@ -3062,6 +3264,7 @@ function showDog(id) {
         x.from = later ? later.from : '';
         // On holiday (and not said they can help anyway): greyed out at the bottom. A team is away only if all of it is.
         x.holiday = !x.avail && (x.m.members || [x.m]).every(q => live.holidays.has(q.id));
+        x.awayShort = x.holiday ? ((live.holidays.get((x.m.members || [x.m])[0].id) || {}).short || 'On holiday') : '';
       });
       const greens = near.filter(x => x.avail === 'now');
       const ambers = near.filter(x => x.avail === 'later').sort((a, b) => String(a.from).localeCompare(String(b.from)) || a.miles - b.miles);
@@ -3078,11 +3281,11 @@ function showDog(id) {
           ambers.length ? h('span', { class: 'near-count amber', title: 'Available later' }, String(ambers.length)) : null,
           h('span', { class: 'near-count' }, shown.length ? String(shown.length) : '')));
       box.appendChild(near.length
-        ? h('ul', { class: 'card vol-people' }, shown.map(({ m, pr, miles, avail, from, holiday }) => h('li', { class: avail === 'now' ? 'avail-now' : avail === 'later' ? 'avail-later' : holiday ? 'on-holiday' : null },
+        ? h('ul', { class: 'card vol-people' }, shown.map(({ m, pr, miles, avail, from, holiday, awayShort }) => h('li', { class: avail === 'now' ? 'avail-now' : avail === 'later' ? 'avail-later' : holiday ? 'on-holiday' : null },
             h('button', { class: 'vol-person', type: 'button', 'data-go': 'volunteer/' + m.id },
               h('strong', null, m.name || 'No name'),
               h('span', { class: 'vol-miles' }, milesText(miles)),
-              avail === 'now' ? h('span', { class: 'avail-tag now' }, 'Available now') : avail === 'later' ? h('span', { class: 'avail-tag later' }, 'Available from ' + (from || '?')) : holiday ? h('span', { class: 'avail-tag holiday' }, 'On holiday') : null,
+              avail === 'now' ? h('span', { class: 'avail-tag now' }, 'Available now') : avail === 'later' ? h('span', { class: 'avail-tag later' }, 'Available from ' + (from || '?')) : holiday ? h('span', { class: 'avail-tag holiday' }, awayShort || 'On holiday') : null,
               h('span', { class: 'vol-sub' }, (m.team ? 'Team \u00b7 ' : '') + (pr.town || '') + (pr.postArea ? ' \u00b7 ' + pr.postArea : '')),
               kitTags(pr)))))
         : h('p', { class: 'avail-none' }, 'Nobody has set where they are based yet.'));
@@ -4558,39 +4761,6 @@ function showProfile() {
     teamLine.hidden = !others.length;
   }, () => {}));
 
-  // Holidays and time away: shown to admins as not available, and not asked for availability, on those dates.
-  const holBox = $('#profile-holidays'), holRef = fb.doc(fb.db, 'holidays', uid);
-  let hol = { ranges: [] }, holDraft = { from: '', to: '' };
-  const drawHol = () => {
-    holBox.textContent = '';
-    const t = todayStr(), ranges = (hol.ranges || []).filter(r => r && r.to >= t).sort((a, b) => a.from.localeCompare(b.from));
-    const msg = h('p', { class: 'form-msg', role: 'status' });
-    const save = list => fb.setDoc(holRef, { uid, ranges: list.filter(r => r.to >= todayStr()).map(r => ({ from: r.from, to: r.to })), updatedAt: fb.serverTimestamp() });
-    const fail = err => err && err.code === 'permission-denied' ? 'Not allowed yet. The new security rules need pasting into Firebase first.' : friendlyError(err);
-    const from = h('input', { type: 'date', id: 'hol-from', value: holDraft.from, min: t, oninput: e => { holDraft.from = e.target.value; if (!to.value || to.value < e.target.value) { to.value = e.target.value; holDraft.to = e.target.value; } } });
-    const to = h('input', { type: 'date', id: 'hol-to', value: holDraft.to, min: t, oninput: e => { holDraft.to = e.target.value; } });
-    holBox.appendChild(h('div', { class: 'admin-box holidays' },
-      h('h3', null, 'Holidays & time away'),
-      h('p', { class: 'hol-intro' }, 'Add dates you\u2019re away. On those days you\u2019ll show as not available and won\u2019t be asked for your availability.'),
-      ranges.map(r => { const now = r.from <= t; return h('div', { class: 'hol-row' + (now ? ' now' : '') },
-        h('div', null, h('strong', null, now ? 'On holiday now' : 'Coming up'), h('span', null, niceDay(r.from) + ' \u2013 ' + niceDay(r.to))),
-        h('button', { class: 'btn ghost', type: 'button', onclick: async e => { e.target.disabled = true; try { await save(ranges.filter(x => x !== r)); } catch (err) { e.target.disabled = false; msg.textContent = fail(err); } } }, 'Remove')); }),
-      h('p', { class: 'hol-sub' }, 'Add time away'),
-      h('div', { class: 'hol-dates' }, h('label', null, 'From', from), h('label', null, 'To (last day away)', to)),
-      h('button', { class: 'btn wide', type: 'button', id: 'hol-add', onclick: async e => {
-        const f = from.value, l = to.value;
-        if (!f || !l) { msg.textContent = 'Choose both dates.'; return; }
-        if (l < f) { msg.textContent = 'The last day can\u2019t be before the first day.'; return; }
-        if (l < todayStr()) { msg.textContent = 'Those dates have already passed.'; return; }
-        if (ranges.length >= 20) { msg.textContent = 'That\u2019s a lot of holidays! Remove one first.'; return; }
-        e.target.disabled = true;
-        try { await save(ranges.concat([{ from: f, to: l }])); holDraft = { from: '', to: '' }; }
-        catch (err) { e.target.disabled = false; msg.textContent = fail(err); }
-      } }, 'Add holiday'),
-      msg,
-      h('p', { class: 'hint' }, 'Past holidays tidy themselves away automatically.')));
-  };
-  state.subs.push(fb.onSnapshot(holRef, snap => { hol = snap.exists() ? snap.data() : { ranges: [] }; drawHol(); }, () => drawHol()));
 
   if (town.options.length === 0) {
     town.appendChild(h('option', { value: '' }, 'Choose…'));
@@ -7223,7 +7393,7 @@ function startAlerts() {
         if (dog.createdByUid === state.user.uid) return;                     // not for the admin who added it
         const label = (STATUSES[dog.status] || { label: 'Missing' }).label;
         showAlert('New dog: ' + label, [where, dog.askAvailability ? (needsOf(dog).length ? 'Can you help? Please give your availability. Needed: ' + needsText(needsOf(dog)) : 'Can you help? Please give your availability.') : ''].filter(Boolean).join('. ') || 'Open for details.', 'dog/' + d.id);
-      } else if (dog.askAvailability && !knownDogs.get(d.id) && dog.availabilityAskedByUid !== state.user.uid && !holidayNow(state.holidays)) {
+      } else if (dog.askAvailability && !knownDogs.get(d.id) && dog.availabilityAskedByUid !== state.user.uid && !awayNow(state.holidays, state.busy)) {
         showAlert('Availability needed', [where, needsOf(dog).length ? 'Needed: ' + needsText(needsOf(dog)) : 'Can you help with this search?'].filter(Boolean).join('. '), 'dog/' + d.id);
       }
     });
