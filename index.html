@@ -2666,8 +2666,17 @@ function onUser(user) {
   // Watch our own member record live, so approval takes effect straight away.
   stopProfile = fb.onSnapshot(ref, async snap => {
     if (!snap.exists()) {
+      // "No record" straight from the phone's memory (slow or no signal while the app starts) is not to be trusted:
+      // wait for the server's answer, so existing members are never shown the "Confirm your email" screen by mistake.
+      if (snap.metadata && snap.metadata.fromCache) return;
       // New person: they must confirm their email address first (stops made-up addresses reaching the admins).
-      if (!user.emailVerified) { state.needVerify = true; render(); return; }
+      if (!user.emailVerified) {
+        // Double-check with the server before asking (the record may just not have arrived yet).
+        if (typeof fb.getDocFromServer === 'function') {
+          try { if ((await fb.getDocFromServer(ref)).exists()) return; } catch (e) { return; }   // can't check: keep waiting rather than guess
+        }
+        state.needVerify = true; render(); return;
+      }
       state.needVerify = false;
       // First sign-in: ask to join. An admin then approves.
       try {
