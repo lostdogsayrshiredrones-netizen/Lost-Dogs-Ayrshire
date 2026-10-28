@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-GB">
+<html lang="en-GB" data-build="967ab5dbaa3e">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -1292,6 +1292,8 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 .vol-now-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
 .vol-now-tag { padding: 3px 10px; border-radius: 999px; font-size: .78rem; font-weight: 900; color: #fff; }
 .vol-now-tag.free { background: #1d8a3a; } .vol-now-tag.busy { background: #e08a00; } .vol-now-tag.holiday { background: #6b6385; }
+
+#update-ready { position: fixed; left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 5000; padding: 14px; border: 0; border-radius: 14px; background: #fdf90f; color: #3e12a3; font: inherit; font-weight: 900; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
 </style>
 </head>
 <body>
@@ -7615,6 +7617,30 @@ drawSoundToggle();
 // ---------- Start ----------
 setAuthMode('signin');
 connect();
+
+
+// ---- Stay up to date ----
+// iPhones often keep a home screen app frozen in memory, so opening it can show an old version.
+// Each time the app is opened or brought back, check whether a newer version has been uploaded.
+// On the home screen it reloads straight away; elsewhere (maybe mid-form) it offers a button instead.
+let lastUpdateCheck = 0;
+async function checkForUpdate() {
+  const mine = document.documentElement.getAttribute('data-build');
+  if (!/^[0-9a-f]{12}$/.test(mine || '') || Date.now() - lastUpdateCheck < 30000) return;   // only once a build stamp is in place
+  lastUpdateCheck = Date.now();
+  try {
+    const res = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const m = /data-build="([0-9a-f]{6,})"/.exec(await res.text());
+    if (!m || m[1] === mine) return;
+    const route = location.hash.slice(1);
+    if (!route || route === 'home' || !state.user) { location.reload(); return; }
+    if (!$('#update-ready')) document.body.appendChild(h('button', { id: 'update-ready', type: 'button', onclick: () => location.reload() }, 'A new version of the app is ready. Tap to update.'));
+  } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
+window.addEventListener('pageshow', e => { if (e.persisted) checkForUpdate(); });
+setTimeout(checkForUpdate, 1500);
 
 </script>
 </body>
