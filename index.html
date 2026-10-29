@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-GB" data-build="967ab5dbaa3e">
+<html lang="en-GB" data-build="096c77e881ca">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -5120,14 +5120,13 @@ function showVolunteers(dogId) {
         .map(p => h('li', null, h('span', { class: 'feed-text' }, p.name || 'No name')))));
     }
 
-    // map: one pin per place, with first names; tapping it lists who is there
-    const turn = ++live.turn;
-    if (live.map) { try { live.map.remove(); } catch (e) {} live.map = null; }
+    // map: one pin per place, with first names; tapping it lists who is there.
+    // The map itself is made once; each redraw (availability, holidays, new dogs…) only refreshes the pins.
+    // (Rebuilding the whole map on every change made two builds clash, leaving a grey box.)
     const dogPoints = dog ? [{ lat: dog.lat, lng: dog.lng, kind: 'last', label: (dog.name || 'Dog') + ' last seen' + (dog.lastSeenPlace ? ': ' + dog.lastSeenPlace : '') }] : [];
-    makeMap(mapEl, dogPoints).then(map => {
-      if (!map) return;
-      if (turn !== live.turn) { try { map.remove(); } catch (e) {} return; }
-      live.map = map;
+    live.paint = map => {
+      if (live.layer) live.layer.clearLayers(); else live.layer = window.L.layerGroup().addTo(map);
+      dogPoints.forEach(p => { const m = pin(p, p.kind).addTo(live.layer); if (p.label) m.bindPopup(h('span', null, p.label)); });
       const groups = new Map();
       placed.forEach(p => { const key = p.profile.lat.toFixed(4) + ',' + p.profile.lng.toFixed(4); (groups.get(key) || groups.set(key, []).get(key)).push(p); });
       const firstName = p => String(p.name || 'No name').trim().split(/\s+/)[0];
@@ -5136,17 +5135,34 @@ function showVolunteers(dogId) {
         const at = [group[0].profile.lat, group[0].profile.lng];
         all.push(at);
         const dim = !group.some(match);
-        const m = window.L.marker(at, { icon: window.L.divIcon({ className: '', html: '<span class="vol-pin' + (dim ? ' dim' : '') + '">' + group.length + '</span>', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(map);
+        const m = window.L.marker(at, { icon: window.L.divIcon({ className: '', html: '<span class="vol-pin' + (dim ? ' dim' : '') + '">' + group.length + '</span>', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(live.layer);
         m.bindPopup(h('div', { class: 'vol-popup' },
           h('strong', null, group[0].profile.town || 'Volunteers'),
-          group.flatMap(u => u.members).map(p => h('button', { class: 'link', type: 'button', onclick: () => go('volunteer/' + p.id) }, (p.name || 'No name') + ' ›'))));
+          group.flatMap(u => u.members).map(p => h('button', { class: 'link', type: 'button', onclick: () => go('volunteer/' + p.id) }, (p.name || 'No name') + ' \u203a'))));
         const label = u => u.team ? joinNames(u.members.map(firstName)) : firstName(u);   // "Darren & Sarah"
         if (m.bindTooltip) m.bindTooltip(h('span', null, group.length > 2 ? label(group[0]) + ' +' + (group.length - 1) : group.map(label).join(', ')),
           { permanent: true, direction: 'right', offset: [14, 0], className: 'vol-tip' });
       });
-      if (all.length === 1) map.setView(all[0], 11);
-      else if (all.length > 1) map.fitBounds(all, { padding: [40, 40], maxZoom: 13 });
-    });
+      // Only re-centre when the pins themselves change (not every minute), so the map doesn't jump while you look at it.
+      const key = all.map(x => x.join(',')).join('|');
+      if (key !== live.viewKey) {
+        live.viewKey = key;
+        if (all.length === 1) map.setView(all[0], 11);
+        else if (all.length > 1) map.fitBounds(all, { padding: [40, 40], maxZoom: 13 });
+      }
+    };
+    if (live.map) live.paint(live.map);
+    else if (!live.mapLoading) {
+      live.mapLoading = true;
+      const turn = live.turn;
+      makeMap(mapEl, []).then(map => {
+        live.mapLoading = false;
+        if (!map) return;
+        if (turn !== live.turn || !mapEl.isConnected) { try { map.remove(); } catch (e) {} return; }   // left the screen meanwhile
+        live.map = map; live.layer = null; live.viewKey = null;
+        live.paint(map);
+      }).catch(() => { live.mapLoading = false; });
+    }
   }
 
   state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'users'),
