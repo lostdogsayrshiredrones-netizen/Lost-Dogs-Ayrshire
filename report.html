@@ -156,7 +156,7 @@
   .photo-status.ok { color: #7dff9c; }
   .photo-no { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: var(--red); font-weight: 700; }
   .photo-no b { font-size: 1.05rem; }
-  #f-town { position: relative; }
+  #f-town, #f-breed { position: relative; }
   .town-list { display: flex; flex-direction: column; margin-top: 6px; border-radius: 12px; overflow: hidden; background: #fff; border: 3px solid var(--yellow); }
   .town-list button { display: flex; justify-content: space-between; gap: 10px; padding: 12px 14px; border: 0; border-top: 1px solid #e3dcf7; background: #fff; color: #1c1530; font: inherit; font-size: 1rem; font-weight: 800; text-align: left; }
   .town-list button:first-child { border-top: 0; }
@@ -431,6 +431,12 @@
       <input type="text" id="r-dogname" autocomplete="off" maxlength="60">
     </div>
 
+    <div class="field" data-for="lost loose found" id="f-breed">
+      <label class="f" for="r-breed" id="r-breed-label">Breed</label>
+      <input type="text" id="r-breed" autocomplete="off" autocapitalize="words" maxlength="60" placeholder="Start typing, e.g. Lab&hellip;" role="combobox" aria-autocomplete="list" aria-controls="r-breed-list" aria-expanded="false">
+      <div class="town-list" id="r-breed-list" role="listbox" hidden></div>
+    </div>
+
     <div class="field" data-for="lost" id="f-chip">
       <span class="f" id="r-chip-q">Is your dog microchipped, and are the details up to date?</span>
       <div class="yesno" role="radiogroup" aria-labelledby="r-chip-q">
@@ -699,13 +705,14 @@ function setupForm(dogId, keep) {
   $('r-town-label').textContent = T.town;
   $('r-map-label').innerHTML = esc(T.map) + ' <span class="opt">(optional)</span>';
   $('r-date-label').textContent = T.date;
+  $('r-breed-label').innerHTML = type === 'lost' ? 'Your dog&rsquo;s breed' : 'Breed <span class="opt">(if you know)</span>';
   $('r-desc-label').innerHTML = esc(T.desc) + (T.descNeeded ? '' : ' <span class="opt">(optional)</span>');
   $('r-send').textContent = T.send;
   document.querySelectorAll('[data-for]').forEach(el => { el.hidden = el.getAttribute('data-for').split(' ').indexOf(type) < 0; });
   if (type !== 'lost') { $('r-form').classList.remove('not-owner'); $('r-notowner').hidden = true; $('r-behalf').hidden = true; } else setOwner();
   drawDanger();
   if (keep) return;
-  $('r-form').reset(); clearErrors(); setPhoto(null, null); $('r-photo-no').hidden = true; $('r-town-list').hidden = true; $('r-find-list').hidden = true; $('r-find-list').textContent = ''; findMsg(''); pinLatLng = null; openedAt = Date.now();
+  $('r-form').reset(); clearErrors(); setPhoto(null, null); $('r-photo-no').hidden = true; $('r-town-list').hidden = true; $('r-breed-list').hidden = true; $('r-find-list').hidden = true; $('r-find-list').textContent = ''; findMsg(''); pinLatLng = null; openedAt = Date.now();
   setOwner(); drawDanger();
   if (marker && map) { map.removeLayer(marker); marker = null; }
   if (map) map.setView(AYRSHIRE, 9);
@@ -848,6 +855,49 @@ $('r-town').addEventListener('keydown', e => {
   if (first && !$('r-town-list').hidden) first.click();
 });
 
+// ---------- Breed: start typing and pick from the list (UK Kennel Club breeds and popular crosses) ----------
+// Other names people use ("Lab", "Staffie", "Alsatian") find the breed too. Anything not listed can be typed in full.
+const BREEDS = [["Affenpinscher", []], ["Afghan Hound", []], ["Airedale Terrier", []], ["Akita", ["Japanese Akita", "American Akita"]], ["Alaskan Malamute", ["Malamute"]], ["American Bulldog", []], ["American Bully", ["Bully"]], ["American Staffordshire Terrier", ["Amstaff"]], ["Anatolian Shepherd Dog", ["Kangal"]], ["Australian Cattle Dog", ["Blue Heeler", "Red Heeler"]], ["Australian Shepherd", ["Aussie"]], ["Australian Silky Terrier", ["Silky Terrier"]], ["Australian Terrier", []], ["Azawakh", []], ["Basenji", []], ["Basset Fauve de Bretagne", []], ["Basset Griffon Vendeen", ["Basset Griffon Vendeen (Grand)", "GBGV", "Basset Griffon Vendeen (Petit)", "PBGV"]], ["Basset Hound", []], ["Bavarian Mountain Hound", []], ["Beagle", []], ["Bearded Collie", ["Beardie"]], ["Beauceron", []], ["Bedlington Terrier", []], ["Belgian Shepherd", ["Belgian Shepherd (Groenendael)", "Belgian Shepherd (Laekenois)", "Belgian Shepherd (Malinois)", "Malinois", "Belgian Shepherd (Tervueren)"]], ["Bernese Mountain Dog", ["Berner"]], ["Bichon Frise", ["Bichon"]], ["Bloodhound", []], ["Boerboel", []], ["Bolognese", []], ["Border Collie", ["Collie"]], ["Border Terrier", []], ["Borzoi", []], ["Boston Terrier", []], ["Boxer", []], ["Bracco Italiano", []], ["Briard", []], ["Brittany", []], ["Bull Terrier", ["Miniature Bull Terrier"]], ["Bulldog", ["English Bulldog", "British Bulldog"]], ["Bullmastiff", []], ["Cairn Terrier", []], ["Canaan Dog", []], ["Cane Corso", ["Italian Mastiff"]], ["Cavalier King Charles Spaniel", ["Cavalier", "King Charles", "King Charles Spaniel"]], ["Cesky Terrier", []], ["Chesapeake Bay Retriever", []], ["Chihuahua", ["Chihuahua (Long Coat)", "Chihuahua (Smooth Coat)", "Chi"]], ["Chinese Crested", []], ["Chow Chow", []], ["Cirneco dell'Etna", []], ["Clumber Spaniel", []], ["Cocker Spaniel", ["American Cocker Spaniel", "Cocker", "Working Cocker", "Show Cocker"]], ["Collie (Rough or Smooth)", ["Rough Collie", "Lassie", "Smooth Collie", "Collie"]], ["Corgi", ["Welsh Corgi (Cardigan)", "Welsh Corgi (Pembroke)"]], ["Coton de Tulear", []], ["Curly Coated Retriever", []], ["Czechoslovakian Wolfdog", []], ["Dachshund", ["Dachshund (Long Haired)", "Sausage dog", "Dachshund (Miniature Long Haired)", "Mini Dachshund", "Dachshund (Miniature Smooth Haired)", "Dachshund (Miniature Wire Haired)", "Dachshund (Smooth Haired)", "Dachshund (Wire Haired)", "Miniature Dachshund"]], ["Dalmatian", ["Dally"]], ["Dandie Dinmont Terrier", []], ["Deerhound", ["Scottish Deerhound"]], ["Dobermann", ["Doberman", "Dobie"]], ["Dogue de Bordeaux", ["French Mastiff"]], ["Dutch Shepherd", []], ["English Setter", []], ["English Toy Terrier", []], ["Estrela Mountain Dog", []], ["Eurasier", []], ["Field Spaniel", []], ["Finnish Lapphund", []], ["Finnish Spitz", []], ["Flat Coated Retriever", ["Flatcoat"]], ["Fox Terrier", ["Fox Terrier (Smooth)", "Fox Terrier (Wire)"]], ["Foxhound", []], ["French Bulldog", ["Frenchie"]], ["German Pointer", ["German Longhaired Pointer", "German Shorthaired Pointer", "GSP", "German Wirehaired Pointer", "GWP", "Pointer"]], ["German Shepherd", ["Alsatian", "GSD"]], ["German Spitz", []], ["Glen of Imaal Terrier", []], ["Golden Retriever", ["Goldie"]], ["Gordon Setter", []], ["Grand Bleu de Gascogne", []], ["Great Dane", []], ["Greater Swiss Mountain Dog", []], ["Greyhound", []], ["Griffon Bruxellois", ["Brussels Griffon"]], ["Hamiltonstovare", []], ["Havanese", []], ["Hovawart", []], ["Hungarian Puli", ["Puli"]], ["Ibizan Hound", []], ["Irish Setter", ["Irish Red and White Setter", "Red Setter"]], ["Irish Terrier", []], ["Irish Water Spaniel", []], ["Irish Wolfhound", ["Wolfhound"]], ["Italian Greyhound", ["Iggy"]], ["Italian Spinone", ["Spinone"]], ["Jack Russell Terrier", ["Jack Russell", "JRT", "Parson Russell Terrier"]], ["Japanese Chin", []], ["Japanese Shiba Inu", ["Shiba Inu", "Shiba"]], ["Japanese Spitz", []], ["Keeshond", []], ["Kerry Blue Terrier", []], ["Komondor", []], ["Kooikerhondje", []], ["Korean Jindo", []], ["Labrador Retriever", ["Labrador", "Lab"]], ["Lagotto Romagnolo", []], ["Lakeland Terrier", []], ["Lancashire Heeler", []], ["Large Munsterlander", []], ["Leonberger", []], ["Lhasa Apso", ["Lhasa"]], ["Lowchen", []], ["Lurcher", []], ["Maltese", []], ["Manchester Terrier", []], ["Maremma Sheepdog", []], ["Mastiff", ["English Mastiff"]], ["Mexican Hairless", []], ["Miniature Pinscher", ["Min Pin"]], ["Neapolitan Mastiff", []], ["Newfoundland", ["Newfie"]], ["Norfolk Terrier", []], ["Northern Inuit", []], ["Norwegian Buhund", []], ["Norwegian Elkhound", []], ["Norwich Terrier", []], ["Nova Scotia Duck Tolling Retriever", ["Toller"]], ["Old English Sheepdog", ["Dulux dog"]], ["Otterhound", []], ["Papillon", []], ["Patterdale Terrier", ["Patterdale"]], ["Pekingese", ["Peke"]], ["Pharaoh Hound", []], ["Pointer", ["English Pointer"]], ["Polish Lowland Sheepdog", []], ["Pomeranian", ["Pom"]], ["Poodle", ["Poodle (Miniature)", "Poodle (Standard)", "Poodle (Toy)", "Toy Poodle", "Miniature Poodle", "Standard Poodle"]], ["Portuguese Podengo", []], ["Portuguese Water Dog", []], ["Presa Canario", []], ["Pug", []], ["Pyrenean Mastiff", []], ["Pyrenean Mountain Dog", ["Great Pyrenees"]], ["Rhodesian Ridgeback", ["Ridgeback"]], ["Rottweiler", ["Rottie"]], ["Russian Black Terrier", []], ["Russian Toy", []], ["Saluki", []], ["Samoyed", ["Sammy"]], ["Schnauzer", ["Giant Schnauzer", "Miniature Schnauzer", "Schnauzer (Standard)", "Mini Schnauzer"]], ["Scottish Terrier", ["Scottie"]], ["Sealyham Terrier", []], ["Shar Pei", []], ["Shetland Sheepdog", ["Sheltie"]], ["Shih Tzu", []], ["Siberian Husky", ["Husky"]], ["Skye Terrier", []], ["Sloughi", []], ["Soft Coated Wheaten Terrier", ["Wheaten"]], ["Spanish Water Dog", []], ["Springer Spaniel", ["English Springer Spaniel", "Springer", "Welsh Springer Spaniel"]], ["St Bernard", ["Saint Bernard"]], ["Staffordshire Bull Terrier", ["Staffie", "Staffy", "Staff"]], ["Sussex Spaniel", []], ["Swedish Vallhund", []], ["Tibetan Mastiff", []], ["Tibetan Spaniel", []], ["Tibetan Terrier", []], ["Utonagan", []], ["Vizsla", ["Hungarian Vizsla", "Hungarian Wirehaired Vizsla", "Wirehaired Vizsla"]], ["Weimaraner", []], ["Welsh Terrier", []], ["West Highland White Terrier", ["Westie"]], ["Whippet", []], ["White Swiss Shepherd Dog", ["White Shepherd"]], ["XL Bully", ["American Bully XL", "Bully"]], ["Yorkshire Terrier", ["Yorkie"]], ["Bernedoodle", []], ["Cavachon", []], ["Cavapoo", []], ["Chorkie", []], ["Cockapoo", ["Cockerpoo"]], ["Collie cross", ["Collie x"]], ["German Shepherd cross", ["GSD cross", "Alsatian cross"]], ["Goldendoodle", []], ["Husky cross", []], ["Jack Russell cross", ["JRT cross"]], ["Jackahuahua", ["Jack Chi"]], ["Jackapoo", ["Jack-a-poo"]], ["Labradoodle", ["Doodle"]], ["Labrador cross", ["Lab cross", "Lab x"]], ["Maltipoo", []], ["Pocket Bully", ["Bully"]], ["Pomchi", []], ["Pomsky", []], ["Puggle", []], ["Shih-poo", ["Shihpoo"]], ["Spaniel cross", []], ["Springador", []], ["Sprocker", ["Sprocker Spaniel"]], ["Sproodle", []], ["Staffie cross", ["Staffy cross", "Staff cross"]], ["Terrier cross", []], ["Yorkipoo", []]];
+const BREED_FIRST = ['Not sure', 'Crossbreed / mixed'];
+function breedMatches(q) {
+  q = q.trim().toLowerCase(); if (!q) return BREED_FIRST.map(b => [b, '']);
+  const starts = [], words = [], seen = new Set();
+  const add = (list, b, also) => { if (!seen.has(b[0])) { seen.add(b[0]); list.push([b[0], also || '']); } };
+  BREED_FIRST.forEach(b => { if (b.toLowerCase().startsWith(q)) add(starts, [b]); });
+  BREEDS.forEach(b => {
+    const n = b[0].toLowerCase();
+    if (n.startsWith(q)) add(starts, b);
+    else if (n.split(/[\s(\/-]+/).some(w => w.startsWith(q))) add(words, b);
+    else { const a = (b[1] || []).find(x => { x = x.toLowerCase(); return x.startsWith(q) || x.split(/[\s(\/-]+/).some(w => w.startsWith(q)); }); if (a) add(words, b, a); }
+  });
+  return starts.concat(words).slice(0, 8);
+}
+function drawBreeds() {
+  const box = $('r-breed-list'), input = $('r-breed'), q = input.value;
+  const found = breedMatches(q);
+  box.textContent = '';
+  const exact = found.length === 1 && found[0][0].toLowerCase() === q.trim().toLowerCase();
+  if (exact) { box.hidden = true; input.setAttribute('aria-expanded', 'false'); return; }
+  found.forEach(([name, also]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'option');
+    b.innerHTML = '<span>' + esc(name) + '</span>' + (also ? '<small>' + esc(also) + '</small>' : '');
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', () => { input.value = name; box.hidden = true; input.setAttribute('aria-expanded', 'false'); });
+    box.appendChild(b);
+  });
+  if (!found.length) { const n = document.createElement('div'); n.className = 'town-none'; n.textContent = 'Not on our list? That\u2019s fine, just type it in full.'; box.appendChild(n); }
+  box.hidden = false; input.setAttribute('aria-expanded', 'true');
+}
+$('r-breed').addEventListener('input', drawBreeds);
+$('r-breed').addEventListener('focus', drawBreeds);
+$('r-breed').addEventListener('blur', () => setTimeout(() => { $('r-breed-list').hidden = true; $('r-breed').setAttribute('aria-expanded', 'false'); }, 150));
+$('r-breed').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const first = $('r-breed-list').querySelector('button');
+  if (first && !$('r-breed-list').hidden && $('r-breed').value.trim()) first.click();
+});
+
 // ---------- Search for a street or place, and drop the pin there (OpenStreetMap's free place search) ----------
 function findMsg(text, ok) { const m = $('r-find-msg'); m.textContent = text; m.hidden = !text; m.className = 'find-msg' + (ok ? ' ok' : ''); }
 let lastFind = 0;
@@ -964,6 +1014,7 @@ function setOwner() {
   $('r-behalf').hidden = !behalf;
   // Wording follows who is filling it in: "your dog" for the owner, "the dog" for someone helping.
   $('r-dogname-label').textContent = behalf ? "The dog's name" : "Your dog's name";
+  if (type === 'lost') $('r-breed-label').textContent = behalf ? "The dog's breed" : "Your dog\u2019s breed";
   $('r-chip-q').textContent = behalf ? 'Is the dog microchipped, and are the details up to date?' : 'Is your dog microchipped, and are the details up to date?';
   if (lost) {
     $('r-town-label').textContent = behalf ? 'Town/Village where the dog went missing' : TYPES.lost.town;
@@ -1016,6 +1067,7 @@ $('r-form').addEventListener('submit', async e => {
     if (!$('r-oknows').checked) note(fail('f-oknows', 'Please tick to confirm the owner knows'));
   }
   if (type === 'lost' && !$('r-dogname').value.trim()) note(fail('f-dogname', behalf ? "Please add the dog's name" : "Please add your dog's name"));
+  if (type === 'lost' && !$('r-breed').value.trim()) note(fail('f-breed', behalf ? "Please add the dog's breed, or choose Not sure" : "Please add your dog's breed, or choose Not sure"));
   const chipEl = document.querySelector('input[name="chip"]:checked');
   if (type === 'lost' && !chipEl) note(fail('f-chip', 'Please answer: Yes, No or Unknown'));
   const danger = dangerValue();
@@ -1040,6 +1092,7 @@ $('r-form').addEventListener('submit', async e => {
   const data = {
     type, dogId, dogName: type === 'lost' ? $('r-dogname').value.trim() : '',
     chip: type === 'lost' && chipEl ? chipEl.value : undefined,
+    breed: type !== 'posts' ? $('r-breed').value.trim() || undefined : undefined,
     owner: type === 'lost' ? $('r-owner-yes').checked : undefined,
     behalf: behalf || undefined,
     relationship: behalf ? $('r-rel').value : undefined, ownerName: behalf ? $('r-oname').value.trim() : undefined,
