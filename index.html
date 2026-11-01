@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-GB" data-build="096c77e881ca">
+<html lang="en-GB" data-build="41446391bf3d">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -384,6 +384,8 @@
   body.is-dev .dev-only { display: block !important; }
   .coord-only { display: none !important; }
   body.is-coord .coord-only { display: block !important; }
+  .dsra-only { display: none !important; }
+  body.is-dsra .dsra-only { display: block !important; }
 
   .center-screen { justify-content: center; text-align: center; padding-bottom: 40px; }
   .center-screen .logo { margin: 0 auto 20px; }
@@ -1294,6 +1296,74 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 .vol-now-tag.free { background: #1d8a3a; } .vol-now-tag.busy { background: #e08a00; } .vol-now-tag.holiday { background: #6b6385; }
 
 #update-ready { position: fixed; left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 5000; padding: 14px; border: 0; border-radius: 14px; background: #fdf90f; color: #3e12a3; font: inherit; font-weight: 900; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+
+/* ---- Drone Requests (Drone Search & Rescue Ayrshire) ---- */
+.tile .art.dsra-art { display: flex; align-items: center; justify-content: center; background: var(--purple-deep); }
+.tile .art.dsra-art img { width: 86%; aspect-ratio: auto; height: auto; border: 0; border-radius: 50%; box-shadow: none; }
+.report-tag.drone { background: #0f766e; }
+.report-card img.dsra-thumb { object-fit: contain; background: #fff; }
+.dsra-head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.dsra-head img { width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0; }
+.dsra-head .page-title { margin: 0; }
+.dsra-head span { display: block; margin-top: 4px; color: var(--yellow); font-weight: 800; font-size: .85rem; }
+.drone-police { display: flex; flex-direction: column; gap: 4px; margin: 0 0 12px; padding: 12px 14px; border-radius: 12px; background: #fff; color: #1c1530; border-left: 8px solid #1d4ed8; }
+.drone-police strong { color: #1d4ed8; }
+.drone-police .ref { font-size: 1.25rem; font-weight: 900; letter-spacing: .03em; color: #1c1530; }
+.drone-photo-note { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: #fff7d6; color: #4a3a00; font-size: .9rem; line-height: 1.4; }
+.drone-areas { display: flex; flex-wrap: wrap; gap: 6px; }
+.drone-areas span { padding: 3px 10px; border-radius: 999px; background: #eee8fb; color: var(--purple-deep); font-weight: 800; font-size: .85rem; }
+.drone-outcomes { display: flex; flex-direction: column; gap: 8px; }
+
+/* ---- Duplicate dogs: "Is this the same dog?" and Merge duplicate ---- */
+.dup { margin: 6px 0 14px; padding: 14px; border-radius: 14px; background: #fff7d6; color: #3a2d00; border: 3px solid #e0a800; display: flex; flex-direction: column; gap: 10px; }
+.dup[hidden] { display: none; }
+.dup b.t { font-size: 1.15rem; color: #7a5600; }
+.dup .dup-one { display: flex; flex-direction: column; gap: 8px; }
+.dup .dup-why { font-weight: 800; }
+.dup .btn.ghost { color: var(--purple-deep); border-color: var(--purple-deep); background: #fff; }
+.dup .dup-small { font-size: .85rem; }
+.dupdog { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 12px; background: #fff; color: #1c1530; text-align: left; }
+.dupdog img, .dupdog .dupdog-nophoto { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; flex-shrink: 0; border: 3px solid var(--yellow); }
+.dupdog .dupdog-nophoto { display: flex; align-items: center; justify-content: center; background: var(--purple-deep); }
+.dupdog .dupdog-nophoto svg { width: 60%; fill: var(--yellow); }
+.dupdog strong { display: block; color: var(--purple-deep); font-size: 1.02rem; }
+.dupdog span { display: block; font-size: .86rem; color: #4a3f6b; }
+.dupdog .merge-why { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; background: #fff1b3; color: #6b4d00; font-style: normal; font-size: .78rem; font-weight: 800; }
+.merge-me { margin: 0 0 10px; }
+.merge-q { margin: 6px 0 8px; font-weight: 800; }
+.merge-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.pickdog { display: flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; border-radius: 14px; background: #fff; border: 4px solid transparent; cursor: pointer; }
+.pickdog.on { border-color: var(--yellow); box-shadow: 0 0 0 2px var(--purple-deep) inset; }
+.pickdog .dupdog { flex: 1; min-width: 0; }
+.pickdog input { width: 24px; height: 24px; flex-shrink: 0; accent-color: var(--purple); }
+.moves { background: #fff; color: #1c1530; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.moves h3 { margin: 0; color: var(--purple-deep); }
+.moves ul { margin: 0; padding-left: 20px; line-height: 1.6; }
+.moves p { margin: 0; font-size: .92rem; }
+.fbwarn { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 12px; background: #e7f0ff; color: #0b3a8a; border-left: 6px solid #1877f2; font-size: .92rem; line-height: 1.45; }
+.fbwarn .check { display: flex; gap: 8px; align-items: flex-start; font-weight: 800; color: #0b3a8a; }
+.fbwarn .check input { width: 22px; height: 22px; flex-shrink: 0; }
+.fbwarn a { color: #0b3a8a; font-weight: 800; }
+.merged-box, .fbtidy-box { display: flex; flex-direction: column; gap: 8px; margin: 0 0 14px; padding: 14px; border-radius: 14px; background: #fff7d6; color: #3a2d00; border: 3px solid #e0a800; }
+.merged-box strong, .fbtidy-box strong { color: #7a5600; font-size: 1.08rem; }
+.fbtidy-box .btn.ghost { color: var(--purple-deep); border-color: var(--purple-deep); background: #fff; }
+.fbtidy-tag { display: inline-block; margin-top: 6px; padding: 3px 8px; border-radius: 999px; background: #1877f2; color: #fff; font-size: .7rem; font-weight: 900; }
+.merge-go { background: #e11d2e !important; color: #fff !important; border-color: #e11d2e !important; box-shadow: 0 5px 0 #8a0f1a !important; }
+.merge-go:disabled { opacity: .6; }
+.drone-vuln { color: #b00020 !important; font-weight: 900; }
+.drone-vuln-box { display: flex; flex-direction: column; gap: 2px; margin: 0 0 12px; padding: 12px 14px; border-radius: 12px; background: #e11d2e; color: #fff; }
+.drone-vuln-box strong { font-size: 1.1rem; text-transform: uppercase; }
+.report-tag.checkrisk { background: #d97706; }
+.drone-check-box { display: flex; flex-direction: column; gap: 2px; margin: 0 0 12px; padding: 12px 14px; border-radius: 12px; background: #f59e0b; color: #2b1700; }
+.drone-check-box strong { font-size: 1.05rem; text-transform: uppercase; }
+.report-tag.waterrisk { background: #1d4ed8; }
+.drone-water-box { display: flex; flex-direction: column; gap: 2px; margin: 0 0 12px; padding: 12px 14px; border-radius: 12px; background: #1d4ed8; color: #fff; }
+.drone-water-box strong { font-size: 1.05rem; text-transform: uppercase; }
+.dsra-tick { display: flex; gap: 10px; align-items: flex-start; margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: #e6f4f1; color: #0f5148; }
+.dsra-tick input { width: 22px; height: 22px; flex-shrink: 0; accent-color: #0f766e; }
+.dsra-tick span { display: flex; flex-direction: column; }
+.dsra-tick small { font-size: .82rem; color: #2f5f58; }
+.badge.dsra-badge { background: #0f766e; color: #fff; }
 </style>
 </head>
 <body>
@@ -1365,6 +1435,13 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
       <span class="art icon emoji" aria-hidden="true">💬</span>
       <span class="count" id="reports-count" hidden>0</span>
       <span class="tile-name">Public Reports</span>
+    </button>
+
+    <!-- TILE: Drone Requests (admins, the developer and the DSRA team): "Request a drone search" from the DSRA page on the website -->
+    <button class="tile dsra-only" data-go="drones">
+      <span class="art dsra-art" aria-hidden="true"><img alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAMAAAC8EZcfAAAAwFBMVEWfYmbszRrw0h7+tgnv0h2GeACaowPcox7GmUNVnBe3iUxeYAMtYhjw1Ruexxb29vUdLBG3twB9MYiCN4RGPACop6dmZmf/fwA5hhD/AAB/fwB/gIPFfAD98wAAAABjC6H26wEBAQDw2RJaAar42CLOxwD//wCvpwBqZgBEmg3+owDqyyKMhwBMSQBrF5nb1ABlDp+6swDDuwAoJgAVFgE4NgBZVQCalAD7mwB5dAB1Jo/OpziVVW88lgjw1BvYtTCELeFzAAAAQHRSTlP/450DZv///v7/////Gf///wP//////wL/AQL///8A/////f/9/wH/////+f////////////////////7//y7+eG9S7wAAFExJREFUeNrVnQt72jrSgE1STAjJlrRpT89+nxpZrJBPsXFsfIlDGv7/v9qZkXzFgE3SPl09LQkX2y9z02gkK9b3s9vy8lL/vL398OHiYjRalW00urj48OH2Vn/w8nJ5/lWss+nooq+ABmD/gSYaDV8BUMSsffx3AS4vNRywlWSr1W673V5Bgx+71arkRMpXEuTy9wAu7+BCy9cPI8O22l1ZlvX5eb1+eFhQe3hYr58/w4tXu5WhHBHjcrn85YB0idsLQzcBtucSq970a4/PQDkxjBevxfG/DhB1e2tkt7qyPq/3yfY515+t7YoYL9AgB2raGii91wtD9/J8gq1B+fxyZRhfB0rRGowHCtu+rNt0j22qx33GLel6IKI1GG9lfWrAPRYGtwDf0K18oY4Jzz9drwYj9gS8K/B21rqG96iNDFzherIbjYTg0IQYjbaTa3AfbaKPNca1tSsR3xEQvu4t4W1fHhYNxT08v1zvBGedjYvd9Qs6ef2QhxeNeNtTiH0AwXU/CJReAw/E8XI9MmwouQZb+ZyPrl/qQi8RP9CJ3wFw+ff3VwgsYHsl3iPRbblBYQebeZOTV5W6BkWvtJ57CNE6Lb67D6jd63WJB9eyiO4YW52SGPH7VYjXJMR/o3G/CRC+Iolv+3lRqfbZEr3paowj67lS9eLzFghHpy3xOCAcTOKrtIuxgg+jqxj5dYUIWjCWuDwfkJx3JbafFqVyP23pYr44bnz7tgiHIOIEgqhR9OLTDi3x8jihddT8QL0kvuKUz9fm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"></span>
+      <span class="count" id="drone-count" hidden>0</span>
+      <span class="tile-name">Drone Requests</span>
     </button>
 
     <!-- TILE: My Availability (everyone): weekly busy times, one-off times and holidays -->
@@ -1850,6 +1927,29 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
   <a class="btn wide ghost" id="reports-public-link" href="https://lostdogsayrshire.org.uk/report.html" target="_blank" rel="noopener">Open the public reporting page</a>
 </section>
 
+<section class="screen" id="merge">
+  <button class="back" id="merge-back" data-go="dogs">&larr; Back</button>
+  <h2 class="page-title">Merge duplicate</h2>
+  <div id="merge-body"></div>
+</section>
+
+<section class="screen" id="drones">
+  <button class="back" data-go="home">&larr; Home</button>
+  <div class="dsra-head"><img alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAMAAAC8EZcfAAAAwFBMVEWfYmbszRrw0h7+tgnv0h2GeACaowPcox7GmUNVnBe3iUxeYAMtYhjw1Ruexxb29vUdLBG3twB9MYiCN4RGPACop6dmZmf/fwA5hhD/AAB/fwB/gIPFfAD98wAAAABjC6H26wEBAQDw2RJaAar42CLOxwD//wCvpwBqZgBEmg3+owDqyyKMhwBMSQBrF5nb1ABlDp+6swDDuwAoJgAVFgE4NgBZVQCalAD7mwB5dAB1Jo/OpziVVW88lgjw1BvYtTCELeFzAAAAQHRSTlP/450DZv///v7/////Gf///wP//////wL/AQL///8A/////f/9/wH/////+f////////////////////7//y7+eG9S7wAAFExJREFUeNrVnQt72jrSgE1STAjJlrRpT89+nxpZrJBPsXFsfIlDGv7/v9qZkXzFgE3SPl09LQkX2y9z02gkK9b3s9vy8lL/vL398OHiYjRalW00urj48OH2Vn/w8nJ5/lWss+nooq+ABmD/gSYaDV8BUMSsffx3AS4vNRywlWSr1W673V5Bgx+71arkRMpXEuTy9wAu7+BCy9cPI8O22l1ZlvX5eb1+eFhQe3hYr58/w4tXu5WhHBHjcrn85YB0idsLQzcBtucSq970a4/PQDkxjBevxfG/DhB1e2tkt7qyPq/3yfY515+t7YoYL9AgB2raGii91wtD9/J8gq1B+fxyZRhfB0rRGowHCtu+rNt0j22qx33GLel6IKI1GG9lfWrAPRYGtwDf0K18oY4Jzz9drwYj9gS8K/B21rqG96iNDFzherIbjYTg0IQYjbaTa3AfbaKPNca1tSsR3xEQvu4t4W1fHhYNxT08v1zvBGedjYvd9Qs6ef2QhxeNeNtTiH0AwXU/CJReAw/E8XI9MmwouQZb+ZyPrl/qQi8RP9CJ3wFw+ff3VwgsYHsl3iPRbblBYQebeZOTV5W6BkWvtJ57CNE6Lb67D6jd63WJB9eyiO4YW52SGPH7VYjXJMR/o3G/CRC+Iolv+3lRqfbZEr3paowj67lS9eLzFghHpy3xOCAcTOKrtIuxgg+jqxj5dYUIWjCWuDwfkJx3JbafFqVyP23pYr44bnz7tgiHIOIEgqhR9OLTDi3x8jihddT8QL0kvuKUz9fm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"><div><h2 class="page-title">Drone Requests</h2><span>Drone Search &amp; Rescue Ayrshire</span></div></div>
+  <div class="tabs">
+    <button class="btn" data-drone-filter="new">New</button>
+    <button class="btn" data-drone-filter="done">Dealt with</button>
+  </div>
+  <div id="drones-list"></div>
+  <p class="hint">Sent in from &ldquo;Request a drone search&rdquo; on the website. Requests are deleted automatically 30 days after they are dealt with.</p>
+  <a class="btn wide ghost" href="https://lostdogsayrshire.org.uk/dsra.html" target="_blank" rel="noopener">Open the DSRA page</a>
+</section>
+
+<section class="screen" id="drone">
+  <button class="back" data-go="drones">&larr; Drone Requests</button>
+  <div id="drone-body" style="margin-top:20px"></div>
+</section>
+
 <section class="screen" id="report">
   <button class="back" data-go="reports">&larr; Public Reports</button>
   <div id="report-body" style="margin-top:20px"></div>
@@ -2319,7 +2419,9 @@ const STATUSES = {
   'reunited':             { label: 'Reunited',             active: false, poster: 'reunited' },
   'home-safe':            { label: 'Home safe',            active: false, poster: 'home-safe' },
   'no-further-sightings': { label: 'No further sightings', active: false, poster: 'no-further-sightings' },
-  'paws-down':            { label: 'Paws down',            active: false, poster: 'paws-down' }
+  'paws-down':            { label: 'Paws down',            active: false, poster: 'paws-down' },
+  // A duplicate merged into another dog by an admin: hidden from every list, tidied away with closed cases.
+  'merged':               { label: 'Merged',               active: false, poster: null, hidden: true }
 };
 
 // When a dog is Found, where it is now. Kept as a second step so the status list stays short.
@@ -2441,7 +2543,9 @@ const state = { fb: null, user: null, profile: null, route: '', subs: [] };
 const ACCESS = ['member', 'coordinator', 'admin', 'developer'];   // roles that can use the app
 const isMember = () => !!state.profile && ACCESS.includes(state.profile.role);
 const isCoord  = () => !!state.profile && ['coordinator', 'admin', 'developer'].includes(state.profile.role);
-const isAdmin  = () => !!state.profile && (state.profile.role === 'admin' || state.profile.role === 'developer');   // a developer can do everything an admin can
+const isAdmin  = () => !!state.profile && (state.profile.role === 'admin' || state.profile.role === 'developer');
+// Drone Search & Rescue Ayrshire: admins, the developer, and anyone an admin has ticked as DSRA team (whatever their role).
+const canSeeDrones = () => isAdmin() || (!!state.profile && ['member', 'coordinator'].includes(state.profile.role) && state.profile.dsra === true);   // a developer can do everything an admin can
 const isDev    = () => !!state.profile && state.profile.role === 'developer';   // plus app settings such as the WhatsApp link
 
 function activate(id) {
@@ -2470,6 +2574,7 @@ function render() {
   document.body.classList.toggle('is-admin', isAdmin());
   document.body.classList.toggle('is-dev', isDev());
   document.body.classList.toggle('is-coord', isCoord());
+  document.body.classList.toggle('is-dsra', canSeeDrones());
 
   // Not connected yet / not signed in / not approved: those screens take over.
   if (!state.fb)      return activate(state.loadError ? 'offline' : 'loading');
@@ -2495,6 +2600,9 @@ function render() {
   if (name === 'fbupdate')  { if (!isCoord()) return go('home'); activate('fbupdate'); return showFacebookUpdate(arg); }
   if (name === 'reports')   { if (!canSeeReports()) return go('home'); activate('reports'); return showReports(); }
   if (name === 'report')    { if (!canSeeReports()) return go('home'); activate('report'); return showReport(arg); }
+  if (name === 'merge')     { if (!isAdmin()) return go('home'); activate('merge'); return showMerge(arg); }
+  if (name === 'drones')    { if (!canSeeDrones()) return go('home'); activate('drones'); return showDroneRequests(); }
+  if (name === 'drone')     { if (!canSeeDrones()) return go('home'); activate('drone'); return showDroneRequest(arg); }
   if (name === 'activity')  { if (!isAdmin()) return go('home'); activate('activity'); return showActivity(arg); }
   if (name === 'availability') { activate('availability'); return showAvailability(); }
   if (name === 'topics')    { if (!isAdmin()) return go('home'); activate('topics'); return showTopics(); }
@@ -3042,6 +3150,10 @@ function showHome() {
   if (canSeeReports()) state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'reports'), fb.where('status', '==', 'new')), snap => {
     $('#reports-count').textContent = String(snap.size); $('#reports-count').hidden = snap.size === 0;
   }, () => { $('#reports-count').hidden = true; }));
+  // The DSRA team (and admins) see how many drone search requests nobody has dealt with yet.
+  if (canSeeDrones()) state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'droneRequests'), fb.where('status', '==', 'new')), snap => {
+    $('#drone-count').textContent = String(snap.size); $('#drone-count').hidden = snap.size === 0;
+  }, () => { $('#drone-count').hidden = true; }));
   // The developer sees how many documents are waiting for review on the Documents tile.
   if (isDev()) state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'docs'), fb.where('status', '==', 'pending')), snap => {
     $('#docs-count').textContent = String(snap.size); $('#docs-count').hidden = snap.size === 0;
@@ -3094,7 +3206,7 @@ function showDogs() {
 
   state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'dogs'), snap => {
     const dogs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      .filter(d => !!(STATUSES[d.status] || { active: true }).active === (dogFilter === 'active'))
+      .filter(d => !(STATUSES[d.status] || {}).hidden && !!(STATUSES[d.status] || { active: true }).active === (dogFilter === 'active'))
       .sort((a, b) => millis(b.createdAt) - millis(a.createdAt));
     list.textContent = '';
     if (dogFilter !== 'active') list.appendChild(h('p', { class: 'empty closed-note' }, 'Closed cases are removed automatically 30 days after closing.'));
@@ -3111,6 +3223,7 @@ function showDogs() {
         statusBadge(d.status),
         d.status === 'found' && d.foundWhere ? h('span', { class: 'found-where tile-where' }, d.foundWhere) : null,
         noSearchYet(d) ? h('span', { class: 'perm-tag ' + d.ownerPermission }, OWNER_PERM[d.ownerPermission].tag) : null,
+        d.fbCleanup && isAdmin() ? h('span', { class: 'fbtidy-tag' }, 'Facebook: remove duplicate') : null,
         fresh ? h('span', { class: 'count dog-new', title: 'New updates' }, String(fresh)) : null));
     });
   }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
@@ -3267,6 +3380,14 @@ function showDog(id) {
     if ($('#avail-time')) live.timeDraft = $('#avail-time').value;      // and a half-chosen availability time
     if ($('#removal-why')) live.whyDraft = $('#removal-why').value;      // and a half-typed removal reason
     const st = STATUSES[d.status] || {};
+    if (d.status === 'merged') {   // a duplicate that has been merged: point to the dog that was kept
+      root.textContent = '';
+      root.appendChild(h('h2', { class: 'page-title' }, h('span', { class: 'name-label' }, 'Name: '), d.name || 'Unnamed dog'));
+      root.appendChild(h('div', { class: 'merged-box' }, h('strong', null, 'This was a duplicate'),
+        h('span', null, 'It was merged into ' + (d.mergedIntoName || 'another dog') + (d.mergedBy ? ' by ' + d.mergedBy : '') + (d.mergedAt ? ', ' + when(d.mergedAt) : '') + '. Its updates and sightings are on that dog now.'),
+        d.mergedInto ? h('button', { class: 'btn wide', type: 'button', 'data-go': 'dog/' + d.mergedInto }, 'Open ' + (d.mergedIntoName || 'the dog')) : null));
+      return;
+    }
     const photo = live.images.find(i => i.kind === 'photo');
     const posters = live.images.filter(i => i.kind === 'poster');
     root.textContent = '';
@@ -3516,6 +3637,16 @@ function showDog(id) {
       root.appendChild(box);
     }
 
+    // --- Reminder after a merge: the duplicate's Facebook post still needs removing (admins)
+    if (d.fbCleanup && isAdmin()) root.appendChild(h('div', { class: 'fbtidy-box', id: 'fbtidy-box' },
+      h('strong', null, 'Facebook: remove the duplicate post'),
+      h('span', null, 'A duplicate' + (d.fbCleanup.name ? ' (' + d.fbCleanup.name + ')' : '') + ' was merged into this dog' + (d.fbCleanup.by ? ' by ' + d.fbCleanup.by : '') + '. Please check Facebook and delete its post, after checking its comments for sightings.'),
+      d.fbCleanup.link ? h('a', { class: 'btn wide ghost', href: d.fbCleanup.link, target: '_blank', rel: 'noopener' }, 'Open the duplicate post') : null,
+      h('button', { class: 'btn wide', type: 'button', id: 'fbtidy-done', onclick: async () => {
+        if (!confirm('Has the duplicate post been removed from Facebook?')) return;
+        try { await fb.updateDoc(dogRef, { fbCleanup: null }); } catch (err) { alert(friendlyError(err)); }
+      } }, 'Done, it\u2019s removed')));
+
     // --- Facebook: posted already, and a button to post (coordinators and admins, once a Page is linked)
     if (d.fbPostId && isCoord()) {
       root.appendChild(h('div', { class: 'fb-posted' },
@@ -3648,6 +3779,7 @@ function showDog(id) {
     // --- WhatsApp: start a message in the LDA chat about this dog
     root.appendChild(waDogButton(d));
     root.appendChild(h('p', { class: 'hint' }, 'Added ' + when(d.createdAt) + (d.createdBy ? ' by ' + d.createdBy : '')));
+    if (isAdmin()) root.appendChild(h('button', { class: 'link center', type: 'button', id: 'merge-open', 'data-go': 'merge/' + id }, 'Duplicate? Merge into another dog'));
     if (st.active === false) {
       const ms = ts => ts ? millis(ts) : 0;   // millis() treats a missing time as "now"; here a missing one must be skipped
       const closedAt = ms(d.statusAt) || ms(d.updatedAt) || ms(d.createdAt);
@@ -3729,6 +3861,158 @@ async function deleteDog(id, name) {
 }
 
 // ============================================================
+//  Duplicate dogs: spotting them, and merging them (admins)
+// ============================================================
+// A photo's "fingerprint": the picture shrunk to 9 x 8 shades of grey, then whether each square is brighter
+// than the one to its right. The same picture made smaller, saved again or screenshotted gives (almost) the same
+// 16 characters; a different picture gives a very different one. Worked out on the phone; nothing is sent anywhere.
+function photoHash(src) {
+  return new Promise(done => {
+    if (!src) return done('');
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const W = 72, H = 64, c = document.createElement('canvas'); c.width = W; c.height = H;
+        const x = c.getContext('2d'); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+        x.drawImage(img, 0, 0, W, H);
+        const px = x.getImageData(0, 0, W, H).data, grey = [];
+        for (let r = 0; r < 8; r++) for (let col = 0; col < 9; col++) {   // average each 8 x 8 block (the same on every phone)
+          let sum = 0;
+          for (let y = r * 8; y < r * 8 + 8; y++) for (let xx = col * 8; xx < col * 8 + 8; xx++) { const i = (y * W + xx) * 4; sum += px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114; }
+          grey.push(sum / 64);
+        }
+        let hex = '';
+        for (let r = 0; r < 8; r++) {
+          let bits = 0;
+          for (let col = 0; col < 8; col++) bits = (bits << 1) | (grey[r * 9 + col] > grey[r * 9 + col + 1] ? 1 : 0);
+          hex += bits.toString(16).padStart(2, '0');
+        }
+        done(hex);
+      } catch (e) { done(''); }
+    };
+    img.onerror = () => done('');
+    img.src = src;
+  });
+}
+function hashGap(a, b) {
+  if (!a || !b || a.length !== b.length) return 99;
+  let n = 0;
+  for (let i = 0; i < a.length; i++) { let v = parseInt(a[i], 16) ^ parseInt(b[i], 16); while (v) { n += v & 1; v >>= 1; } }
+  return n;
+}
+const DUP_LEAD = {   // how each reason is put in the "Is this the same dog?" box
+  'This photo matches': 'This photo matches a dog already on the app:',
+  'Same name in the same area': 'A dog with the same name in the same area is already on the app:',
+  'Added in the same area in the last 3 days': 'A dog was added in the same area in the last 3 days:'
+};
+const SAME_PHOTO_GAP = 10;   // out of 64: the same picture is 0-9; different pictures are usually around 30
+const genericName = n => /^(unknown|unnamed.*|not known|no name|n\/a|loose dog|dog|\?+)?$/i.test(String(n || '').trim());
+const placeBits = p => String(p || '').toLowerCase().split(/,|\/|\bnear\b|\bby\b|\bin\b|\bat\b/).map(x => x.replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim()).filter(x => x.length >= 3);
+const samePlace = (a, b) => { const A = placeBits(a), B = placeBits(b); return A.some(x => B.some(y => x === y || x.includes(y) || y.includes(x))); };
+const dupHashes = new Map();   // dog id -> fingerprint, for dogs saved before fingerprints were kept
+async function dogHash(d) {
+  if (d.photoHash) return d.photoHash;
+  if (!d.thumb) return '';
+  const key = d.id + ':' + d.thumb.length;
+  if (!dupHashes.has(key)) dupHashes.set(key, photoHash(d.thumb));
+  return dupHashes.get(key);
+}
+// Live dogs that may be the same dog: the same photo, the same name in the same area,
+// or any dog added in the same area in the last 3 days.
+async function findDuplicates(me, dogs) {
+  const out = [];
+  for (const d of dogs) {
+    if (d.id === me.id || !(STATUSES[d.status] || {}).active) continue;
+    const why = [];
+    if (me.hash && hashGap(me.hash, await dogHash(d)) <= SAME_PHOTO_GAP) why.push('This photo matches');
+    const place = samePlace(me.place, d.lastSeenPlace);
+    if (place && !genericName(me.name) && String(me.name).trim().toLowerCase() === String(d.name || '').trim().toLowerCase()) why.push('Same name in the same area');
+    else if (place && Date.now() - millis(d.createdAt) < 3 * 24 * 3600e3) why.push('Added in the same area in the last 3 days');
+    if (why.length) out.push({ dog: d, why, score: (why[0] === 'This photo matches' ? 3 : why[0] === 'Same name in the same area' ? 2 : 1) });
+  }
+  return out.sort((a, b) => b.score - a.score || millis(b.dog.createdAt) - millis(a.dog.createdAt));
+}
+function dupDogCard(d, extra) {
+  return h('div', { class: 'dupdog' },
+    d.thumb ? h('img', { alt: '', src: d.thumb }) : h('span', { class: 'dupdog-nophoto' }, pawIcon()),
+    h('div', null, h('strong', null, (d.name || 'Unnamed dog') + ' · ' + ((STATUSES[d.status] || {}).label || d.status || '')),
+      h('span', null, [d.lastSeenPlace, 'added ' + (d.createdBy ? 'by ' + d.createdBy + ' ' : '') + when(d.createdAt), d.fbPostId ? 'posted to Facebook' : ''].filter(Boolean).join(' · ')),
+      extra || null));
+}
+
+// ---- Merge: the admin picks which dog page to keep; the server moves everything across ----
+function showMerge(id) {
+  const fb = state.fb, root = $('#merge-body');
+  const live = { me: null, dogs: [], counts: null, pick: '', fbDelete: true, remind: false, busy: false, cands: [] };
+  root.textContent = '';
+  root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  $('#merge-back').setAttribute('data-go', 'dog/' + id);
+  (async () => {
+    try {
+      const snap = await fb.getDoc(fb.doc(fb.db, 'dogs', id));
+      if (!snap.exists()) { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, 'This dog is no longer listed.')); return; }
+      live.me = { id, ...snap.data() };
+      const all = await fb.getDocs(fb.collection(fb.db, 'dogs'));
+      live.dogs = all.docs.map(d => ({ id: d.id, ...d.data() })).filter(d => d.id !== id && (STATUSES[d.status] || {}).active);
+      const n = async sub => (await fb.getDocs(fb.collection(fb.db, 'dogs', id, sub))).size;
+      live.counts = { updates: await n('updates'), sightings: await n('sightings'), availability: await n('availability').catch(() => 0) };
+      const dups = await findDuplicates({ id, name: live.me.name, place: live.me.lastSeenPlace, hash: await dogHash(live.me) }, live.dogs);
+      const rest = live.dogs.filter(d => !dups.some(x => x.dog.id === d.id)).sort((a, b) => millis(b.createdAt) - millis(a.createdAt));
+      live.cands = dups.map(x => ({ dog: x.dog, why: x.why[0] })).concat(rest.map(d => ({ dog: d, why: '' })));
+      if (dups.length) live.pick = dups[0].dog.id;
+      draw();
+    } catch (err) { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }
+  })();
+
+  function draw() {
+    const me = live.me, target = live.cands.find(c => c.dog.id === live.pick), into = target ? target.dog : null;
+    root.textContent = '';
+    if (me.status === 'merged') { root.appendChild(h('p', { class: 'empty' }, 'This dog has already been merged.')); return; }
+    root.appendChild(h('p', { class: 'merge-me' }, 'This page: ', h('b', null, (me.name || 'Unnamed dog') + (me.lastSeenPlace ? ', ' + me.lastSeenPlace : '')),
+      ', added ' + (me.createdBy ? 'by ' + me.createdBy + ' ' : '') + when(me.createdAt) + '.'));
+    if (!live.cands.length) { root.appendChild(h('p', { class: 'empty' }, 'There are no other live dogs to merge it into.')); return; }
+    root.appendChild(h('p', { class: 'merge-q' }, 'Which dog page should we keep?'));
+    root.appendChild(h('div', { class: 'merge-list', role: 'radiogroup' }, live.cands.map(c => h('label', { class: 'pickdog' + (c.dog.id === live.pick ? ' on' : '') },
+      dupDogCard(c.dog, c.why ? h('em', { class: 'merge-why' }, c.why) : null),
+      h('input', { type: 'radio', name: 'merge-into', value: c.dog.id, checked: c.dog.id === live.pick, onchange: () => { live.pick = c.dog.id; draw(); } })))));
+    if (!into) { root.appendChild(h('p', { class: 'hint' }, 'Tap the dog to keep.')); return; }
+    const k = live.counts, plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+    const box = h('div', { class: 'moves' }, h('h3', null, 'What moves across to ' + (into.name || 'that dog')),
+      k.updates + k.sightings + k.availability ? h('ul', null, k.updates ? h('li', null, plural(k.updates, 'update', 'updates')) : null, k.sightings ? h('li', null, plural(k.sightings, 'sighting', 'sightings')) : null,
+        k.availability ? h('li', null, plural(k.availability, 'availability answer', 'availability answers') + ' (anyone who answered on both keeps their latest answer)') : null) : h('p', null, 'This duplicate has no updates, sightings or availability answers to move.'),
+      h('p', null, 'The kept page keeps its own photo and details. This duplicate is then closed and taken off the Missing Dogs list.'));
+    // Facebook
+    if (me.fbPostId && !into.fbPostId) box.appendChild(h('div', { class: 'fbwarn' }, h('span', null, h('b', null, 'Facebook: '), 'this duplicate’s Facebook post moves across to ' + (into.name || 'the kept dog') + ', so it can still be updated from the app.')));
+    else if (me.fbPostId) box.appendChild(h('div', { class: 'fbwarn' }, h('span', null, h('b', null, 'Facebook: '), 'both were posted to Facebook. The app keeps ' + (into.name || 'the kept dog') + '’s post.'),
+      h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'merge-fb-delete', checked: live.fbDelete, onchange: e => { live.fbDelete = e.target.checked; draw(); } }), ' Delete this duplicate’s Facebook post too'),
+      h('small', null, live.fbDelete ? 'Any comments on it, such as sightings, will be lost, so check them first.' : 'You’ll get a reminder on ' + (into.name || 'the kept dog') + '’s page to remove it on Facebook.'),
+      me.fbLink ? h('a', { href: me.fbLink, target: '_blank', rel: 'noopener' }, 'Open this duplicate’s post') : null));
+    else box.appendChild(h('div', { class: 'fbwarn' }, h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'merge-remind', checked: live.remind, onchange: e => { live.remind = e.target.checked; } }),
+      ' This duplicate was posted on Facebook another way: remind admins to remove it')));
+    root.appendChild(box);
+    const msg = h('p', { class: 'form-msg', role: 'status' });
+    root.appendChild(h('button', { class: 'btn wide merge-go', type: 'button', id: 'merge-go', disabled: live.busy, onclick: async () => {
+      if (!confirm('Merge ' + (me.name || 'this dog') + ' into ' + (into.name || 'the dog you picked') + '? This can’t be undone.')) return;
+      live.busy = true; draw();
+      try {
+        const r = (await callFunction('mergeDogs', { fromId: id, intoId: into.id, deleteFacebook: !!(me.fbPostId && into.fbPostId && live.fbDelete), remind: !me.fbPostId && live.remind })).data || {};
+        popup({ tone: 'good', title: 'Merged', lines: ['Moved across: ' + plural(r.moved.updates, 'update', 'updates') + ', ' + plural(r.moved.sightings, 'sighting', 'sightings') + ', ' + plural(r.moved.availability, 'availability answer', 'availability answers') + '.',
+          r.fbMoved ? 'The Facebook post moved across too.' : r.fbDeleted ? 'The duplicate Facebook post was deleted.' : r.reminder ? 'A reminder to remove the duplicate Facebook post is on ' + (into.name || 'the dog') + '’s page.' : ''].filter(Boolean),
+          buttons: [{ label: 'OK', primary: true }] });
+        go('dog/' + into.id);
+      } catch (err) {
+        live.busy = false; draw();
+        const code = String((err && err.code) || '').replace('functions/', '');
+        $('#merge-msg').textContent = code === 'not-found' && /function/i.test((err && err.message) || '') ? 'Merging is not set up yet: the new server update needs installing.' : (err && err.message) || friendlyError(err);
+      }
+    } }, live.busy ? 'Merging…' : 'Merge into ' + (into.name || 'that dog')));
+    msg.id = 'merge-msg';
+    root.appendChild(msg);
+    root.appendChild(h('p', { class: 'hint' }, 'You’ll be asked to confirm. It can’t be undone.'));
+  }
+}
+
+// ============================================================
 //  Missing dogs: add / edit (coordinators and admins)
 // ============================================================
 function showDogEdit(id) {
@@ -3745,7 +4029,7 @@ function showDogEdit(id) {
   // A new dog can only be Missing, Loose dog or Found; the closing statuses are for later, when editing.
   const statusBox = form.elements.status;
   statusBox.textContent = '';
-  Object.entries(STATUSES).filter(([, st]) => !isNew || st.active).forEach(([k, st]) => statusBox.appendChild(h('option', { value: k }, st.label)));
+  Object.entries(STATUSES).filter(([, st]) => !st.hidden && (!isNew || st.active)).forEach(([k, st]) => statusBox.appendChild(h('option', { value: k }, st.label)));
   statusBox.value = 'missing';
   const whereSel = $('#dog-found-where');
   whereSel.textContent = '';
@@ -3794,6 +4078,7 @@ function showDogEdit(id) {
       edit.photo = await shrinkImage(blob, 1100, 700000);
       edit.thumb = await shrinkImage(blob, 360, 60000, true);
       $('#dog-photo-preview').src = edit.thumb; $('#dog-photo-preview').hidden = false;
+      edit.hash = await photoHash(edit.thumb); dupCheck();
     }).catch(() => {});
     msg.textContent = 'Filled in from a public report. Check everything, then save.';
     $('#dog-edit-back').setAttribute('data-go', 'report/' + r.id);
@@ -3832,10 +4117,46 @@ function showDogEdit(id) {
       $('#dog-photo-preview').src = edit.thumb;
       $('#dog-photo-preview').hidden = false;
       msg.textContent = '';
+      edit.hash = await photoHash(edit.thumb);
+      if (isNew) dupCheck();
     } catch (err) { msg.textContent = 'That photo could not be read. Try another.'; }
   };
 
   $('#dog-remove-pin').onclick = () => setSpot(null);
+
+  // ---- "Is this the same dog?" (adding a new dog only) ----
+  // Checked when the name, place or photo changes, against every live dog: the same photo, the same name in
+  // the same area, or any dog added in the same area in the last 3 days.
+  let dupBox = $('#dog-dup');
+  if (!dupBox) { dupBox = h('div', { id: 'dog-dup', class: 'dup', hidden: true }); $('#dog-place').after(dupBox); }
+  dupBox.hidden = true; dupBox.textContent = '';
+  edit.others = []; edit.dupOk = new Set(); edit.dupShown = []; edit.hash = '';
+  let dupTurn = 0;
+  async function dupCheck() {
+    if (!isNew) return;
+    const turn = ++dupTurn;
+    const v = k => (form.elements[k] ? form.elements[k].value.trim() : '');
+    const found = (await findDuplicates({ id: '', name: v('name'), place: v('lastSeenPlace'), hash: edit.hash }, edit.others)).filter(x => !edit.dupOk.has(x.dog.id)).slice(0, 3);
+    if (turn !== dupTurn) return;   // a newer check has started
+    const wasHidden = dupBox.hidden;
+    edit.dupShown = found;
+    dupBox.textContent = '';
+    dupBox.hidden = !found.length;
+    if (!found.length) return;
+    if (wasHidden) setTimeout(() => dupBox.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);   // make sure it is seen
+    dupBox.appendChild(h('b', { class: 't' }, '\u26a0\ufe0f Is this the same dog?'));
+    found.forEach(x => dupBox.appendChild(h('div', { class: 'dup-one' }, h('span', { class: 'dup-why' }, DUP_LEAD[x.why[0]] || x.why[0]), dupDogCard(x.dog),
+      h('button', { class: 'btn', type: 'button', onclick: () => go('dog/' + x.dog.id) }, 'Open that dog'))));
+    dupBox.appendChild(h('button', { class: 'btn ghost', type: 'button', id: 'dup-different', onclick: () => {
+      found.forEach(x => edit.dupOk.add(x.dog.id)); dupBox.hidden = true; dupBox.textContent = ''; edit.dupShown = []; msg.textContent = '';
+    } }, found.length > 1 ? 'No, it\u2019s a different dog from these' : 'No, it\u2019s a different dog'));
+    dupBox.appendChild(h('span', { class: 'dup-small' }, 'Choosing \u201cOpen that dog\u201d stops this new one being added.'));
+  }
+  if (isNew) {
+    state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'dogs'), snap => { edit.others = snap.docs.map(d => ({ id: d.id, ...d.data() })); dupCheck(); }, () => {}));
+    form.elements.name.addEventListener('change', dupCheck);
+    form.elements.lastSeenPlace.addEventListener('change', dupCheck);
+  }
 
   form.onsubmit = async e => {
     e.preventDefault();
@@ -3843,6 +4164,7 @@ function showDogEdit(id) {
     fbAfterSave = false;
     const v = k => (form.elements[k] ? form.elements[k].value.trim() : '');
     if (!v('name')) { msg.textContent = 'Enter the dog\'s name (or a short description if unknown).'; return; }
+    if (isNew && edit.dupShown && edit.dupShown.length) { msg.textContent = 'Is this the same dog as one already on the app? Choose \u201cOpen that dog\u201d or \u201cNo, it\u2019s a different dog\u201d above.'; $('#dog-dup').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
     if (v('status') === 'found' && !v('foundWhere')) { msg.textContent = 'Found: choose where the dog is now.'; $('#dog-found-where').focus(); return; }
     const needs = NEED_ORDER.filter(n => $('#dog-need-' + n).checked);
     if ($('#dog-ask').checked && !needs.length) { msg.textContent = 'Asking for availability: tick what is needed (ground search, drones or scan dog).'; return; }
@@ -3855,7 +4177,7 @@ function showDogEdit(id) {
       askAvailability: $('#dog-ask').checked, availNeeds: $('#dog-ask').checked ? needs : [], availabilityAskedByUid: state.user.uid,
       updatedAt: fb.serverTimestamp()
     };
-    if (edit.thumb) data.thumb = edit.thumb;
+    if (edit.thumb) { data.thumb = edit.thumb; data.photoHash = edit.hash || await photoHash(edit.thumb); }   // fingerprint for spotting duplicates
     const btn = $('#dog-save');
     btn.disabled = true;
     msg.textContent = 'Saving…';
@@ -4008,6 +4330,162 @@ function showReports() {
           r.status !== 'new' ? h('span', { class: 'report-outcome' }, reportOutcome(r)) : null)));
     });
   }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
+}
+
+// ---------- Drone Requests (coordinators and admins) ----------
+// "Request a drone search" from the Drone Search & Rescue Ayrshire page on the website (dsra.html), saved by
+// the submitDroneRequest function into droneRequests/{id}. Each one shows the DSRA logo as its picture.
+// A missing person always comes with a police reference (Police Scotland lead those searches), and whether
+// they are vulnerable (a child, dementia or Alzheimer's, a learning disability). Vulnerable = VERY HIGH RISK: top of the list.
+const DSRA_LOGO = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAMAAAC8EZcfAAAAwFBMVEWfYmbszRrw0h7+tgnv0h2GeACaowPcox7GmUNVnBe3iUxeYAMtYhjw1Ruexxb29vUdLBG3twB9MYiCN4RGPACop6dmZmf/fwA5hhD/AAB/fwB/gIPFfAD98wAAAABjC6H26wEBAQDw2RJaAar42CLOxwD//wCvpwBqZgBEmg3+owDqyyKMhwBMSQBrF5nb1ABlDp+6swDDuwAoJgAVFgE4NgBZVQCalAD7mwB5dAB1Jo/OpziVVW88lgjw1BvYtTCELeFzAAAAQHRSTlP/450DZv///v7/////Gf///wP//////wL/AQL///8A/////f/9/wH/////+f////////////////////7//y7+eG9S7wAAFExJREFUeNrVnQt72jrSgE1STAjJlrRpT89+nxpZrJBPsXFsfIlDGv7/v9qZkXzFgE3SPl09LQkX2y9z02gkK9b3s9vy8lL/vL398OHiYjRalW00urj48OH2Vn/w8nJ5/lWss+nooq+ABmD/gSYaDV8BUMSsffx3AS4vNRywlWSr1W673V5Bgx+71arkRMpXEuTy9wAu7+BCy9cPI8O22l1ZlvX5eb1+eFhQe3hYr58/w4tXu5WhHBHjcrn85YB0idsLQzcBtucSq970a4/PQDkxjBevxfG/DhB1e2tkt7qyPq/3yfY515+t7YoYL9AgB2raGii91wtD9/J8gq1B+fxyZRhfB0rRGowHCtu+rNt0j22qx33GLel6IKI1GG9lfWrAPRYGtwDf0K18oY4Jzz9drwYj9gS8K/B21rqG96iNDFzherIbjYTg0IQYjbaTa3AfbaKPNca1tSsR3xEQvu4t4W1fHhYNxT08v1zvBGedjYvd9Qs6ef2QhxeNeNtTiH0AwXU/CJReAw/E8XI9MmwouQZb+ZyPrl/qQi8RP9CJ3wFw+ff3VwgsYHsl3iPRbblBYQebeZOTV5W6BkWvtJ57CNE6Lb67D6jd63WJB9eyiO4YW52SGPH7VYjXJMR/o3G/CRC+Iolv+3lRqfbZEr3paowj67lS9eLzFghHpy3xOCAcTOKrtIuxgg+jqxj5dYUIWjCWuDwfkJx3JbafFqVyP23pYr44bnz7tgiHIOIEgqhR9OLTDi3x8jihddT8QL0kvuKUz9fmihEb3IpDQIrF1yUhjl6PerN1jA+Dy8paVM6HMlMutBwfsj0pVa3xVvMQXjMYdGfx4RihdTjtI/Pbme8LkeVFkCXlTtF8VuNo65vXfnPrh8AbwiocevG8I0O8+3soICRWH8D8rgr1LtZbc1ESkNgXk+26s5TazHW9feFWh8DDZK3P+7hYX4kVEB5MwqyD8kP3qNT7whsycnlLXMoLHSd2qW0cJ1NeW6ZuQ9zipVIzEF4cJLQO84mCD6z5uqVDXzSvHjhOpJx7lUFTqTMW8Lx5BG8cAm9dl8qx0JkPEVoH9It8LwXf8+iYOPByKdiXAFPbQANL43PHSdixQ+CY0XNB+ALOfIjQ6u4+avLbUy80IQNeD8EKHWDDEieUUs5j7uNzrxHO4ZC2F/FCzQvrMKHVGV80X6GBfRdNnHkjjGgXTXmCEtwExtGz1iF8z89LGzKE/QCX4L81vklH0E2cWAZFi8ookgcgQBlkxfM0LD8UbJy4o+e5qggx2iz7AF5S/HvRfIuHHeNdgGe0DkDOtjpoP4IdIuHlacAl8RnZL9ajLr53A4ST70waRzJ83Zehtcf3Kk7yIeB8U7VDSJvGZ7oA0ZlrhOJ2j9BqB5hbyA+uTvAhoH6DS+y5AjmO9+SVR0GAHzDhr9sGNaHx5SvIHG7brmx1OPCuyCoP8TF/k1CazDwIJkxuUsW9Jp8rQnejGAsdV5/EHNKpZXO59a7Dla3W6BIceGXyg8XuEF851iBAfHQ2MqrzqQCEjGjKmbETYxfwFHPBZ8ht2q5stQyQHOTRxJdTGakB1B2JqhHa0qGuhFcSPHqayaIKNi1HsRo9yHJUOAh8+OSJSwkyjm4tSy2nAo1Q9AWEDxRCuQYzbBbprLaCtyZyvvTJ5LUNggg5pDAbbtw5Fr4TzwT1dL0AoZm4+7BDJd91A96RgrUBLp55T8CMRkNYRpAc3DmKZCDAdc2LQV9Abq77qa3kGuClVvDjcQduA9p5nEt6lsabOPG8BH/QC9LbpFE/QAg2VZ83Wl52AS7rCr5ifSWoMDNIPAh54ClJoJRItX9kmNL4UV8Jsmsjmm3Tk0vAv/66BQXT+BwNsF/NAFUsKbeKffCRmCMcmKIbpBS5E9VXxfAhbYaLz9ih/PXvPUDKAa91QFr3HPEaJwk8dGLQZiodyR17jP8gNKLqVV9A6JB0j4KefFGJsAC8W75CiDYf2fY8ZxlmWOTGG+n4BAhKj/x4FvLeYaYRDR/WEK5fy1Bj1fs4a5CCK0Dq9pSIKev3QcVBKHTOPACQFfkr+knV41llEaHsg9eid0UDbZCVda7ESUQUgh3GRfVmIKCo+uSy3GDVLPBl0bcLKQHHTjm85GyGljiL0YnL15STDjidDnKYvF40AUmA24f+IbpoMpO1C0gdqGVNBUEWDimBmTylJkKrskAjwAkbQpid/MCQMqIJhnURWkUWYyxw8WlY1S89df1UDjqhFuEjiXBZAt6VLtw/xBxIETvlwvuLcKJFWDmypeuUKxMDBwqwGDHzAyWuM5oWIcTCkR6fWGagWcTAq54XiRS2SOikBdKqzMsUHirpDRVKgxvgMzHYCq+FGYQi4F/fRybN6u3C4t7zxuNx7rqS8NLcVvY4hX7Pz/GN8dhN6R2Wjj0vHxAL+bpIu0YARoDkItthMVC4hSR98GNVVK7cnLllBPKRUNJzd4AITSzcGjex6jHm4aHviQCQq4yUmirmQ0BO3RRQXQks9tgbe4JJDNGewj4ly/qLcFRUvLSOUYKQqBoX6d0LA6C4zzLPDyHShDnABDxIPW7nuWC+rVQG8QfUz+CHP2OBO8BNLG1sKxydICBm+mao3j/GACBdlIMebTC9iAhSd5aBBKkSOFb4D16XrhswN+ivYz0IxWE86tiqa3jdv1snQFAeEAQ+0I3TsS1NnVKbXYiAuWJeaGcs8wa7idGxBZCg4eeBaUIhQcZhXO7mOLQLPTfNOQL6npfl8HMWoIZTDo4SzAZE1pdSx+DHFkXpoRquAEli3J3ZWKRhmc/heQQ2qMC3UxaChnNyYlcO1vFWrG6//2VVUXqAhitAgRLErN91ZyBHiHkmEAReKkjDfpb59jk6tkjHFpkgjZX6+3ANcAwOkkqF8hGg6cBFaXlMJCmkMZhKSGXbKsAvMiQUmtHTxfdb6+/lSEzWZILXwwBBdtyD6+Z+6vkepTbwOgCmILEwhRcg/lRFfjm0u1tPBAQaqzJBGKwPUTH3tVaVC2bG01xlPoaVHMMM/KZ8QA8xgM9mrh8x2xscq6/QCK3SBAel0tTVUYKloBtJ0SU8TK5TSY6M4TFz2YwEh9MULrr7wMRaG6FVpoJDTJCJlObeAuViVObpmAJxCB0zdClgeQEQepucy9SkrQGfRUMDTQlIFctBJgjy0NNyY3PVzIUXZjhSx1lXkJlMXTeB/lnpdCwrfh1ghBgJL75bl6Mi2d+dlW+WuaowFa23tyISwvBztLRKH+k/HC4XxhSVYM7KedYi869+0CsD1ziIykus19UZPtI1jc33BgBvkKH2kmuxerVKJ7YGnQEy+0hGGNt4hL8WtQ4VUtAOlcn/ZRBC+i8HZP21lAu9pAAckimQEmIn44ELMQbnim1uOxhGZGyzYAPBMdI1foGZlpNwITf2EBesA0KU+TTYiWliBoIfizdwutgJ8QGyZniKixrAtV2HqjbwGc/xSZYDAR9NZ2eZKPMwsKLAERCXS3g1QM9MjdwzEY0dB2K0wvKNjxNSYpBlT4qM68IaFSPi3TmAORaKEDB0QNu+k1NByxFcscTZcGZrwMg+L87A6BgAd49De+IKcOxsENBTyZjUjoBgfxIAwUp9RhJMwsQb6Nq7MhBaK1PVehDnAOYaUFGZDYRmAANO03TOODxLgkW68LATKwQ8I05XNuiWNhjpZwAG0Fq8Do5WyAZZMEiEpl69JcCroel0DTBBTzCAIZO0GMkGxxGKZjjRgT29Qsk+A3DxBkCGemWZA7rjDrDpsOPhNHICVILqhhxndMbg1IzSwyHff130dWcC8jD1s9DG9IV+FUxtfJx18KSNybVyqXgUwpjd890wVH7+ewHLnpdXP/SvgrO9ihwfvB7y7YD15KCx0u3YOrjfC/hLW8NJusIM75NhdS0z4eyk/Hil+X5hZi9Qi6AwqcYpaoknLz6kU9LOa1Ufr58qKC7Dg8puuUlqq7PUAvVeV8dzJZUXcTtJVITeB4fZGPN4lvhh6I6RKEiVzDwl0yQPYPyRjE31KrLLaRGuksSOxuDOgZf4UZglkIq5IXg5Joy5J3EcmCczeBa4XjRL8ijME7HX1bWSBRhDYq8KXWtEa2NCqmHd3+NjiHNcGaR3LIgxaiSuSQ8Ss3KBZbEIK0LMZyQ+ZNC3YFmEJRg2cbXKPb6Qx9BV0qJRSHLxTIzN5F6y0E63OE6wMukBYCwwlKHOIT9hBhBTAXbvBFjezduAiaM7OW0puMgRE1v8UqjAiFMOqexiis8FQJopC6U5k5R76VY7YYU+K4f8XeB3h69GJqY2RECACqQh9SoijqcleReALh3LSkCpHxAQc1fhxJg+cKb7SSZbgFIWHlRLWFspv54SjFOBooqymbYmEgECytDPcY5zY6TkO24gZQkIOKr0GHwiZzjTBCoO8jG8f4/ndmlBqUapA7rSjzpS/v1BU76hVTmoS0WAUnI8owF0KQusAwYGEL7J2JlzuYmDEjAtAD0E5C6uFHClAeRNwCCNOgZN7WEnB+uSOahXq5hq9Apk5LLCSXz4HxtVNFTMIC9NnUS6jixVLI1joW0yAZYcuUCL6cUeYKXixrCzPXAX1Kt7BEimKHgG/7T56QftNLiwo+4kaAIepmFjJug62knwgQDhVCF9j1kMB9A3t3UuxksnAUfaG7jftUofPEbp26UneBw9C1zH1hKkB5dUBBaKEkTTyqig7sQhwDgeV2WYqZwETiUpLuQ+zcMDRoIXwXdsXP411tGDt0of7eIRT3zJAz/ElbMyCDwnmEV4+4OTBCBGSk/hdLMk4OgvoHrOBYxF9BI8x/EDOC4mVYEKFA2kArDZIJCzjYCwzKUPFprFEZc4qgYRRjgrzsmao41LgPXiUbv8BmKWkUJDjCIpZSiDUEJkpmfwH0KVh0WDSEXADS9J6EngdW0fdhaUs/Bcf5xnmdQH43l4FFHJAVLuKKJOMoAOSaAj4tUiU6BolN+6C5i8d02GnZNd8aOfbhYwD5aAW/d5VbUhfni+mO9fnfNaAtOFyHkzyWmVgM8qovNGysQ7pt6Lx0Y+3a8S1yqinzcN8Q5Jc79piMuhEzmchklKgYUHKhT4WxSaqfUwhGAXwEtSP1JhDgt1YYQT8DQZD05ii375vpnIGTQVBnEaO2UIIBj+XIV9SsBncYbz1wFEpxmjfpBT0Q1rC5JRKJIxZnozx+ci2hwvdLWnwvRk4rrfZCLG08BUPKjzUtgrY7UIZ4UhVKdMdxtUT2DUGUEk9KjT1qkBRqgTgLXJxH8PnY6lnoxjOqKwf9KACjmSDWqRBu9HAU9X4trTsYMmtCMtOxCkz2yqBQKgiyqGLC1xFSsA8yZgQCpGQKWGTmjXlwSc0jFXuhCDuRj2T5g6hF6COgtoCXCKgBvwiVkd0A39lFM+60fJyVpwe0nAkEUVUsHlKEFK9DpuLUFK4LnCu60ikiBrq1jEmEGiBCM1fFFF32UpOLrDlaqCFg76JSCOAvQqMxdMs9sGMeExNsiCgctS9MKeTz0mS7jNTLW8DQhZC2qcQ1g55CRemeDbfRf2DF4apXTNckMARsUx1xwJ3uxg35MNNp0kwUwvRS92qVSY+Yev0b00qu/iMp5nMC7K/DSkoppk+gkwb8ZcqUwqGNTjO5F+nys/VZj2wVBdJkkYjP0cK3HeMQl2LS47Y3les/JWK3GYl1qlr1b6cHT+oWN53sAFjo2cih9K8XhH+tXju3cvcHzDElH2vnnMgSWi5y+yfW/CQ4tsz1ym/O4CPLhM+cyF3u9eVz280Pu8pfLv3Y4slR9+s8G/pnZHK3ox0dlOhpgjNxsMvl1j+rOjffuX+Wo/nroa7zP9deB2jcE3vEx//tPRCsDJ04+Oxk8ouHbDy/LELUOngyECTr9prG/fKkBWAcL/p//H355OA1a3DO0O3DI09KarKfDd3Pyj5Qi/0G8/G4A/xnNMYu+fCkJ+hK9+09X3y3e4bW36c3ozB0MkwOn8pgAsVfz0Y+zMv3z58n+xMzGE/GSIPnrb2rAb/wBwPp+R4H4iIGm5Boh81x8/zj/Cf+ekBHvd+Dfs1skp6HUGggMhTuHnlOywLsEfztePH7/M4eGjc69FyE90IadunRx08yl58SwGtOlNPDc+UgccO4D21Ynp8agEubnV/eTNp/1v3yUJfgPd3jhOHDsO+cjNtAMwnn8BOYIVHgYccPtu7xugjYr/AUeh202RDZ5PG4Aouy+o5+OAg26A7nsLeRswvsGgeLMvQW2DX5zDXjzwFvKeN+ET4HQ+A/NDHcPD/AaeNCT4RE7yFQHnh51k6E34Pbcx0E6SzME9bm7QTW5u5vM5mGIVqFGEXz5+/fIVfWRyyEmGb2PQbyMIToA3oNqpDtT444YAa33xvfMVPWTuzJ8OSBA3gngYuBFEr600tARBflMTXjDmQM/SShbGZKDzcUG4/1Wv6pt99NxKo89mJEWygH1w1abzabMv/vE0Ho8nPyYTZ9MhwbM3I2lth9O1nYtOFn7+0wSEp01A08M9/SDCpx+taYOzt3PpsSGO6UmmxgZN+3bTzgcxTdWEszbgGzbE6bGlUJGwtkQ4PZCwAmHTBt+4pdDpTZkOZ9SsT0b95k2Zjm1rdWJMwk6PSbq2tVoO3Nbq4MZg1aius5WjulFXKyo177Ex2MGt1d44ZObvtrUaEd52bU5Xbn7Cz8FrbE53/abN6cz2fv9pbu83OX9qDg+bPLe397s7f3u/jg0SAfH5zA0Smdkg8bG+QaJ42waJv36Lydc3bjHZvUnnwx+0SWdNiO+4zenDe25z+udvFFvfanf3Z261e2qz4kfarHg7cLPiu35X/r3bPVu/bLvnP3/D7P+BLcerTdsN4/aP27TdZGEoxvq2949/0Lb35R8O+D78Dwcsf88fDvgf+NMLjT9ecftn/vGK5p//+P5L//zHfwGu6S/KrAmNLAAAAABJRU5ErkJggg==';
+const DRONE_WHAT = { person: 'Missing person', animal: 'Missing animal', other: 'Other search' };
+const DRONE_VULN = { yes: 'Yes', no: 'No', unsure: 'Not sure' };
+const droneWhat = r => DRONE_WHAT[r.what] || 'Search';
+const droneVeryHigh = r => r.what === 'person' && r.vulnerable === 'yes';
+const droneCheckRisk = r => r.what === 'person' && r.vulnerable === 'unsure';   // "Not sure": the pilot asks when they phone
+// Water risk: a missing person near the coast, a river or a loch, and the water not searched (or nobody knows).
+const droneWaterRisk = r => r.what === 'person' && (r.waterSearched === 'no' || r.waterSearched === 'unknown');
+const droneRank = r => droneVeryHigh(r) ? 2 : droneCheckRisk(r) ? 1 : 0;
+const DRONE_WATER = { yes: 'Yes, searched', no: 'No, not searched', unknown: 'Don\u2019t know' };
+const DRONE_OUTCOMES = { deployed: 'Drone deployed', unable: 'Not able to assist', 'not-needed': 'No longer needed' };
+const droneNeedsPolice = r => r.what === 'person';
+function droneOutcome(r) {
+  return (DRONE_OUTCOMES[r.outcome] || 'Dealt with') + (r.dealtBy ? ' · ' + r.dealtBy : '') + (r.dealtAt ? ', ' + when(r.dealtAt) : '');
+}
+let droneFilter = 'new';
+$$('[data-drone-filter]').forEach(b => b.addEventListener('click', () => { droneFilter = b.getAttribute('data-drone-filter'); render(); }));
+function showDroneRequests() {
+  const fb = state.fb, list = $('#drones-list');
+  $$('[data-drone-filter]').forEach(b => b.classList.toggle('on', b.getAttribute('data-drone-filter') === droneFilter));
+  list.textContent = '';
+  list.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  state.subs.push(fb.onSnapshot(fb.collection(fb.db, 'droneRequests'), snap => {
+    const all = snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }));
+    const newCount = all.filter(r => r.status === 'new').length;
+    $('[data-drone-filter="new"]').textContent = 'New' + (newCount ? ' (' + newCount + ')' : '');
+    const shown = all.filter(r => (r.status === 'new') === (droneFilter === 'new'))
+      .sort((a, b) => droneFilter === 'new' ? (droneRank(b) - droneRank(a)) || (millis(b.createdAt) - millis(a.createdAt)) : millis(b.dealtAt) - millis(a.dealtAt));   // very high risk first
+    list.textContent = '';
+    if (!shown.length) { list.appendChild(h('p', { class: 'empty' }, droneFilter === 'new' ? 'No new drone requests.' : 'Nothing dealt with in the last 30 days.')); return; }
+    shown.forEach(r => list.appendChild(h('button', { class: 'report-card drone-card', type: 'button', 'data-go': 'drone/' + r.id },
+      h('img', { alt: '', src: DSRA_LOGO, class: 'dsra-thumb' }),
+      h('span', { class: 'report-info' },
+        h('span', { class: 'report-tags' }, h('span', { class: 'report-tag drone' }, 'Drone search'), droneVeryHigh(r) ? h('span', { class: 'report-tag urgent' }, 'Very high risk') : droneCheckRisk(r) ? h('span', { class: 'report-tag checkrisk' }, 'Check risk') : null,
+          droneWaterRisk(r) ? h('span', { class: 'report-tag waterrisk' }, 'Water risk') : null),
+        h('strong', null, r.town || 'No place given'),
+        h('span', { class: droneVeryHigh(r) ? 'drone-vuln' : null }, droneWhat(r) + (droneVeryHigh(r) ? ' \u00b7 vulnerable' : '')),
+        h('span', null, (reportSeen(r) ? (r.what === 'other' ? '' : 'Last seen ') + reportSeen(r) + ' · ' : '') + 'sent ' + when(r.createdAt)),
+        droneNeedsPolice(r) && r.policeRef ? h('span', null, 'Police ref: ' + r.policeRef) : null,
+        r.status === 'new' ? h('span', { class: 'report-looking' + (r.lookingBy ? '' : ' none') }, r.lookingBy
+          ? (r.lookingByUid === state.user.uid ? 'You are dealing with this' : r.lookingBy + ' is dealing with this') + (Array.isArray(r.actions) && r.actions.length ? ' · ' + r.actions[r.actions.length - 1].what : '')
+          : 'Nobody dealing with it yet') : h('span', { class: 'report-outcome' }, droneOutcome(r))))));
+  }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, err && err.code === 'permission-denied' ? 'Not ready yet. The new security rules need pasting into Firebase first.' : friendlyError(err))); }));
+}
+
+function showDroneRequest(id) {
+  const fb = state.fb, root = $('#drone-body'), ref = fb.doc(fb.db, 'droneRequests', id);
+  const live = { r: null, map: null };
+  root.textContent = '';
+  root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
+  state.subs.push(() => { if (live.map) { try { live.map.remove(); } catch (e) {} live.map = null; } });
+  state.subs.push(fb.onSnapshot(ref, snap => {
+    if (!snap.exists()) { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, 'This request is no longer here. Requests are deleted 30 days after they are dealt with.')); live.r = null; return; }
+    live.r = { id: snap.id, ...snap.data({ serverTimestamps: 'estimate' }) };
+    draw();
+  }, err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
+
+  const mine = r => r.lookingByUid === state.user.uid;
+  async function logAction(what, opts) {
+    const r = live.r, me = state.profile.name || '', o = opts || {};
+    const change = { actions: (Array.isArray(r.actions) ? r.actions : []).concat([{ what, by: me, byUid: state.user.uid, at: Date.now() }]).slice(-50) };
+    if (o.claim) Object.assign(change, { lookingBy: me, lookingByUid: state.user.uid, lookingAt: fb.serverTimestamp() });
+    if (o.release) Object.assign(change, { lookingBy: '', lookingByUid: '', lookingAt: null });
+    if (o.done) Object.assign(change, { status: 'done', outcome: o.done, dealtBy: me, dealtByUid: state.user.uid, dealtAt: fb.serverTimestamp() });
+    if (o.reopen) Object.assign(change, { status: 'new', outcome: '', dealtBy: '', dealtByUid: '', dealtAt: null });
+    try { await fb.updateDoc(ref, change); } catch (err) { alert(err && err.code === 'permission-denied' ? 'Not saved: the new security rules need pasting into Firebase first.' : friendlyError(err)); }
+  }
+  const contactLog = how => () => { const r = live.r; if (r.status !== 'new') return;
+    logAction(how === 'email' ? 'Emailing the requester' : 'Calling the requester', { claim: !r.lookingByUid || mine(r) }); };
+
+  function handling(r) {
+    const acts = Array.isArray(r.actions) ? r.actions : [], last = acts[acts.length - 1];
+    const box = h('div', { class: 'handle-box' + (r.lookingByUid ? (mine(r) ? ' me' : ' other') : ' none'), id: 'handle-box' });
+    if (!r.lookingByUid) {
+      box.appendChild(h('strong', null, 'Nobody is dealing with this yet'));
+      box.appendChild(h('button', { class: 'btn wide', type: 'button', id: 'handle-take', onclick: () => logAction('Is dealing with this request', { claim: true }) }, 'I’ll deal with this'));
+    } else {
+      box.appendChild(h('strong', null, mine(r) ? 'You are dealing with this' : r.lookingBy + ' is dealing with this'));
+      if (last) box.appendChild(h('span', { class: 'handle-last' }, 'Latest: ' + last.what + (last.by && last.by !== r.lookingBy ? ' (' + last.by + ')' : '') + ' · ' + when(last.at)));
+      if (mine(r)) {
+        const quick = [['No answer – will try again', 'Called: no answer'], ['Spoke to them', 'Spoke to the requester']];
+        if (droneNeedsPolice(r)) quick.push(['Spoke to Police Scotland', 'Spoke to Police Scotland'], ['Photo received', 'Photo of the person received']);
+        box.appendChild(h('div', { class: 'handle-quick' }, quick.map(([label, what]) => h('button', { class: 'btn ghost', type: 'button', onclick: () => logAction(what) }, label))));
+        box.appendChild(h('button', { class: 'link', type: 'button', id: 'handle-release', onclick: () => { if (confirm('Hand this request back so someone else can pick it up?')) logAction('Handed it back', { release: true }); } }, 'Hand it back for someone else'));
+      } else box.appendChild(h('button', { class: 'btn wide ghost', type: 'button', id: 'handle-over', onclick: () => {
+        if (confirm('Take over this request from ' + r.lookingBy + '?')) logAction('Took over from ' + r.lookingBy, { claim: true });
+      } }, 'Take over from ' + r.lookingBy));
+    }
+    if (acts.length) box.appendChild(h('details', { class: 'handle-log' }, h('summary', null, 'What’s been done (' + acts.length + ')'),
+      h('ul', null, acts.slice().reverse().map(a => h('li', null, h('b', null, a.by || 'Someone'), ' ' + a.what.charAt(0).toLowerCase() + a.what.slice(1), h('small', null, when(a.at)))))));
+    return box;
+  }
+
+  function draw() {
+    const r = live.r;
+    if (!r) return;
+    if (live.map) { try { live.map.remove(); } catch (e) {} live.map = null; }
+    const isNew = r.status === 'new';
+    root.textContent = '';
+    root.appendChild(h('div', { class: 'dsra-head' }, h('img', { alt: '', src: DSRA_LOGO }),
+      h('div', null, h('h2', { class: 'page-title' }, droneWhat(r) + (r.town ? ' · ' + r.town : '')), h('span', null, 'Drone Search and Rescue public request'))));
+    root.appendChild(h('p', { class: 'status-line' }, h('span', { class: 'report-tag drone' }, 'Drone search'), droneVeryHigh(r) ? h('span', { class: 'report-tag urgent', style: 'margin-left:6px' }, 'Very high risk') : droneCheckRisk(r) ? h('span', { class: 'report-tag checkrisk', style: 'margin-left:6px' }, 'Check risk') : null,
+      droneWaterRisk(r) ? h('span', { class: 'report-tag waterrisk', style: 'margin-left:6px' }, 'Water risk') : null));
+    if (droneNeedsPolice(r)) {
+      if (droneVeryHigh(r)) root.appendChild(h('div', { class: 'drone-vuln-box' }, h('strong', null, 'Very high risk'), h('span', null, 'The requester says the person is vulnerable: for example a child, someone living with dementia or Alzheimer\u2019s, or someone with a learning disability.')));
+      if (droneCheckRisk(r)) root.appendChild(h('div', { class: 'drone-check-box' }, h('strong', null, 'Check risk'), h('span', null, 'The requester wasn\u2019t sure if the person is vulnerable. Ask them when you phone.')));
+      if (droneWaterRisk(r)) root.appendChild(h('div', { class: 'drone-water-box' }, h('strong', null, 'Water risk'),
+        h('span', null, 'Near ' + (r.area || []).map(a => ({ 'Coast or river': 'the coast or a river', 'Loch or reservoir': 'a loch or reservoir' })[a]).filter(Boolean).join(', and ') + '. ' + (r.waterSearched === 'no' ? 'The requester says Fire and Rescue or the Coastguard have not searched the water.' : 'The requester doesn\u2019t know if Fire and Rescue or the Coastguard have searched the water.') + ' Check with Police Scotland.')));
+      root.appendChild(h('div', { class: 'drone-police' }, h('strong', null, 'Police Scotland know about this'),
+        h('span', null, 'Police incident or reference number:'), h('span', { class: 'ref' }, r.policeRef || 'Not given'),
+        h('span', null, 'Speak with Police Scotland before flying. We only fly when the police have asked us or agreed.')));
+      root.appendChild(h('p', { class: 'drone-photo-note' }, 'The requester was asked to have a recent photo and a description of what the person was last wearing ready, for when we get the go-ahead.'));
+    }
+    if (isNew) root.appendChild(handling(r));
+    else root.appendChild(h('div', { class: 'fb-posted report-done' }, h('span', { class: 'ok' }, tickIcon('#ffffff', 24)), h('div', null, h('strong', null, droneOutcome(r)))));
+    const rows = [
+      ['Search for', DRONE_WHAT[r.what]], ['Vulnerable (child, dementia, learning disability)', droneNeedsPolice(r) ? DRONE_VULN[r.vulnerable] : ''], ['Where', r.town], [r.what === 'other' ? 'When' : 'Last seen', reportSeen(r)], ['Water searched by Fire and Rescue or the Coastguard', DRONE_WATER[r.waterSearched] || ''],
+      ['Details', r.details], ['Sent', when(r.createdAt)]
+    ].filter(x => x[1]);
+    root.appendChild(h('dl', { class: 'card details' }, rows.map(x => [h('dt', null, x[0]), h('dd', null, x[1])]),
+      Array.isArray(r.area) && r.area.length ? [h('dt', null, 'The area'), h('dd', null, h('span', { class: 'drone-areas' }, r.area.map(a => h('span', null, a))))] : null));
+    if (typeof r.lat === 'number') {
+      const mapEl = h('div', { class: 'map', id: 'drone-map' });
+      root.appendChild(mapEl);
+      makeMap(mapEl, [{ lat: r.lat, lng: r.lng, kind: 'sighting', label: 'Pin from the request' }]).then(m => { if (live.r === r && mapEl.isConnected) live.map = m; else if (m) m.remove(); });
+      root.appendChild(h('a', { class: 'btn wide ghost', href: 'https://www.google.com/maps?q=' + r.lat + ',' + r.lng, target: '_blank', rel: 'noopener' }, 'Open the pin in Maps'));
+    } else root.appendChild(h('p', { class: 'hint' }, 'No map pin was given.'));
+    root.appendChild(h('div', { class: 'report-who' },
+      h('div', null, h('span', { class: 'report-who-label' }, 'Requested by'), h('strong', null, r.reporterName || 'No name'), h('span', null, prettyPhone(r.reporterPhone))),
+      r.reporterPhone ? h('a', { class: 'btn report-call', href: 'tel:' + r.reporterPhone, onclick: contactLog('call') }, 'Call') : null));
+    if (r.reporterEmail) root.appendChild(h('div', { class: 'report-email' }, h('span', null, 'Email: ', h('b', null, r.reporterEmail)),
+      h('a', { class: 'btn ghost', href: 'mailto:' + r.reporterEmail + '?subject=' + encodeURIComponent('Your request to Drone Search & Rescue Ayrshire'), onclick: contactLog('email') }, 'Email')));
+    root.appendChild(h('p', { class: 'hint', style: 'margin-top:4px' }, 'The requester’s name, phone and email are only shown to the DSRA team and admins.'));
+
+    if (isNew) {
+      root.appendChild(h('div', { class: 'admin-box' }, h('h3', null, 'When it’s dealt with'),
+        h('div', { class: 'drone-outcomes' }, Object.entries(DRONE_OUTCOMES).map(([k, label]) =>
+          h('button', { class: 'btn wide' + (k === 'deployed' ? '' : ' ghost'), type: 'button', id: 'drone-done-' + k, onclick: () => {
+            if (confirm('Mark this request as “' + label + '”?')) logAction('Marked: ' + label, { done: k, release: true });
+          } }, label)))));
+    } else {
+      root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', id: 'drone-reopen', onclick: () => logAction('Moved back to New', { reopen: true }) }, 'Move back to New'));
+      if (isAdmin()) root.appendChild(h('button', { class: 'btn wide danger', type: 'button', style: 'margin-top:12px', onclick: async e => {
+        if (!confirm('Delete this request now, including the requester’s name, phone and email? This cannot be undone.')) return;
+        e.target.disabled = true;
+        try { clearSubs(); await fb.deleteDoc(ref); go('drones'); } catch (err) { e.target.disabled = false; alert(friendlyError(err)); }
+      } }, 'Delete request now'));
+    }
+  }
 }
 
 // ---------- Website topics (admins): advice pages on the public website, e.g. Fireworks ----------
@@ -4533,13 +5011,25 @@ function showMembers() {
         } }, ACCESS.filter(r => r !== 'developer' || isDev()).map(r => h('option', { value: r, selected: r === m.role }, label[r])));
         picker = h('div', { class: 'role-pick' }, h('label', { for: id }, 'Role'), select);
       }
+      // DSRA team: sees Drone Requests and gets their alerts, alongside whatever role they have.
+      // (Admins and the developer always see them, so they need no tick.)
+      let dsraTick = null;
+      if (['member', 'coordinator'].includes(m.role) && !locked) dsraTick = h('label', { class: 'check dsra-tick' },
+        h('input', { type: 'checkbox', id: 'dsra-' + m.id, checked: m.dsra === true, onchange: async e => {
+          const on = e.target.checked;
+          if (!confirm(on ? 'Add ' + (m.name || 'this person') + ' to the DSRA team?\n\nThey will see Drone Requests and get their alerts.' : 'Take ' + (m.name || 'this person') + ' off the DSRA team?\n\nThey will no longer see Drone Requests.')) { e.target.checked = !on; return; }
+          try { await fb.updateDoc(fb.doc(fb.db, 'users', m.id), { dsra: on }); } catch (err) { e.target.checked = !on; alert(friendlyError(err)); }
+        } }),
+        h('span', null, h('b', null, 'DSRA team'), h('small', null, 'Sees Drone Requests from the DSRA page')));
       if (m.role !== 'blocked' && !me && !locked) actions.push(h('button', { class: 'btn danger', onclick: () => setRole(m, 'blocked', 'Remove access for ' + (m.name || 'this person') + '?') }, m.role === 'pending' ? 'Decline' : 'Remove access'));
       list.appendChild(h('li', { class: 'card member ' + m.role },
         h('strong', null, (m.name || 'No name') + (me ? ' (you)' : '')),
         h('span', { class: 'member-email' }, m.email || ''),
         h('span', { class: 'badge ' + (m.role === 'pending' ? 'live' : 'closed') }, label[m.role] || m.role),
+        m.dsra === true && ACCESS.includes(m.role) ? h('span', { class: 'badge dsra-badge' }, 'DSRA team') : null,
         ACCESS.includes(m.role) ? h('button', { class: 'link', type: 'button', 'data-go': 'volunteer/' + m.id }, 'Open profile') : null,
         picker,
+        dsraTick,
         actions.length ? h('div', { class: 'row' }, actions) : null));
     });
   }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
@@ -6798,7 +7288,7 @@ async function asJpeg(src, max) {
 // Wording for a missing dog, in the same style as the group's other posts.
 function lostDogText(v) {
   const sex = /^(male|female)$/i.test(v.sex || '') ? v.sex.toLowerCase() + ' ' : '';
-  const named = v.name && !/^(unknown|unnamed.*|not known|no name|n\/a|\?+)$/i.test(v.name.trim());
+  const named = false;   // the dog's name is never posted publicly (people would go out calling it)
   const what = (v.colour ? v.colour.trim() + ' ' : '') + sex + 'dog';
   const lines = ['💛💜 Lost Dog - Please Share 💜💛', '',
     (named ? v.name.trim() + ', a ' : 'A ') + what.charAt(0).toLowerCase() + what.slice(1) + (named ? ',' : '') + ' has been reported missing' + (v.area ? ' in ' + v.area.trim() : '') + (v.date ? ' since ' + v.date : '') + '.', '',
@@ -6874,8 +7364,8 @@ async function facebookDraftForDog(dogId) {
   }
   // Missing or loose: the dog's own link, which opens the website's sighting form with this dog already picked.
   if (d.status === 'missing' || d.status === 'loose') {
-    const named = d.name && !/^(unknown|unnamed.*|not known|no name|n\/a|\?+)$/i.test(String(d.name).trim());
-    const line = '👀 Seen ' + (named ? String(d.name).trim() : 'this dog') + '? Report it here: https://lostdogsayrshire.org.uk/report?dog=' + encodeURIComponent(dogId);
+    // Never the dog's name in public: people would go out calling it, which can scare a lost dog away.
+    const line = '👀 Seen this dog? Report it here: https://lostdogsayrshire.org.uk/report?dog=' + encodeURIComponent(dogId);
     text = /👀 Seen this dog\? Report it at lostdogsayrshire\.org\.uk\/report/.test(text)
       ? text.replace(/👀 Seen this dog\? Report it at lostdogsayrshire\.org\.uk\/report/, line)
       : text.replace(/\n\n(#|Thank you for caring)/, '\n\n' + line + '\n\n$1');

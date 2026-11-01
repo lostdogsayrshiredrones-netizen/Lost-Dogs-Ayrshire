@@ -153,7 +153,7 @@ exports.notify = onCall(async request => {
 // Once a day, any dog that has been closed (Reunited, Home safe, No further sightings, Paws down)
 // for more than 30 days is deleted, together with its photos, posters, updates, sightings and availability.
 // Reopening a dog (changing it back to Missing, Loose dog or Found) stops the clock.
-const CLOSED = ['reunited', 'home-safe', 'no-further-sightings', 'paws-down'];
+const CLOSED = ['reunited', 'home-safe', 'no-further-sightings', 'paws-down', 'merged'];   // merged duplicates go too
 const KEEP_DAYS = 30;
 const millis = ts => (ts && typeof ts.toMillis === 'function') ? ts.toMillis() : 0;
 
@@ -368,6 +368,75 @@ exports.facebookUpdate = onCall({ timeoutSeconds: 60 }, async request => {
   return { updated: true, link: dog.fbLink || '' };
 });
 
+// ---- Merge a duplicate dog into the one being kept (admins) ----
+// Updates and sightings are copied across, and availability answers too (if someone answered on both,
+// their latest answer is kept). The duplicate is then closed as "merged", so it drops off every list and
+// is tidied away with the closed cases. Its Facebook post: moved to the kept dog if that one has none;
+// otherwise deleted on Facebook if the admin asks (the app made it, so it can), or a reminder is left on
+// the kept dog's page to remove it by hand.
+const FB_FIELDS = ['fbPostId', 'fbLink', 'fbPostedAt', 'fbPostedBy', 'fbMessage', 'fbUpdateStatus', 'fbUpdatedAt', 'fbUpdatedBy'];
+exports.mergeDogs = onCall({ timeoutSeconds: 120 }, async request => {
+  const me = await caller(request, ['admin', 'developer']);
+  const db = admin.firestore(), d = request.data || {}, S = admin.firestore.FieldValue;
+  const fromId = String(d.fromId || ''), intoId = String(d.intoId || ''), okId = x => /^[A-Za-z0-9_-]{1,64}$/.test(x);
+  if (!okId(fromId) || !okId(intoId) || fromId === intoId) throw new HttpsError('invalid-argument', 'Choose the dog to keep.');
+  const fromRef = db.collection('dogs').doc(fromId), intoRef = db.collection('dogs').doc(intoId);
+  const [fs, is] = await Promise.all([fromRef.get(), intoRef.get()]);
+  if (!fs.exists || !is.exists) throw new HttpsError('not-found', 'One of these dogs is no longer listed.');
+  const from = fs.data(), into = is.data();
+  if (from.status === 'merged') throw new HttpsError('failed-precondition', 'This dog has already been merged.');
+  if (into.status === 'merged') throw new HttpsError('failed-precondition', 'That dog was itself merged into another. Choose a different one.');
+
+  const moved = { updates: 0, sightings: 0, availability: 0 };
+  for (const name of ['updates', 'sightings']) {
+    const snap = await fromRef.collection(name).get();
+    let batch = db.batch(), n = 0;
+    for (const doc of snap.docs) {
+      batch.set(intoRef.collection(name).doc(), { ...doc.data(), mergedFrom: fromId });
+      moved[name]++;
+      if (++n === 400) { await batch.commit(); batch = db.batch(); n = 0; }
+    }
+    if (n) await batch.commit();
+  }
+  const answeredAt = x => millis(x.updatedAt) || millis(x.createdAt);
+  for (const doc of (await fromRef.collection('availability').get()).docs) {
+    const target = intoRef.collection('availability').doc(doc.id), cur = await target.get();
+    if (!cur.exists || answeredAt(doc.data()) > answeredAt(cur.data())) { await target.set(doc.data()); moved.availability++; }
+  }
+
+  // Facebook
+  const result = { fbMoved: false, fbDeleted: false, reminder: false };
+  const intoChange = { updateCount: S.increment(moved.updates + 1), lastUpdateAt: S.serverTimestamp(), updatedAt: S.serverTimestamp() };
+  if (from.fbPostId && !into.fbPostId) {
+    FB_FIELDS.forEach(k => { if (from[k] !== undefined) intoChange[k] = from[k]; });
+    result.fbMoved = true;
+  } else if (from.fbPostId) {
+    if (d.deleteFacebook === true) {
+      try {
+        const secret = await db.collection('fbsecret').doc('page').get();
+        if (!secret.exists || !secret.data().token) throw new Error('Facebook is not linked');
+        await graph('DELETE', from.fbPostId + '?' + new URLSearchParams({ access_token: secret.data().token }));
+        result.fbDeleted = true;
+      } catch (err) {
+        const e = err.fb || {};
+        if (e.code === 100 && /does not exist|cannot be loaded|Unsupported delete request/i.test(e.message || '')) result.fbDeleted = true;   // already gone
+        else console.warn('Duplicate Facebook post not deleted:', err && err.message);
+      }
+    }
+    result.reminder = !result.fbDeleted;
+  } else if (d.remind === true) result.reminder = true;   // posted on Facebook some other way
+  if (result.reminder) intoChange.fbCleanup = { name: String(from.name || ''), link: String(from.fbLink || ''), by: me.name, at: Date.now() };
+
+  const text = 'Duplicate merged: ' + (from.name || 'a dog') + (from.createdBy ? ' (added by ' + from.createdBy + ')' : '') + ' was merged into this dog by ' + me.name + '. '
+    + 'Moved across: ' + moved.updates + (moved.updates === 1 ? ' update, ' : ' updates, ') + moved.sightings + (moved.sightings === 1 ? ' sighting.' : ' sightings.')
+    + (result.fbMoved ? ' Its Facebook post now belongs to this dog.' : result.fbDeleted ? ' Its Facebook post was deleted.' : result.reminder ? ' Its Facebook post still needs removing on Facebook.' : '');
+  await intoRef.collection('updates').add({ kind: 'merge', text, byName: me.name, byUid: me.uid, createdAt: S.serverTimestamp() });
+  await intoRef.update(intoChange);
+  await fromRef.update({ status: 'merged', mergedInto: intoId, mergedIntoName: String(into.name || ''), mergedBy: me.name, mergedAt: S.serverTimestamp(),
+    statusBy: me.name, statusAt: S.serverTimestamp(), askAvailability: false, updatedAt: S.serverTimestamp() });
+  return { ok: true, moved, ...result };
+});
+
 // ============================================================
 //  Public reporting website (report.html)
 // ============================================================
@@ -403,7 +472,8 @@ exports.publicDogs = onCall({ cors: true }, async () => {
     if (safe && !(millis(x.statusAt) > now - SAFE_SHOW_MS)) return null;     // safe for more than a day (or no date): gone
     return {
       id: d.id,
-      name: String(x.name || '').trim().slice(0, 60) || 'Unknown',
+      // Never the dog's name: people would go out calling it, which can scare a lost dog away. The breed instead.
+      breed: String(x.breed || '').trim().slice(0, 60) || 'Unknown',
       area: String(x.lastSeenPlace || '').trim().slice(0, 80),
       status: x.status, statusLabel: safe ? SAFE_STATUS[x.status] : PUBLIC_STATUS[x.status], safe,
       foundWhere: x.status === 'found' && FOUND_WHERE.includes(x.foundWhere) ? x.foundWhere : '',
@@ -666,6 +736,94 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   return { ok: true };
 });
 
+// ---- A request for a drone search (Drone Search & Rescue Ayrshire) ----
+// Sent from dsra.html. Missing dogs go to the Lost Dogs Ayrshire report form instead, so they never come here.
+// A missing person must already be known to the police (with their reference number), and we ask whether
+// they are vulnerable (a child, someone living with dementia or Alzheimer's, or with a learning disability).
+// A "yes" makes it VERY HIGH RISK: it goes to the top of the list in the app and says so in the alert.
+// Police Scotland lead those searches and the pilots only fly when the police have asked or agreed.
+const DRONE_WHAT = { person: 'Missing person', animal: 'Missing animal', other: 'Other search' };
+const VULNERABLE = ['yes', 'no', 'unsure'];
+const DRONE_AREAS = ['Fields', 'Woodland', 'Farmland', 'Coast or river', 'Loch or reservoir', 'Moor or hills', 'Town'];
+const DRONE_WATER = ['Coast or river', 'Loch or reservoir'];   // missing person near water: have Fire and Rescue or the Coastguard searched it?
+const WATER_ANSWERS = ['yes', 'no', 'unknown'];
+// Who sees drone requests and gets the alert: admins, the developer, and anyone ticked as DSRA team
+// in Access & Roles (whatever their role). Lost Dogs Ayrshire coordinators do not, unless ticked.
+async function droneTeam() {
+  const team = (await admin.firestore().collection('users').where('dsra', '==', true).get()).docs
+    .filter(d => ['member', 'coordinator', 'admin', 'developer'].includes(d.data().role)).map(d => d.id);
+  return [...new Set((await peopleWithRole(['admin', 'developer'])).concat(team))];
+}
+exports.submitDroneRequest = onCall({ cors: true, timeoutSeconds: 30 }, async request => {
+  const d = request.data || {}, db = admin.firestore(), now = Date.now();
+  if (d.website || !(Number(d.tookMs) >= 4000)) return { ok: true };   // robots: thanked, nothing kept
+
+  // Floods: shares the report limits, so one connection can't send lots of either.
+  const ip = String((request.rawRequest && (request.rawRequest.ip || (request.rawRequest.headers || {})['x-forwarded-for'])) || 'unknown').split(',')[0].trim();
+  const who = crypto.createHash('sha256').update('lda-report:' + ip).digest('hex').slice(0, 32);
+  const limitRef = db.collection('limits').doc(who);
+  const limitSnap = await limitRef.get();
+  const times = ((limitSnap.exists && limitSnap.data().times) || []).filter(t => t > now - 24 * 3600e3);
+  if (times.filter(t => t > now - 3600e3).length >= REPORT_LIMITS.perHour || times.length >= REPORT_LIMITS.perDay)
+    throw new HttpsError('resource-exhausted', 'You have sent several requests already. Please email lostdogsayrshiredrones@gmail.com instead.');
+  const dayRef = db.collection('limits').doc('all-' + new Date(now).toISOString().slice(0, 10));
+  const daySnap = await dayRef.get();
+  const dayCount = daySnap.exists ? Number(daySnap.data().n || 0) : 0;
+  if (dayCount >= REPORT_LIMITS.allPerDay) throw new HttpsError('resource-exhausted', 'We are very busy. Please email lostdogsayrshiredrones@gmail.com instead.');
+
+  const what = String(d.what || '');
+  if (!DRONE_WHAT[what]) throw bad('Please choose what the search is for.');
+  const needsPolice = what === 'person';
+  let policeRef = '', vulnerable = '';
+  if (needsPolice) {
+    if (d.police !== 'yes') throw bad('Please report this to Police Scotland on 999 first. We can only fly when the police have asked us or agreed.');
+    policeRef = cleanText(d.policeRef, 40);
+    if (policeRef.length < 3) throw bad('Please add the police incident or reference number.');
+    vulnerable = String(d.vulnerable || '');
+    if (!VULNERABLE.includes(vulnerable)) throw bad('Please tell us if the person is vulnerable: Yes, No or Not sure.');
+  }
+  if (d.consent !== true) throw bad('Please tick the box so the drone team can contact you.');
+  const town = cleanText(d.town, 60);
+  if (town.length < 2) throw bad('Please add the Town/Village.');
+  const details = cleanText(d.details, 1000, true);
+  if (details.length < 5) throw bad('Please add some details of the search.');
+  const name = cleanText(d.name, 60);
+  if (!name) throw bad('Please add your name.');
+  const phone = String(d.phone || '').replace(/[\s()\-.]/g, '').replace(/^\+44/, '0').replace(/^0044/, '0');
+  if (!realUkPhone(phone)) throw bad('Please check your contact number. It should be a UK number, like 07700 123456.');
+  const email = String(d.email || '').trim().toLowerCase().slice(0, 120);
+  if (!/^[^\s@]{1,64}@[^\s@]+\.[a-z]{2,}$/.test(email)) throw bad('Please check your email address.');
+  const seenDate = String(d.date || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(seenDate)) throw bad('Please add the date.');
+  const dayMs = Date.parse(seenDate + 'T12:00:00Z');
+  if (isNaN(dayMs) || dayMs > now + 36 * 3600e3) throw bad("The date can't be in the future.");
+  if (dayMs < now - 366 * 24 * 3600e3) throw bad('Please check the date.');
+  const seenTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(d.time || '')) ? String(d.time) : '';
+  let lat = null, lng = null;
+  if (d.lat != null || d.lng != null) {
+    lat = Number(d.lat); lng = Number(d.lng);
+    if (!(lat > 54 && lat < 57 && lng > -7 && lng < -2.5)) throw bad('The map pin is outside our area. Please check it.');
+    lat = Math.round(lat * 1e5) / 1e5; lng = Math.round(lng * 1e5) / 1e5;
+  }
+  const area = Array.isArray(d.area) ? [...new Set(d.area.map(String).filter(a => DRONE_AREAS.includes(a)))] : [];
+  let waterSearched = '';
+  if (needsPolice && area.some(a => DRONE_WATER.includes(a))) {
+    waterSearched = String(d.waterSearched || '');
+    if (!WATER_ANSWERS.includes(waterSearched)) throw bad("Please tell us if Fire and Rescue or the Coastguard have searched the water: Yes, No or Don't know.");
+  }
+
+  const ref = await db.collection('droneRequests').add({
+    what, police: needsPolice ? 'yes' : '', policeRef, vulnerable, status: 'new', town, lat, lng, seenDate, seenTime, area, waterSearched, details,
+    reporterName: name, reporterPhone: phone, reporterEmail: email, createdAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+  await limitRef.set({ times: times.concat(now), updatedAt: now }, { merge: true });
+  await dayRef.set({ n: dayCount + 1, updatedAt: now });
+
+  try { await sendTo(await droneTeam(), 'Drone Search and Rescue public request', (vulnerable === 'yes' ? 'VERY HIGH RISK \u00b7 ' : vulnerable === 'unsure' ? 'CHECK RISK \u00b7 ' : '') + DRONE_WHAT[what] + ' \u00b7 ' + town + (waterSearched === 'no' || waterSearched === 'unknown' ? ' \u00b7 water risk' : ''), SITE + '#drone/' + ref.id, 'drone'); }
+  catch (e) { console.warn('Drone request alert not sent:', e && e.message); }
+  return { ok: true };
+});
+
 // ---- Reports tidy themselves away ----
 // Run each night with the closed-dog tidy: a report that has been dealt with is deleted 30 days later;
 // one nobody dealt with is deleted after 60 days. The flood counters are cleared after two days.
@@ -677,6 +835,12 @@ async function tidyReports() {
     const dealt = x.status && x.status !== 'new';
     const from = dealt ? (millis(x.dealtAt) || millis(x.createdAt)) : millis(x.createdAt);
     if (from && from < now - (dealt ? 30 : 60) * 24 * 3600e3) { await db.recursiveDelete(r.ref); removed++; }
+  }
+  for (const r of (await db.collection('droneRequests').get()).docs) {
+    const x = r.data();
+    const dealt = x.status && x.status !== 'new';
+    const from = dealt ? (millis(x.dealtAt) || millis(x.createdAt)) : millis(x.createdAt);
+    if (from && from < now - (dealt ? 30 : 60) * 24 * 3600e3) { await r.ref.delete(); removed++; }
   }
   for (const l of (await db.collection('limits').get()).docs)
     if (!(Number(l.data().updatedAt) > now - 2 * 24 * 3600e3)) await l.ref.delete();
