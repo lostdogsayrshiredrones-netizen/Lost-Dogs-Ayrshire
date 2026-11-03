@@ -329,7 +329,7 @@ exports.facebookPost = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async r
 // When a dog's case moves on (Found, Reunited, Home safe and so on), put the news at the top of the
 // original Facebook post. The original text stays underneath; a later update replaces the earlier one.
 const FB_SPLIT = '\n\n\u2B07\uFE0F Original post \u2B07\uFE0F\n\n';
-const UPDATE_LABEL = { found: 'Found', reunited: 'Reunited', 'home-safe': 'Home safe', 'no-further-sightings': 'No further sightings', 'paws-down': 'Paws down' };
+const UPDATE_LABEL = { 'found-kennels': 'Safe at kennels', found: 'Found', reunited: 'Reunited', 'home-safe': 'Home safe', 'no-further-sightings': 'No further sightings', 'paws-down': 'Paws down' };
 exports.facebookUpdate = onCall({ timeoutSeconds: 60 }, async request => {
   const me = await caller(request, FB_ROLES);
   const db = admin.firestore(), d = request.data || {};
@@ -362,8 +362,10 @@ exports.facebookUpdate = onCall({ timeoutSeconds: 60 }, async request => {
     if (e.code === 100) throw new HttpsError('failed-precondition', 'Facebook would not let this post be edited' + (e.message ? ': ' + String(e.message).slice(0, 160) : '.'));
     throw fbProblem(err);
   }
-  const label = UPDATE_LABEL[dog.status] || String(dog.status || 'update');
-  await dogRef.update({ fbUpdateStatus: dog.status || '', fbUpdatedAt: admin.firestore.FieldValue.serverTimestamp(), fbUpdatedBy: me.name });
+  // A Found dog that is safe at kennels has its own wording, so it counts as its own update.
+  const key = dog.status === 'found' && dog.foundWhere === 'Safe at kennels' ? 'found-kennels' : String(dog.status || '');
+  const label = UPDATE_LABEL[key] || String(dog.status || 'update');
+  await dogRef.update({ fbUpdateStatus: key, fbUpdatedAt: admin.firestore.FieldValue.serverTimestamp(), fbUpdatedBy: me.name });
   await dogRef.collection('updates').add({ kind: 'facebook', text: 'Facebook post updated (' + label + ').', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
   return { updated: true, link: dog.fbLink || '' };
 });
@@ -461,7 +463,7 @@ let publicCache = { at: 0, dogs: null };
 // They cannot be picked for a sighting, so no more reports come in about them.
 const SAFE_STATUS = { 'home-safe': 'Home safe', reunited: 'Reunited' };
 // Where a Found dog is now. Only these general phrases are ever shown publicly (never the vet, finder or address).
-const FOUND_WHERE = ['Safe with finder', 'On route to vets', 'On route to police station', 'Safe with dog warden'];
+const FOUND_WHERE = ['Safe with finder', 'On route to vets', 'On route to police station', 'Safe with dog warden', 'Safe at kennels'];
 const SAFE_SHOW_MS = 24 * 3600e3;
 exports.publicDogs = onCall({ cors: true }, async () => {
   if (publicCache.dogs && Date.now() - publicCache.at < 60 * 1000) return { dogs: publicCache.dogs };
