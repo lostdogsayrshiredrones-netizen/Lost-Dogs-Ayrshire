@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-GB" data-build="c9466a48fa21">
+<html lang="en-GB" data-build="fffdd19496eb">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -7454,6 +7454,20 @@ $('#poster-fb').addEventListener('click', () => {
   go('fbpost/poster');
 });
 
+// The dog's own link for Facebook posts and updates. Never the dog's name in public: people would go out
+// calling it, which can scare a lost dog away. Found dogs are already safe, so they get "Know this dog?".
+function dogLinkLine(d, dogId) {
+  const url = 'https://lostdogsayrshire.org.uk/report?dog=' + encodeURIComponent(dogId);
+  if (d.status === 'missing' || d.status === 'loose') return '👀 Seen this dog? Report it here: ' + url;
+  if (d.status === 'found') return '👀 Know this dog? Tell us here: ' + url;
+  return '';
+}
+// Put the link just before the hashtags (or "Thank you for caring"), or at the end if there are none.
+function addDogLink(text, line) {
+  if (!line || text.includes(line)) return text;
+  return /\n\n(#|Thank you for caring)/.test(text) ? text.replace(/\n\n(#|Thank you for caring)/, '\n\n' + line + '\n\n$1') : text.trimEnd() + '\n\n' + line;
+}
+
 // From a dog: the right poster for its status, plus the dog's photo, with the matching wording.
 async function facebookDraftForDog(dogId) {
   const fb = state.fb;
@@ -7487,13 +7501,13 @@ async function facebookDraftForDog(dogId) {
     images.push({ src: lostDogPoster(v, photo, 1080), caption: 'The poster' });
     text = lostDogText(v);
   }
-  // Missing or loose: the dog's own link, which opens the website's sighting form with this dog already picked.
-  if (d.status === 'missing' || d.status === 'loose') {
-    // Never the dog's name in public: people would go out calling it, which can scare a lost dog away.
-    const line = '👀 Seen this dog? Report it here: https://lostdogsayrshire.org.uk/report?dog=' + encodeURIComponent(dogId);
+  // Missing, loose or found (including safe at kennels, vet or police station): the dog's own link, which opens
+  // the website's form with this dog already picked.
+  const line = dogLinkLine(d, dogId);
+  if (line) {
     text = /👀 Seen this dog\? Report it at lostdogsayrshire\.org\.uk\/report/.test(text)
       ? text.replace(/👀 Seen this dog\? Report it at lostdogsayrshire\.org\.uk\/report/, line)
-      : text.replace(/\n\n(#|Thank you for caring)/, '\n\n' + line + '\n\n$1');
+      : addDogLink(text, line);
     if (template) template = template.replace(/👀 Seen this dog\? Report it at lostdogsayrshire\.org\.uk\/report/, line);
   }
   return { from: 'dog', dogId, back: 'dog/' + dogId, label, images, text, needPlace: !place && /\{location\}/.test(template || '') ? template : '', already: d.fbPostId ? { at: d.fbPostedAt, by: d.fbPostedBy || '', link: d.fbLink || '' } : null };
@@ -7631,7 +7645,7 @@ function showFacebookUpdate(dogId) {
     root.appendChild(h('div', { class: 'fb-to' }, d.thumb ? h('img', { src: d.thumb, alt: '', style: 'border-radius:8px' }) : h('img', { src: $('#logo-img').src, alt: '' }),
       h('div', null, h('span', null, 'Original post' + (d.fbPostedAt ? ' · ' + when(d.fbPostedAt) : '')), h('strong', null, (d.name && !/^unknown$/i.test(d.name) ? d.name + ' · ' : '') + (d.lastSeenPlace || 'Facebook post')))));
     if (d.fbUpdateStatus) root.appendChild(h('p', { class: 'fb-warn' }, 'Already updated to ' + updateLabel(d.fbUpdateStatus) + (d.fbUpdatedBy ? ' by ' + d.fbUpdatedBy : '') + (d.fbUpdatedAt ? ', ' + when(d.fbUpdatedAt) : '') + '. This replaces that update.'));
-    const template = careFill(fbUpdateTemplate(updateKey(d)), d), place = String(d.lastSeenPlace || '').trim();
+    const template = addDogLink(careFill(fbUpdateTemplate(updateKey(d)), d), d.status === 'found' ? dogLinkLine(d, dogId) : ''), place = String(d.lastSeenPlace || '').trim();
     const needPlace = /\{location\}/.test(template) && !place;
     const fill = p => template.replace(/\{location\}/g, p || '[Town/Village]');
     const ta = h('textarea', { id: 'fbupdate-text', rows: '10' }); ta.value = fill(place);
