@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-GB" data-build="fffdd19496eb">
+<html lang="en-GB" data-build="eabcc66b3d80">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -2080,13 +2080,13 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <label for="tp-body">Information</label>
     <textarea id="tp-body" rows="12" maxlength="10000" placeholder="# Before fireworks night&#10;- Walk your dog in daylight&#10;- Check your fences and gates&#10;&#10;# On the night&#10;- Keep doors and windows closed"></textarea>
     <p class="field-help">Start a line with <b>#</b> for a heading (each heading gets its own box), and with <b>-</b> for a bullet point. Put words between <b>**</b> to make them bold. Web links work as they are.</p>
-    <label>Videos <span class="opt">(optional)</span></label>
+    <label>Videos and Facebook posts <span class="opt">(optional)</span></label>
     <div id="tp-files"></div>
     <div class="tp-video-add">
-      <input id="tp-video" type="url" inputmode="url" autocomplete="off" placeholder="Paste a Facebook video link">
-      <button class="btn" id="tp-add-video" type="button">Add video</button>
+      <input id="tp-video" type="url" inputmode="url" autocomplete="off" placeholder="Paste a Facebook post or video link">
+      <button class="btn" id="tp-add-video" type="button">Add</button>
     </div>
-    <p class="field-help">Post the video on our Facebook Page first, then copy its link and paste it here. Pick which heading each video shows under; you can put several under the same heading. Links with <b>/videos/</b> or <b>/reel/</b> in them play on the website; other links show a &ldquo;Watch on Facebook&rdquo; button.</p>
+    <p class="field-help">Post it on our Facebook Page first, then copy its link and paste it here. Pick which heading each one shows under; you can put several under the same heading. Videos and reels play on the website; a Facebook <b>post</b> (e.g. our fireworks post) shows with its picture and text. The post must be <b>public</b>. On a computer, click the post&rsquo;s date and copy the address from the top of the browser for the most reliable link.</p>
     <label class="tp-check"><input type="checkbox" id="tp-published"> <span><b>Show on the website</b><small>Untick to hide it while you work on it.</small></span></label>
     <h3 class="tp-prev-head">Preview</h3>
     <div class="tp-preview" id="tp-preview"></div>
@@ -4648,7 +4648,7 @@ function topicBodyHtml(body, files) {
     const pics = fs.filter(f => f.kind === 'photo'), rest = fs.filter(f => f.kind !== 'photo');
     return (pics.length ? '<div class="tf-pics">' + pics.map(f => f.data ? '<img src="' + esc(f.data) + '" alt="">' : '<span class="tf-ph">📷 ' + esc(f.label || 'Picture') + '</span>').join('') + '</div>' : '') +
       rest.map(f => f.kind === 'pdf' ? '<span class="tf-pdf">📄 <b>' + esc(f.label || 'PDF') + '</b> <small>PDF' + (f.size ? ' · ' + docSize(f.size) : '') + '</small></span>'
-        : '<span class="tf-vid">▶ <b>' + esc(f.label || 'Video') + '</b> <small>' + esc(f.url || '') + '</small></span>').join('');
+        : '<span class="tf-vid">' + (/\/posts\/|permalink|story_fbid|\/share\/p\/|pfbid|photo/i.test(f.url || '') ? 'f' : '▶') + ' <b>' + esc(f.label || (/\/posts\/|permalink|story_fbid|\/share\/p\/|pfbid|photo/i.test(f.url || '') ? 'Facebook post' : 'Video')) + '</b> <small>' + esc(f.url || '') + '</small></span>').join('');
   };
   return topicBoxes(body, files).map(b => '<div class="topic-box">' + (b.head ? '<h3>' + inline(b.head) + '</h3>' : '') +
     b.parts.map(x => Array.isArray(x) ? '<ul>' + x.map(li => '<li>' + inline(li) + '</li>').join('') + '</ul>' : '<p>' + inline(x) + '</p>').join('') +
@@ -4730,8 +4730,8 @@ function showTopicEdit(id) {
   $('#tp-body').oninput = () => { msg.textContent = ''; drawFiles(); preview(); };
   $('#tp-add-video').onclick = () => {
     const url = $('#tp-video').value.trim();
-    if (!TOPIC_VIDEO.test(url)) { msg.textContent = 'Paste the full link of a Facebook (or YouTube) video, starting https://'; return; }
-    if (files.length >= 30) { msg.textContent = 'A topic can have up to 30 videos.'; return; }
+    if (!TOPIC_VIDEO.test(url)) { msg.textContent = 'Paste the full link of a Facebook post or video (or a YouTube video), starting https://'; return; }
+    if (files.length >= 30) { msg.textContent = 'A topic can have up to 30 videos and posts.'; return; }
     files.push({ id: newFileId(), kind: 'video', url: url.slice(0, 500), label: '', under: defaultUnder() });
     $('#tp-video').value = ''; msg.textContent = ''; drawFiles(); preview();
   };
