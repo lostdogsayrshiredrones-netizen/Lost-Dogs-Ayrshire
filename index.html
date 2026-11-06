@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-GB" data-build="c3d2c915b9bf">
+<html lang="en-GB" data-build="ed1f7715a829">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -4439,6 +4439,19 @@ function showReports() {
       .sort((a, b) => reportFilter === 'new' ? (!!b.urgent - !!a.urgent) || (millis(b.createdAt) - millis(a.createdAt)) : millis(b.dealtAt) - millis(a.dealtAt));
     list.textContent = '';
     if (!shown.length) { list.appendChild(h('p', { class: 'empty' }, reportFilter === 'new' ? 'No new reports. Well done!' : 'Nothing dealt with in the last 30 days.')); return; }
+    // Admins can clear the whole Dealt with list at once instead of waiting 30 days.
+    if (reportFilter !== 'new' && isAdmin()) {
+      const allMsg = h('p', { class: 'form-msg', role: 'status', style: 'min-height:0;margin:6px 0 0' });
+      list.appendChild(h('button', { class: 'btn wide danger', type: 'button', id: 'reports-delete-all', onclick: async e => {
+        if (!confirm('Permanently delete all ' + shown.length + ' dealt-with report' + (shown.length === 1 ? '' : 's') + ', including the reporters’ names, phone numbers and photos? This cannot be undone.')) return;
+        e.target.disabled = true; let done = 0;
+        try {
+          for (const r of shown) { allMsg.textContent = 'Deleting ' + (++done) + ' of ' + shown.length + '…'; await deleteReportImages(r.id); await fb.deleteDoc(fb.doc(fb.db, 'reports', r.id)); }
+        } catch (err) { e.target.disabled = false; allMsg.textContent = friendlyError(err); }
+      } }, 'Delete all ' + shown.length + ' permanently'));
+      list.appendChild(allMsg);
+      list.appendChild(h('p', { class: 'hint', style: 'margin:4px 0 16px' }, 'Admins only. To delete just one, open it and press Delete permanently now.'));
+    }
     shown.forEach(r => {
       const t = reportType(r);
       list.appendChild(h('button', { class: 'report-card', type: 'button', 'data-go': 'report/' + r.id },
@@ -4456,6 +4469,13 @@ function showReports() {
           r.status !== 'new' ? h('span', { class: 'report-outcome' }, reportOutcome(r)) : null)));
     });
   }, err => { list.textContent = ''; list.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
+}
+
+// A report's photos live in reports/{id}/images; delete them first so nothing is left behind.
+async function deleteReportImages(id) {
+  const fb = state.fb;
+  try { const snap = await fb.getDocs(fb.collection(fb.db, 'reports', id, 'images')); for (const d of snap.docs) await fb.deleteDoc(d.ref); }
+  catch (e) { await fb.deleteDoc(fb.doc(fb.db, 'reports', id, 'images', 'main')).catch(() => {}); }
 }
 
 // ---------- Drone Requests (coordinators and admins) ----------
@@ -4942,22 +4962,22 @@ function showReport(id) {
     if (!isNew) {
       if (r.status === 'rejected') {
         root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', onclick: () => setStatus({ status: 'new', rejectReason: '' }) }, 'Move back to New'));
-        // Admins (and the developer) can delete a rejected report straight away instead of waiting 30 days.
-        if (isAdmin()) {
-          const delMsg = h('p', { class: 'form-msg', role: 'status' });
-          root.appendChild(h('button', { class: 'btn wide danger', type: 'button', style: 'margin-top:12px', onclick: async e => {
-            if (!confirm('Delete this report now, including the reporter\u2019s name, phone and photo? This cannot be undone.')) return;
-            e.target.disabled = true; delMsg.textContent = 'Deleting\u2026';
-            try {
-              clearSubs();
-              await fb.deleteDoc(fb.doc(fb.db, 'reports', id, 'images', 'main')).catch(() => {});
-              await fb.deleteDoc(ref);
-              go('reports');
-            } catch (err) { e.target.disabled = false; delMsg.textContent = friendlyError(err); }
-          } }, 'Delete report now'));
-          root.appendChild(delMsg);
-          root.appendChild(h('p', { class: 'hint' }, 'Admins only. Otherwise it is deleted automatically 30 days after it was rejected.'));
-        }
+      }
+      // Admins (and the developer) can delete any dealt-with report straight away instead of waiting 30 days.
+      if (isAdmin()) {
+        const delMsg = h('p', { class: 'form-msg', role: 'status' });
+        root.appendChild(h('button', { class: 'btn wide danger', type: 'button', style: 'margin-top:12px', onclick: async e => {
+          if (!confirm('Delete this report now, including the reporter\u2019s name, phone and photo? This cannot be undone.')) return;
+          e.target.disabled = true; delMsg.textContent = 'Deleting\u2026';
+          try {
+            clearSubs();
+            await deleteReportImages(id);
+            await fb.deleteDoc(ref);
+            go('reports');
+          } catch (err) { e.target.disabled = false; delMsg.textContent = friendlyError(err); }
+        } }, 'Delete permanently now'));
+        root.appendChild(delMsg);
+        root.appendChild(h('p', { class: 'hint' }, 'Admins only. Otherwise it is deleted automatically 30 days after it was dealt with.'));
       }
       return;
     }
@@ -4988,9 +5008,13 @@ function showReport(id) {
       go('dog-edit/new');
     } }, 'Accept: create the dog') : null;
     const sightBtn = h('button', { class: 'btn wide' + (r.type === 'posts' ? '' : ' ghost'), type: 'button', onclick: () => { live.mode = live.mode === 'sighting' ? null : 'sighting'; draw(); } }, 'Add as a sighting to a dog');
-    if (r.type === 'posts') box.appendChild(sightBtn); else { box.appendChild(createBtn); box.appendChild(h('p', { class: 'hint' }, photoPending ? 'Locked until the photo has been checked: tap \u201cTap to show photo\u201d above, then mark it.' : behalf && ownerPerm(r) !== 'given' ? 'Opens Add a dog filled in from the report. The owner\u2019s answer goes with it: no search can be asked for until the owner agrees.' : 'Opens Add a dog with the photo, place, time and details filled in.')); box.appendChild(sightBtn); }
+    if (r.type === 'posts') box.appendChild(sightBtn); else { box.appendChild(createBtn); box.appendChild(h('p', { class: 'hint' }, photoPending ? 'Locked until the photo has been checked: tap \u201cTap to show photo\u201d above, then mark it.' : behalf && ownerPerm(r) !== 'given' ? 'Opens Add a dog filled in from the report. The owner\u2019s answer goes with it: no search can be asked for until the owner agrees.' : 'Opens Add a dog with the photo, place, time and details filled in.'));
+      // A Lost my dog report is the owner telling us about their own dog: it is never a sighting, so it can only be accepted (or rejected).
+      // If the dog is already listed (say as a loose dog), accept it and then Merge the old listing into the new one.
+      if (r.type === 'lost') box.appendChild(h('p', { class: 'hint' }, 'This is the owner\u2019s own report, so it can\u2019t be added as a sighting. If we already have this dog listed (for example as a loose dog), accept it here, then use Merge on the old listing.'));
+      else box.appendChild(sightBtn); }
 
-    if (live.mode === 'sighting') {
+    if (live.mode === 'sighting' && r.type !== 'lost') {
       const pick = h('select', { id: 'report-dog' }, h('option', { value: '' }, live.dogs.length ? 'Choose the dog…' : 'No active dogs'),
         live.dogs.map(d => h('option', { value: d.id, selected: d.id === r.dogId }, (d.name || 'Unnamed dog') + (d.lastSeenPlace ? ' – ' + d.lastSeenPlace : '') + ' (' + ((STATUSES[d.status] || {}).label || '') + ')')));
       const tell = h('input', { type: 'checkbox', id: 'report-notify', checked: true });
