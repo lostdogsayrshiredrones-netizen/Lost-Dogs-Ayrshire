@@ -85,8 +85,17 @@
   .dog small { display: block; color: var(--soft); font-size: .9rem; }
   .tag { display: inline-block; margin-top: 4px; padding: 2px 8px; background: var(--yellow); color: var(--deep);
     border-radius: 999px; font-size: .72rem; font-weight: 900; text-transform: uppercase; }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 2px; }
+  .tags .tag { margin-top: 0; }
+  small.town { display: block; margin-top: 2px; font-size: .9rem; }
+  small.town b { display: inline; font-size: inherit; font-weight: 800; }
+  .pick .dog-lines b { font-size: 1.05rem; }
+  .pick label:has(input:checked) .tag.where { background: var(--soft); }
   .dog .seen { margin-left: auto; font-size: .8rem; font-weight: 800; color: var(--yellow); text-align: right; }
   .dog.safe { cursor: default; background: #1d6b33; }
+  .dog.held { background: #a64b00; }                       /* amber: safe at a vet, police, kennels or warden; owner wanted */
+  .dog.held img, .dog.held .nophoto { border-color: #ffd27a; }
+  .tag.held { background: #ffd27a; color: #4a2200; }
   .dog.safe img, .dog.safe .nophoto { border-color: #fff; }
   .tag.safe { background: #fff; color: #1d6b33; }
   .tag.where { background: #fff; color: var(--deep); }
@@ -197,6 +206,9 @@
   .send { padding: 16px; border: 0; border-radius: 14px; background: var(--yellow); color: var(--purple); font: inherit;
     font-size: 1.2rem; font-weight: 900; text-transform: uppercase; box-shadow: 0 5px 0 var(--deep); cursor: pointer; }
   .send:disabled { opacity: .6; }
+  .pick.one input { position: absolute; opacity: 0; pointer-events: none; }
+  .pick.one label { cursor: default; }
+  .pick-hint { margin: 0; text-align: center; font-weight: 800; color: var(--yellow); }
   .pick { display: flex; flex-direction: column; gap: 8px; }
   .pick label { display: flex; align-items: center; gap: 12px; padding: 10px; border: 4px solid var(--deep); border-radius: 12px; background: var(--deep); cursor: pointer; }
   .pick label:has(input:checked) { background: #fff; color: var(--deep); border-color: var(--yellow); }
@@ -244,6 +256,21 @@
   .pc-email { font-weight: 700; color: #4a3f6b; overflow-wrap: anywhere; }
   .pc-small { font-size: .9rem; color: #4a3f6b; margin: 8px 0 14px !important; }
   .pc-box .send { width: 100%; margin: 0 0 10px; }
+  .dc-box { text-align: left; }
+  .dc-box h2 { text-align: center; }
+  .dc-dog { margin: -4px 0 12px; padding: 10px; border-radius: 14px; background: #f3efff; color: #2a0b78; display: flex; gap: 12px; align-items: center; }
+  .dc-dog img, .dc-dog .nophoto { width: 60px; height: 60px; flex-shrink: 0; border-radius: 10px; object-fit: cover; }
+  .dc-dog .nophoto { display: flex; align-items: center; justify-content: center; border: 2px dashed #b9a6f0; font-size: .72rem; }
+  .dc-dog .tag.where { background: #e9e2ff; }
+  .dc-btn { display: block; width: 100%; margin: 0 0 10px; padding: 14px; border: 0; border-radius: 14px; text-align: left; font: inherit; cursor: pointer;
+    background: linear-gradient(180deg, #fffe7a 0%, #fdf90f 60%, #f1ec00 100%); color: #3e12a3; box-shadow: 0 4px 0 #b3ae00; }
+  .dc-btn b { display: block; font-size: 1.15rem; font-weight: 900; }
+  .dc-btn small { display: block; font-size: .9rem; font-weight: 600; margin-top: 2px; }
+  .dc-link { display: block; width: 100%; margin: 0 0 12px; padding: 6px; border: 0; background: none; color: #5220c4; font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
+  .from-dog { margin: 0 0 14px; padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; background: var(--deep); display: flex; gap: 12px; align-items: center; }
+  .from-dog img, .from-dog .nophoto { width: 60px; height: 60px; flex-shrink: 0; border-radius: 10px; object-fit: cover; }
+  .from-dog .nophoto { display: flex; align-items: center; justify-content: center; border: 2px dashed #b9a6f0; font-size: .72rem; }
+  .from-dog p { margin: 0 0 4px; font-weight: 800; }
   .pc-edit { width: 100%; padding: 13px; border-radius: 14px; border: 3px solid #5220c4; background: #fff; color: #5220c4; font: inherit; font-weight: 900; }
   /* Found a dog: the legal duty to tell the dog warden, with the three Ayrshire numbers */
   .warden { width: 100%; text-align: left; padding: 16px; border-radius: 16px; background: #fff; color: #1c1530; display: flex; flex-direction: column; gap: 10px; border-top: 8px solid var(--yellow); }
@@ -290,7 +317,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="#5220c4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>I've seen a loose dog</button>
   <button class="choice" type="button" data-report="found">
     <svg viewBox="0 0 24 24" fill="none" stroke="#5220c4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>I've found a dog (it's safe with me)</button>
-  <button class="choice hi posts-btn" type="button" data-report="posts">
+  <button class="choice hi posts-btn" type="button" data-go="dogs">
     <svg viewBox="0 0 24 24" fill="none" stroke="#5220c4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/></svg>I've seen a dog from your posts</button>
   <h2>Current missing dogs</h2>
   <button class="choice" type="button" data-go="dogs" id="see-dogs">
@@ -318,10 +345,9 @@
     <button class="choice hi" type="button" data-go="home">
       <svg viewBox="0 0 24 24" fill="none" stroke="#5220c4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3L2 20h20z"/><path d="M12 10v4M12 17v.5"/></svg>Report a Dog</button>
   </div>
-  <button class="choice hi posts-btn" type="button" data-report="posts">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#5220c4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/></svg>I've seen a dog from your posts</button>
+  <p class="pick-hint posts-btn">Tap the dog you&rsquo;ve seen, or one you know.</p>
   <div class="dog-list" style="display:flex;flex-direction:column;gap:10px"><p class="foot" style="text-align:left">Loading…</p></div>
-  <p class="foot">Tap a dog if you think you've seen it.</p>
+  <p class="foot">Tap a dog to report a sighting, or to tell us it&rsquo;s yours.</p>
   <footer class="site-foot"><a class="mail" href="mailto:lostdogsayrshire@gmail.com">Email us: <span>lostdogsayrshire@gmail.com</span></a><br><a href="./">Home</a> · <a href="report-privacy.html">Privacy</a><br><span class="copy">&copy; 2026 Lost Dogs Ayrshire. All rights reserved.</span></footer>
 </section>
 
@@ -331,6 +357,7 @@
   <h1 class="banner" id="r-title">Report</h1>
   <form id="r-form" novalidate style="display:flex;flex-direction:column;gap:12px">
 
+    <div class="from-dog" id="r-from" hidden></div>
     <div class="field owner-q" data-for="lost" id="f-owner">
       <span class="f" id="r-owner-q">Are you the owner of the dog you are reporting?</span>
       <div class="yesno three" role="radiogroup" aria-labelledby="r-owner-q">
@@ -366,9 +393,20 @@
       <div class="behalf-note">Thank you. Lost Dogs Ayrshire will review your report and phone the owner. <b>No search will start until the owner has agreed.</b> Please let them know to expect our call.</div>
     </div>
 
-    <div class="field" data-for="posts" id="f-dog">
-      <label class="f">Which dog did you see?</label>
+    <div class="field" data-for="posts knows" id="f-dog">
+      <label class="f" id="r-pick-label">Which dog did you see?</label>
       <div class="pick" id="r-pick"></div>
+    <div class="field owner-q" data-for="knows" id="f-knows">
+      <span class="f" id="r-knows-q">Is this your dog?</span>
+      <div class="yesno" role="radiogroup" aria-labelledby="r-knows-q">
+        <label><input type="radio" name="knows" value="mine" id="r-knows-mine"><span>Yes, it&rsquo;s my dog</span></label>
+        <label><input type="radio" name="knows" value="owner" id="r-knows-owner"><span>No, but I know the owner</span></label>
+      </div>
+      <div id="r-kowner" hidden>
+        <div class="field" id="f-koname"><label class="f" for="r-koname">Owner's name</label><input type="text" id="r-koname" autocomplete="off" maxlength="60"></div>
+        <div class="field" id="f-kophone"><label class="f" for="r-kophone">Owner's phone</label><input type="tel" id="r-kophone" autocomplete="off" maxlength="20" placeholder="07…"></div>
+      </div>
+    </div>
     </div>
 
     <div class="field danger-q" data-for="loose posts" id="f-danger">
@@ -456,13 +494,13 @@
       <div class="photo-no" id="r-photo-no" role="alert" hidden><b>This photo can&rsquo;t be used</b><span id="r-photo-no-text">It didn&rsquo;t pass our automatic photo check. Please choose a different photo of the dog, or send your report without one.</span></div>
     </div>
 
-    <div class="field" id="f-town">
+    <div class="field" data-for="lost loose found posts" id="f-town">
       <label class="f" for="r-town" id="r-town-label">Town/Village</label>
       <input type="text" id="r-town" autocomplete="off" maxlength="60" placeholder="Start typing, e.g. Kilm&hellip;" role="combobox" aria-autocomplete="list" aria-controls="r-town-list" aria-expanded="false">
       <div class="town-list" id="r-town-list" role="listbox" hidden></div>
     </div>
 
-    <div class="field" id="f-map">
+    <div class="field" data-for="lost loose found posts" id="f-map">
       <label class="f" id="r-map-label">Tap the map where you saw it</label>
       <div class="find-row">
         <input type="search" id="r-find" placeholder="Or search: street or place, e.g. High Street, Ayr" enterkeyhint="search" autocomplete="off" aria-label="Search for a street or place">
@@ -474,7 +512,7 @@
       <span class="hint">Pinch to zoom. Tap again to move the pin.</span>
     </div>
 
-    <div class="row" id="f-when">
+    <div class="row" data-for="lost loose found posts" id="f-when">
       <div><label class="f" for="r-date" id="r-date-label">Date</label><input type="date" id="r-date"></div>
       <div><label class="f" for="r-time">Time</label><input type="time" id="r-time"></div>
     </div>
@@ -502,6 +540,24 @@
     <button class="send" type="submit" id="r-send">Send report</button>
   </form>
 </section>
+
+<div class="pc-wrap" id="dog-choice" hidden role="dialog" aria-modal="true" aria-labelledby="dc-title">
+  <div class="pc-box dc-box">
+    <div class="dc-dog" id="dc-dog"></div>
+    <div id="dc-step1">
+      <h2 id="dc-title">What would you like to do?</h2>
+      <button class="dc-btn" type="button" id="dc-sighting"><b>Report a sighting</b><small>I&rsquo;ve seen this dog</small></button>
+      <button class="dc-btn" type="button" id="dc-mine"><b>This is my dog</b><small>Or I know the owner</small></button>
+    </div>
+    <div id="dc-step2" hidden>
+      <h2>Would you like us to list your dog as missing?</h2>
+      <button class="dc-btn" type="button" id="dc-list"><b>Yes, list my dog as missing</b><small>Tell us about your dog so we can share an appeal and organise a search</small></button>
+      <button class="dc-btn" type="button" id="dc-contact"><b>No, just contact me</b><small>Leave your name and number and we&rsquo;ll call you to help get your dog home</small></button>
+      <button class="dc-link" type="button" id="dc-owner">I&rsquo;m not the owner, but I know who is</button>
+    </div>
+    <button class="pc-edit" type="button" id="dc-cancel">Cancel</button>
+  </div>
+</div>
 
 <div class="pc-wrap" id="phone-check" hidden role="dialog" aria-modal="true" aria-labelledby="pc-title">
   <div class="pc-box">
@@ -593,9 +649,17 @@ const TYPES = {
            desc: 'What did the dog look like? Which way was it going?', send: 'Send report', descNeeded: true },
   found: { title: "I've found a dog", town: 'Town/Village where you found it', map: 'Tap the map where you found it', date: 'Date found',
            desc: 'Describe the dog (colour, collar, tag) and where it is now', send: 'Send report', descNeeded: true },
-  posts: { title: "I've seen a dog from your posts", town: 'Town/Village', map: 'Tap the map where you saw it', date: 'Date',
-           desc: 'Anything else? (which way it went, how it seemed)', send: 'Send sighting', descNeeded: false }
+  posts: { title: "I've seen a dog from your posts", town: 'Where did you see it? (Town/Village)', map: 'Tap the map where you saw it', date: 'Date',
+           desc: 'Anything else? (which way it went, how it seemed)', send: 'Send sighting', descNeeded: false },
+  // A found dog is already safe, so we don't need sightings of it: we need its owner, or someone who knows it.
+  knows: { title: 'I know this dog', town: '', map: '', date: '',
+           desc: 'Anything that shows it\u2019s yours (the name the dog answers to, a marking, a microchip)', send: 'Send', descNeeded: false }
 };
+// Which dogs each form lists: sightings are for missing and loose dogs; "I know this dog" is for found dogs.
+// "This is my dog" / "I know the owner" is for found and loose dogs (a missing dog's owner is already known).
+// Amber ("held") dogs are safe at a vet, police station, kennels or with the warden: no sightings, but the owner can still come forward.
+const forType = (d, t) => !d.safe && (t === 'knows' ? d.status === 'found' || d.status === 'loose' || !!d.held : d.status === 'missing' || d.status === 'loose');
+let fromDog = '';   // a Lost my dog report that started from a listed loose dog ("This is my dog")
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 let DOGS = [], type = null, photo = null, thumb = null, pinLatLng = null, map = null, marker = null, openedAt = Date.now();
@@ -624,7 +688,55 @@ document.addEventListener('click', e => {
     if (g.getAttribute('data-go') === 'dogs' && !$('home').hidden) $('dogs-back').hidden = false;
     show(g.getAttribute('data-go')); return; }
   const r = e.target.closest('[data-report]'); if (r) { type = r.getAttribute('data-report'); setupForm(); show('report'); return; }
-  const d = e.target.closest('[data-dog]'); if (d) { type = 'posts'; setupForm(d.getAttribute('data-dog')); show('report'); }
+  const d = e.target.closest('[data-dog]'); if (d) { const id = d.getAttribute('data-dog'), dog = DOGS.find(x => x.id === id);
+    if (dog && dog.status === 'loose') { openChoice(id); return; }   // sighting, or "this is my dog"
+    type = dog && (dog.status === 'found' || dog.held) ? 'knows' : 'posts'; setupForm(id); show('report'); }
+});
+
+
+// ---------- loose dogs: "Report a sighting" or "This is my dog" ----------
+let choiceDog = '';
+function openChoice(id) {
+  const d = DOGS.find(x => x.id === id); if (!d) return;
+  choiceDog = id;
+  $('dc-dog').innerHTML = dogPic(d) + '<span class="dog-lines">' + dogLines(d) + '</span>'; markPics();
+  $('dc-step1').hidden = false; $('dc-step2').hidden = true;
+  $('dog-choice').hidden = false; $('dc-sighting').focus();
+}
+function closeChoice() { $('dog-choice').hidden = true; }
+function startForm(t, id) { closeChoice(); type = t; $('r-back').setAttribute('data-go', $('dogs').hidden ? 'home' : 'dogs'); setupForm(id); show('report'); }
+$('dc-sighting').addEventListener('click', () => startForm('posts', choiceDog));
+$('dc-mine').addEventListener('click', () => { $('dc-step1').hidden = true; $('dc-step2').hidden = false; $('dc-list').focus(); });
+$('dc-list').addEventListener('click', () => {
+  const id = choiceDog, d = DOGS.find(x => x.id === id) || {};
+  startForm('lost'); fromDog = id; drawFrom();
+  $('r-owner-yes').checked = true; setOwner();
+  if (d.breed && !/^unknown$/i.test(d.breed)) $('r-breed').value = d.breed;
+});
+$('dc-contact').addEventListener('click', () => { startForm('knows', choiceDog); $('r-knows-mine').checked = true; drawKnows(); });
+$('dc-owner').addEventListener('click', () => { startForm('knows', choiceDog); $('r-knows-owner').checked = true; drawKnows(); });
+$('dc-cancel').addEventListener('click', closeChoice);
+$('dog-choice').addEventListener('click', e => { if (e.target === $('dog-choice')) closeChoice(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('dog-choice').hidden) closeChoice(); });
+// The Lost my dog form, when it started from a listed loose dog: show which one.
+function drawFrom() {
+  const d = fromDog && type === 'lost' ? DOGS.find(x => x.id === fromDog) : null, box = $('r-from');
+  box.hidden = !d;
+  box.innerHTML = d ? dogPic(d) + '<span><p>You&rsquo;re telling us this loose dog is yours</p><span class="dog-lines">' + dogLines(d) + '</span></span>' : '';
+  if (d) markPics();
+}
+// "This is my dog" / "I know the owner": the title, the owner's details and the wording follow the answer.
+function drawKnows() {
+  if (type !== 'knows') return;
+  const v = (document.querySelector('input[name="knows"]:checked') || {}).value || '';
+  $('r-title').textContent = v === 'mine' ? 'This is my dog' : v === 'owner' ? 'I know the owner' : 'I know this dog';
+  $('r-kowner').hidden = v !== 'owner';
+  $('r-desc-label').innerHTML = (v === 'owner' ? 'Anything else we should know?' : esc(TYPES.knows.desc)) + ' <span class="opt">(optional)</span>';
+}
+document.addEventListener('change', e => {
+  if (e.target.name !== 'knows') return;
+  drawKnows();
+  $('f-knows').classList.remove('bad'); $('f-knows').querySelectorAll(':scope > .err').forEach(x => x.remove());   // answered: clear the red message
 });
 
 // ---------- the dogs we are looking for ----------
@@ -657,29 +769,37 @@ function markPics() {
     watermark(src).then(url => { if (url) im.src = url; });
   });
 }
+// Each dog tile reads the same way: the breed, its status tag(s), then the town/village.
+function dogLines(d) {
+  return '<b>Breed: ' + esc(d.breed || 'Unknown') + '</b>' +
+    '<span class="tags"><span class="tag' + (d.safe ? ' safe' : d.held ? ' held' : '') + '">' + esc(d.statusLabel) + '</span>' +
+    (d.foundWhere && !d.safe ? '<span class="tag where">' + esc(d.foundWhere) + '</span>' : '') + '</span>' +
+    (d.area ? '<small class="town">Town/Village: <b>' + esc(d.area) + '</b></small>' : '');
+}
 function drawDogs(note) {
   const html = note ? '<p class="foot" style="text-align:left">' + esc(note) + '</p>'
     : DOGS.map(d => d.safe
       ? '<div class="dog safe">' + dogPic(d) +
-        '<span><b>Breed: ' + esc(d.breed || 'Unknown') + '</b>' + (d.area ? '<small>' + esc(d.area) + '</small>' : '') + '<span class="tag safe">' + esc(d.statusLabel) + '</span></span>' +
+        '<span>' + dogLines(d) + '</span>' +
         '<span class="seen safe">Thank you<br>for sharing!</span></div>'
-      : '<button type="button" class="dog" data-dog="' + esc(d.id) + '">' + dogPic(d) +
-        '<span><b>Breed: ' + esc(d.breed || 'Unknown') + '</b>' + (d.area ? '<small>' + esc(d.area) + '</small>' : '') + '<span class="tag">' + esc(d.statusLabel) + '</span>' +
-        (d.foundWhere ? ' <span class="tag where">' + esc(d.foundWhere) + '</span>' : '') + '</span>' +
-        '<span class="seen">Seen<br>this dog?</span></button>').join('');
+      : '<button type="button" class="dog' + (d.held ? ' held' : '') + '" data-dog="' + esc(d.id) + '">' + dogPic(d) +
+        '<span>' + dogLines(d) + '</span>' +
+        '<span class="seen">' + (d.held ? 'Is this<br>your dog?' : d.status === 'found' ? 'Know<br>this dog?' : 'Seen<br>this dog?') + '</span></button>').join('');
   document.querySelectorAll('.dog-list').forEach(el => { el.innerHTML = html; });
   markPics();
 }
 async function loadDogs(tries) {
   try {
     DOGS = ((await publicDogs()).data.dogs || []);
-    const looking = DOGS.some(d => !d.safe);   // any dog people can still report a sighting for?
+    const looking = DOGS.some(d => !d.safe);   // any dog people can still report a sighting for, or come forward about?
+    // A Facebook link to a found dog (report.html?dog=ID) opens "I know this dog" instead of a sighting.
+    if (wantDog && type === 'posts' && !$('report').hidden && DOGS.some(d => d.id === wantDog && !d.safe && (d.status === 'found' || d.held))) { type = 'knows'; setupForm(wantDog); }
     drawDogs('');
     document.querySelectorAll('.posts-btn').forEach(b => { b.hidden = !looking; });
     $('all-safe').hidden = looking;   // good-news note when every dog is safe (or none are listed)
-    if (!$('report').hidden && type === 'posts') fillPick($('r-pick').querySelector('input:checked') ? $('r-pick').querySelector('input:checked').value : wantDog);
+    if (!$('report').hidden && (type === 'posts' || type === 'knows')) fillPick($('r-pick').querySelector('input:checked') ? $('r-pick').querySelector('input:checked').value : wantDog);
     // Link for a dog that is now safe or no longer listed: show the list instead (a safe dog shows its good news there).
-    if (wantDog && !DOGS.some(d => d.id === wantDog && !d.safe) && !$('report').hidden && type === 'posts') show('dogs');
+    if (wantDog && !DOGS.some(d => d.id === wantDog && !d.safe) && !$('report').hidden && (type === 'posts' || type === 'knows')) show('dogs');
     wantDog = null;
   } catch (e) {
     if ((tries || 0) < 2) return setTimeout(() => loadDogs((tries || 0) + 1), 2500);
@@ -691,18 +811,33 @@ async function loadDogs(tries) {
 const pad = n => String(n).padStart(2, '0');
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
 const nowTime = () => { const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+// A sighting starts with the dog's town filled in (people can change it if they saw it somewhere else).
+let autoTown = '';
+function townFromDog(id) {
+  if (type !== 'posts') return;
+  const d = DOGS.find(x => x.id === id), t = $('r-town');
+  if (!d || !d.area) return;
+  if (!t.value.trim() || t.value === autoTown) { t.value = d.area; autoTown = d.area; }
+}
+document.addEventListener('change', e => { if (e.target.name === 'dog') townFromDog(e.target.value); });
 function fillPick(dogId) {
-  const open = DOGS.filter(d => !d.safe);
+  // A dog picked from the list is the only one shown: to choose another, go Back and tap a different dog.
+  const open = DOGS.filter(d => forType(d, type) && (!dogId || d.id === dogId));
+  $('r-pick').classList.toggle('one', !!dogId);
   $('r-pick').innerHTML = open.length ? open.map(d =>
     '<label><input type="radio" name="dog" value="' + esc(d.id) + '"' + (d.id === dogId ? ' checked' : '') + '>' + dogPic(d) +
-    '<span><b>Breed: ' + esc(d.breed || 'Unknown') + '</b><small>' + esc(d.statusLabel) + (d.area ? ' · ' + esc(d.area) : '') + '</small></span></label>').join('')
+    '<span class="dog-lines">' + dogLines(d) + '</span></label>').join('')
     : '<p class="hint">Loading the dogs…</p>';
   markPics();   // put the (watermarked) photos in
+  const on = $('r-pick').querySelector('input:checked'); if (on) townFromDog(on.value);
 }
 function setupForm(dogId, keep) {
   const T = TYPES[type];
   $('r-title').textContent = T.title;
   $('r-town-label').textContent = T.town;
+  $('r-pick-label').textContent = dogId ? (type === 'knows' ? 'The dog' : 'The dog you saw') : type === 'knows' ? 'Which dog?' : 'Which dog did you see?';
+  if (type !== 'lost') fromDog = '';
+  drawFrom();
   $('r-map-label').innerHTML = esc(T.map) + ' <span class="opt">(optional)</span>';
   $('r-date-label').textContent = T.date;
   $('r-breed-label').innerHTML = type === 'lost' ? 'Your dog&rsquo;s breed' : 'Breed <span class="opt">(if you know)</span>';
@@ -712,8 +847,8 @@ function setupForm(dogId, keep) {
   if (type !== 'lost') { $('r-form').classList.remove('not-owner'); $('r-notowner').hidden = true; $('r-behalf').hidden = true; } else setOwner();
   drawDanger();
   if (keep) return;
-  $('r-form').reset(); clearErrors(); setPhoto(null, null); $('r-photo-no').hidden = true; $('r-town-list').hidden = true; $('r-breed-list').hidden = true; $('r-find-list').hidden = true; $('r-find-list').textContent = ''; findMsg(''); pinLatLng = null; openedAt = Date.now();
-  setOwner(); drawDanger();
+  $('r-form').reset(); clearErrors(); setPhoto(null, null); $('r-photo-no').hidden = true; $('r-town-list').hidden = true; $('r-breed-list').hidden = true; $('r-find-list').hidden = true; $('r-find-list').textContent = ''; findMsg(''); pinLatLng = null; openedAt = Date.now(); autoTown = ''; fromDog = ''; drawFrom();
+  setOwner(); drawDanger(); drawKnows();
   if (marker && map) { map.removeLayer(marker); marker = null; }
   if (map) map.setView(AYRSHIRE, 9);
   $('r-date').value = today(); $('r-time').value = nowTime(); $('r-date').max = today();
@@ -986,7 +1121,7 @@ function saveDraft() {
     f[el.id] = (el.type === 'radio' || el.type === 'checkbox') ? el.checked : el.value;
   });
   const dog = document.querySelector('#r-pick input:checked');
-  const d = { type, at: Date.now(), openedAt, f, pin: pinLatLng, dogId: dog ? dog.value : '', photo, thumb, photoStamp };
+  const d = { type, at: Date.now(), openedAt, f, pin: pinLatLng, dogId: dog ? dog.value : '', fromDog, photo, thumb, photoStamp };
   try { sessionStorage.setItem(DRAFT, JSON.stringify(d)); } catch (e) { try { d.photo = d.thumb = null; sessionStorage.setItem(DRAFT, JSON.stringify(d)); } catch (e2) {} }
 }
 function clearDraft() { try { sessionStorage.removeItem(DRAFT); } catch (e) {} }
@@ -999,7 +1134,8 @@ function restoreDraft() {
   openedAt = d.openedAt || openedAt;
   if (d.photo) { setPhoto(d.photo, d.thumb); photoStamp = d.photoStamp || ''; if (photoStamp) { $('r-photo-status').textContent = '\u2713 Photo OK'; $('r-photo-status').className = 'photo-status ok'; } }
   pinLatLng = d.pin || null;
-  setOwner(); drawDanger();
+  fromDog = type === 'lost' ? d.fromDog || '' : ''; drawFrom();
+  setOwner(); drawDanger(); drawKnows();
   show('report');
   return true;
 }
@@ -1053,7 +1189,16 @@ $('r-form').addEventListener('submit', async e => {
   e.preventDefault(); clearErrors();
   const T = TYPES[type]; let first = null; const note = b => { if (!first) first = b; };
   let dogId = '';
-  if (type === 'posts') { const c = document.querySelector('#r-pick input:checked'); if (!c) note(fail('f-dog', 'Please tap the dog you saw')); else dogId = c.value; }
+  if (type === 'posts' || type === 'knows') { const c = document.querySelector('#r-pick input:checked'); if (!c) note(fail('f-dog', type === 'knows' ? 'Please tap the dog' : 'Please tap the dog you saw')); else dogId = c.value; }
+  const knowsEl = document.querySelector('input[name="knows"]:checked');
+  if (type === 'knows' && !knowsEl) note(fail('f-knows', 'Please tell us if this is your dog'));
+  let kOwnerPhone = null;
+  if (type === 'knows' && knowsEl && knowsEl.value === 'owner') {
+    if (!$('r-koname').value.trim()) note(fail('f-koname', "Please add the owner's name"));
+    kOwnerPhone = ukPhone($('r-kophone').value);
+    if (!kOwnerPhone) note(fail('f-kophone', phoneDigits($('r-kophone').value) ? "Please check the owner's phone number" : "Please add the owner's UK phone number"));
+    else if (kOwnerPhone === ukPhone($('r-phone').value)) note(fail('f-kophone', "Please give the owner's own number, not yours"));
+  }
   if (type === 'lost' && $('r-owner-no').checked) return;
   const behalf = type === 'lost' && $('r-owner-for').checked;
   if (type === 'lost' && !$('r-owner-yes').checked && !behalf) note(fail('f-owner', 'Please tell us if you are the owner'));
@@ -1073,11 +1218,13 @@ $('r-form').addEventListener('submit', async e => {
   const danger = dangerValue();
   if ((type === 'loose' || type === 'posts') && (!danger || danger === 'yes' || danger === 'road'))
     note(fail('f-danger', !danger ? 'Please tell us if the dog is in immediate danger' : danger === 'yes' ? 'Please choose where the dog is' : 'Please choose the kind of road'));
-  if ($('r-town').value.trim().length < 2) note(fail('f-town', 'Please add the Town/Village'));
-  if (pinLatLng && !inArea(pinLatLng)) note(fail('f-map', 'That pin is outside our area. Tap the map again.'));
-  if (!$('r-date').value) note(fail('f-when', 'Please add the date'));
-  else if ($('r-date').value > today()) note(fail('f-when', "The date can't be in the future"));
-  if (T.descNeeded && $('r-desc').value.trim().length < 5) note(fail('f-desc', 'Please add a short description'));
+  if (type !== 'knows') {
+    if ($('r-town').value.trim().length < 2) note(fail('f-town', 'Please add the Town/Village'));
+    if (pinLatLng && !inArea(pinLatLng)) note(fail('f-map', 'That pin is outside our area. Tap the map again.'));
+    if (!$('r-date').value) note(fail('f-when', 'Please add the date'));
+    else if ($('r-date').value > today()) note(fail('f-when', "The date can't be in the future"));
+  }
+  if (T.descNeeded && $('r-desc').value.trim().length < 5) note(fail('f-desc', type === 'knows' ? 'Please tell us how you know this dog' : 'Please add a short description'));
   if (!$('r-name').value.trim()) note(fail('f-name', 'Please add your name'));
   const phone = ukPhone($('r-phone').value);
   if (!phone) note(fail('f-phone', phoneProblem($('r-phone').value)));
@@ -1092,31 +1239,36 @@ $('r-form').addEventListener('submit', async e => {
   const data = {
     type, dogId, dogName: type === 'lost' ? $('r-dogname').value.trim() : '',
     chip: type === 'lost' && chipEl ? chipEl.value : undefined,
-    breed: type !== 'posts' ? $('r-breed').value.trim() || undefined : undefined,
+    breed: type !== 'posts' && type !== 'knows' ? $('r-breed').value.trim() || undefined : undefined,
+    knows: type === 'knows' && knowsEl ? knowsEl.value : undefined,
+    knowsOwnerName: kOwnerPhone ? $('r-koname').value.trim() : undefined, knowsOwnerPhone: kOwnerPhone || undefined,
+    fromDogId: type === 'lost' && fromDog ? fromDog : undefined,
     owner: type === 'lost' ? $('r-owner-yes').checked : undefined,
     behalf: behalf || undefined,
     relationship: behalf ? $('r-rel').value : undefined, ownerName: behalf ? $('r-oname').value.trim() : undefined,
     ownerPhone: behalf ? ownerPhone : undefined, ownerKnows: behalf ? $('r-oknows').checked : undefined,
-    town: $('r-town').value.trim(), date: $('r-date').value, time: $('r-time').value,
+    town: type === 'knows' ? '' : $('r-town').value.trim(), date: type === 'knows' ? today() : $('r-date').value, time: type === 'knows' ? nowTime() : $('r-time').value,
     details: $('r-desc').value.trim(), name: $('r-name').value.trim(), phone, email: email || undefined, consent: true,
     danger: danger || undefined,
     website: $('r-web').value, tookMs: Date.now() - openedAt
   };
-  if (pinLatLng) { data.lat = pinLatLng.lat; data.lng = pinLatLng.lng; }
+  if (pinLatLng && type !== 'knows') { data.lat = pinLatLng.lat; data.lng = pinLatLng.lng; }
   if (photoCheck) { btn.textContent = 'Checking photo\u2026'; await photoCheck; btn.textContent = 'Sending\u2026'; }
-  if (photo && type !== 'posts') { data.photo = photo; data.thumb = thumb; data.photoStamp = photoStamp; }
+  if (photo && type !== 'posts' && type !== 'knows') { data.photo = photo; data.thumb = thumb; data.photoStamp = photoStamp; }
   try {
     await submitReport(data);
     clearDraft();
     $('t-call-text').textContent = behalf
       ? 'We will review your report and phone the owner. No search will start until the owner has agreed. Please let them know to expect our call.'
+      : type === 'knows' && data.knows === 'owner' ? 'A member of our team will call the owner on the number you gave us, to help reunite them with their dog.'
+      : type === 'knows' ? 'A member of our team will contact you as soon as possible to help reunite you with your dog. Please keep your phone handy.'
       : 'A coordinator may phone you to ask a few questions. Please keep your phone handy.';
     // A found dog is already safe: keep the short line. Everyone else gets the Loose Dog advice poster.
     $('t-safety').hidden = type !== 'found';
-    $('t-poster').hidden = type === 'found';
+    $('t-poster').hidden = type === 'found' || type === 'knows';
     // Found a dog: tell them about the dog warden, with their own council first (from the town they chose).
     $('t-warden').hidden = type !== 'found';
-    $('t-again').hidden = type === 'found';   // a found dog is with them already
+    $('t-again').hidden = type === 'found' || type === 'knows';   // a found dog is with them already
     if (type === 'found') {
       const town = data.town.toLowerCase(), hit = AYR_TOWNS.find(([n]) => n.toLowerCase() === town || n.toLowerCase().split(' (')[0] === town.split(',')[0].trim());
       const cards = $('t-warden-cards');

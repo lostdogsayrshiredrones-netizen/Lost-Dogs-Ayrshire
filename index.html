@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-GB" data-build="ed1f7715a829">
+<html lang="en-GB" data-build="6960bb2811dd">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -986,7 +986,7 @@
 .report-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: .88rem; color: #4a3f6b; }
 .report-info strong { font-size: 1.05rem; color: var(--purple-deep); }
 .report-tag { align-self: flex-start; display: inline-block; padding: 2px 9px; border-radius: 999px; color: var(--white); font-size: .72rem; font-weight: 900; text-transform: uppercase; letter-spacing: .02em; }
-.report-tag.loose { background: #e11d2e; } .report-tag.lost { background: #b45309; } .report-tag.found { background: #1d8a3a; } .report-tag.posts { background: var(--purple); }
+.report-tag.loose { background: #e11d2e; } .report-tag.lost { background: #b45309; } .report-tag.found { background: #1d8a3a; } .report-tag.posts { background: var(--purple); } .report-tag.knows { background: #0e7490; }
 .report-looking { color: var(--purple); font-weight: 800; }
 .report-outcome { color: #1d6b33; font-weight: 700; }
 .report-looking-box { margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,.14); font-weight: 700; text-align: center; }
@@ -1366,6 +1366,8 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 .badge.dsra-badge { background: #0f766e; color: #fff; }
 
 .tf-warn { margin: 4px 0 8px; padding: 8px 10px; border-radius: 10px; background: #fff4c2; color: #4a3a00; font-size: .85rem; font-weight: 700; line-height: 1.35; }
+
+.report-from { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: #fff4c2; color: #4a3a00; font-weight: 800; }
 </style>
 </head>
 <body>
@@ -2500,8 +2502,12 @@ const STATUSES = {
   'no-further-sightings': { label: 'No further sightings', active: false, poster: 'no-further-sightings' },
   'paws-down':            { label: 'Paws down',            active: false, poster: 'paws-down' },
   // A duplicate merged into another dog by an admin: hidden from every list, tidied away with closed cases.
-  'merged':               { label: 'Merged',               active: false, poster: null, hidden: true }
+  'merged':               { label: 'Merged',               active: false, poster: null, hidden: true },
+  // A Found dog safe at a vet, police station, kennels or with the dog warden for 2 days is closed automatically
+  // (or by hand). It keeps its tag, and shows in amber on the website for 7 days so the owner can still come forward.
+  'closed-safe':          { label: 'Closed \u2013 safe',      active: false, poster: null }
 };
+const keepsWhere = s => s === 'found' || s === 'closed-safe';   // statuses that keep the "where is the dog now" tag
 
 // When a dog is Found, where it is now. Kept as a second step so the status list stays short.
 const FOUND_WHERE = ['Safe with finder', 'On route to vets', 'Safe with vet', 'On route to police station', 'Safe at police station', 'Safe with dog warden', 'Safe at kennels'];
@@ -2511,7 +2517,7 @@ const CARE = {
   'Safe at police station': { key: 'found-police', field: 'policeStation', ask: 'Which police station?', ph: 'e.g. Ayr Police Station', fill: '[Station Name]', poster: 'safe-at-police', what: 'police station' },
   'Safe at kennels': { key: 'found-kennels', field: 'kennelsName', ask: 'Which kennels?', ph: 'e.g. Ayrshire Dog Kennels', fill: '[Kennels Name]', poster: 'safe-at-kennels', what: 'kennels' }
 };
-const careOf = d => (d && d.status === 'found' && CARE[d.foundWhere]) || null;     // the vets or kennels details, if any
+const careOf = d => (d && keepsWhere(d.status) && CARE[d.foundWhere]) || null;     // the vets or kennels details, if any
 const careName = d => { const c = careOf(d); return c ? String(d[c.field] || '') : ''; };
 const careFill = (text, d) => { const c = careOf(d); return String(text || '').replace(/\{(kennels|vets|station)\}/g, (c && careName(d)) || (c ? c.fill : '')); };
 const updateKey = d => careOf(d) ? careOf(d).key : (d && d.status) || '';       // which Facebook update applies
@@ -2569,7 +2575,7 @@ const daysText = ds => {
 const niceDay = s => { const d = new Date(s + 'T12:00:00'); return isNaN(d) ? s : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); };
 const STANDBY_LINES = ['You\u2019re on standby \u2013 communication will follow.', 'If your availability changes, please update accordingly!', 'Please don\u2019t go to the area until you hear from us.'];
 // "Found · Safe with finder" (or just the status label).
-const statusText = d => ((STATUSES[d.status] || {}).label || d.status || 'Unknown') + (d.status === 'found' && d.foundWhere ? ' \u00b7 ' + whereText(d) : '');
+const statusText = d => ((STATUSES[d.status] || {}).label || d.status || 'Unknown') + (keepsWhere(d.status) && d.foundWhere ? ' \u00b7 ' + whereText(d) : '');
 
 // ---------- Small helpers ----------
 const $  = (sel, root) => (root || document).querySelector(sel);
@@ -3313,7 +3319,7 @@ function showDogs() {
         d.thumb ? h('img', { alt: '', src: d.thumb }) : h('span', { class: 'art nophoto' }, pawIcon()),
         h('span', { class: 'tile-name' }, h('span', { class: 'name-label' }, 'Name: '), d.name || 'Unnamed dog'),
         statusBadge(d.status),
-        d.status === 'found' && d.foundWhere ? h('span', { class: 'found-where tile-where' }, whereText(d)) : null,
+        keepsWhere(d.status) && d.foundWhere ? h('span', { class: 'found-where tile-where' }, whereText(d)) : null,
         noSearchYet(d) ? h('span', { class: 'perm-tag ' + d.ownerPermission }, OWNER_PERM[d.ownerPermission].tag) : null,
         d.fbCleanup && isAdmin() ? h('span', { class: 'fbtidy-tag' }, 'Facebook: remove duplicate') : null,
         fresh ? h('span', { class: 'count dog-new', title: 'New updates' }, String(fresh)) : null));
@@ -3486,7 +3492,7 @@ function showDog(id) {
 
     root.appendChild(h('h2', { class: 'page-title' }, h('span', { class: 'name-label' }, 'Name: '), d.name || 'Unnamed dog'));
     const onStandby = d.askAvailability && live.mine && (live.mine.status === 'now' || live.mine.status === 'later');
-    root.appendChild(h('p', { class: 'status-line' }, statusBadge(d.status), d.status === 'found' && d.foundWhere ? h('span', { class: 'found-where' }, whereText(d)) : null,
+    root.appendChild(h('p', { class: 'status-line' }, statusBadge(d.status), keepsWhere(d.status) && d.foundWhere ? h('span', { class: 'found-where' }, whereText(d)) : null,
       onStandby ? h('span', { class: 'standby-tag' }, 'On standby') : null,
       d.askAvailability && !onStandby && awayNow(live.myHolidays, live.myBusy) ? h('span', { class: 'standby-tag holiday' }, awayNow(live.myHolidays, live.myBusy).short) : null));
     if (d.statusBy) root.appendChild(h('p', { class: 'status-by' },
@@ -3674,7 +3680,9 @@ function showDog(id) {
         const c = to === 'found' ? CARE[where] : null, from = updateKey(d), next = c ? c.key : to;
         live.askFound = false; live.askCare = '';
         try {
-          await fb.updateDoc(dogRef, { status: to, foundWhere: to === 'found' ? (where || '') : '', kennelsName: c && c.field === 'kennelsName' ? (placeName || '') : '', vetsName: c && c.field === 'vetsName' ? (placeName || '') : '', policeStation: c && c.field === 'policeStation' ? (placeName || '') : '', ...statusStamp(), updatedAt: fb.serverTimestamp() });
+          await fb.updateDoc(dogRef, to === 'closed-safe'
+            ? { status: to, ...statusStamp(), updatedAt: fb.serverTimestamp() }     // closing while safe: keeps where the dog is
+            : { status: to, foundWhere: to === 'found' ? (where || '') : '', foundWhereAt: to === 'found' && where ? fb.serverTimestamp() : null, kennelsName: c && c.field === 'kennelsName' ? (placeName || '') : '', vetsName: c && c.field === 'vetsName' ? (placeName || '') : '', policeStation: c && c.field === 'policeStation' ? (placeName || '') : '', ...statusStamp(), updatedAt: fb.serverTimestamp() });
           logStatusChange(id, d.status, to, c && placeName ? where + ' (' + placeName + ')' : where); offerFacebookUpdate(id, from, next, d);
         } catch (err) { alert(friendlyError(err)); draw(); }
       };
@@ -3693,7 +3701,7 @@ function showDog(id) {
           if (live.askFound) return setStatus('found', w);
           if (d.foundWhere === w) return;
           try {
-            await fb.updateDoc(dogRef, { foundWhere: w, updatedAt: fb.serverTimestamp() });
+            await fb.updateDoc(dogRef, { foundWhere: w, foundWhereAt: fb.serverTimestamp(), updatedAt: fb.serverTimestamp() });
             fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'), { kind: 'status', from: 'found', to: 'found', text: 'Found dog now: ' + w + '.', byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() }).catch(() => {});
           } catch (err) { alert(friendlyError(err)); }
         } }, w))),
@@ -3708,7 +3716,7 @@ function showDog(id) {
               if (live.askFound || d.status !== 'found') return setStatus('found', w, name);
               const from = updateKey(d);
               try {
-                await fb.updateDoc(dogRef, { foundWhere: w, kennelsName: c.field === 'kennelsName' ? name : '', vetsName: c.field === 'vetsName' ? name : '', policeStation: c.field === 'policeStation' ? name : '', updatedAt: fb.serverTimestamp() });
+                await fb.updateDoc(dogRef, { foundWhere: w, foundWhereAt: fb.serverTimestamp(), kennelsName: c.field === 'kennelsName' ? name : '', vetsName: c.field === 'vetsName' ? name : '', policeStation: c.field === 'policeStation' ? name : '', updatedAt: fb.serverTimestamp() });
                 live.askCare = '';
                 fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'), { kind: 'status', from: 'found', to: 'found', text: 'Found dog now: ' + w + ' (' + name + ').', byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() }).catch(() => {});
                 offerFacebookUpdate(id, from, c.key, d);
@@ -4155,7 +4163,7 @@ function showDogEdit(id) {
   whereSel.textContent = '';
   whereSel.appendChild(h('option', { value: '' }, 'Choose\u2026'));
   FOUND_WHERE.forEach(w => whereSel.appendChild(h('option', { value: w }, w)));
-  const showWhere = () => { $('#dog-found-box').hidden = statusBox.value !== 'found'; const c = statusBox.value === 'found' && CARE[whereSel.value]; $('#dog-kennels-box').hidden = !c; if (c) { $('#dog-kennels-label').textContent = c.ask; $('#dog-kennels').placeholder = c.ph; } };
+  const showWhere = () => { $('#dog-found-box').hidden = !keepsWhere(statusBox.value); const c = keepsWhere(statusBox.value) && CARE[whereSel.value]; $('#dog-kennels-box').hidden = !c; if (c) { $('#dog-kennels-label').textContent = c.ask; $('#dog-kennels').placeholder = c.ph; } };
   statusBox.onchange = showWhere; whereSel.onchange = showWhere; showWhere();
   msg.textContent = '';
   $('#dog-photo-preview').hidden = true;
@@ -4178,9 +4186,10 @@ function showDogEdit(id) {
   };
 
   // Accepting a public report: fill the form in from it.
-  edit.report = isNew && reportPrefill ? reportPrefill : null;
+  edit.report = reportPrefill && (isNew || reportPrefill.intoDogId === id) ? reportPrefill : null;
   reportPrefill = null;
-  if (edit.report) {
+  if (edit.report && !isNew) $('#dog-edit-back').setAttribute('data-go', 'report/' + edit.report.id);
+  if (edit.report && isNew) {
     const r = edit.report, el = form.elements;
     el.name.value = r.type === 'lost' && r.dogName ? r.dogName : 'Unknown';
     el.status.value = REPORT_STATUS_FOR[r.type] || 'missing';
@@ -4205,6 +4214,23 @@ function showDogEdit(id) {
     $('#dog-edit-back').setAttribute('data-go', 'report/' + r.id);
   }
 
+  // The owner of a listed loose dog has come forward: turn it into a Missing dog with their details.
+  function fillFromOwner(r, d) {
+    const el = form.elements;
+    if (r.dogName) el.name.value = r.dogName;
+    el.status.value = 'missing'; showWhere();
+    if (r.breed && !/^not sure$/i.test(r.breed)) el.breed.value = r.breed;
+    if (r.details) el.description.value = (el.description.value ? el.description.value + '\n\n' : '') + 'From the owner: ' + r.details;
+    el.notes.value = (el.notes.value ? el.notes.value + '\n\n' : '') + 'The owner (' + (r.reporterName || 'no name') + ') came forward through the website. Their phone number is in Public Reports.'
+      + (r.chip ? ' Microchipped, details up to date: ' + ({ yes: 'Yes', no: 'No', unknown: 'Unknown' })[r.chip] + '.' : '');
+    const pic = !d.thumb && (r.photoData || r.thumb);
+    if (pic) fetch(pic).then(res => res.blob()).then(async blob => {
+      edit.photo = await shrinkImage(blob, 1100, 700000); edit.thumb = await shrinkImage(blob, 360, 60000, true);
+      $('#dog-photo-preview').src = edit.thumb; $('#dog-photo-preview').hidden = false;
+    }).catch(() => {});
+    msg.textContent = 'Filled in from the owner\u2019s report: now Missing. Check everything, then save.';
+  }
+
   if (isNew) {
     startMap();
   } else {
@@ -4216,6 +4242,7 @@ function showDogEdit(id) {
       form.elements.careName.value = careName(d);   // the vets or kennels name
       showWhere();
       edit.oldStatus = d.status || 'missing';
+      edit.oldWhere = d.foundWhere || '';
       edit.oldKey = updateKey({ ...d, status: d.status || 'missing' });
       edit.fbPostId = d.fbPostId || '';
       $('#dog-ask').checked = !!d.askAvailability;
@@ -4226,6 +4253,7 @@ function showDogEdit(id) {
       edit.existingThumb = d.thumb || null;
       if (d.thumb) { $('#dog-photo-preview').src = d.thumb; $('#dog-photo-preview').hidden = false; }
       if (typeof d.lat === 'number') edit.spot = { lat: d.lat, lng: d.lng };
+      if (edit.report) fillFromOwner(edit.report, d);
       startMap();
     }).catch(err => { msg.textContent = friendlyError(err); });
   }
@@ -4288,20 +4316,22 @@ function showDogEdit(id) {
     const v = k => (form.elements[k] ? form.elements[k].value.trim() : '');
     if (!v('name')) { msg.textContent = 'Enter the dog\'s name (or a short description if unknown).'; return; }
     if (isNew && edit.dupShown && edit.dupShown.length) { msg.textContent = 'Is this the same dog as one already on the app? Choose \u201cOpen that dog\u201d or \u201cNo, it\u2019s a different dog\u201d above.'; $('#dog-dup').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-    if (v('status') === 'found' && !v('foundWhere')) { msg.textContent = 'Found: choose where the dog is now.'; $('#dog-found-where').focus(); return; }
-    const careNow = v('status') === 'found' ? CARE[v('foundWhere')] : null;
+    if (keepsWhere(v('status')) && !v('foundWhere')) { msg.textContent = 'Found: choose where the dog is now.'; $('#dog-found-where').focus(); return; }
+    const careNow = keepsWhere(v('status')) ? CARE[v('foundWhere')] : null;
     if (careNow && !v('careName')) { msg.textContent = v('foundWhere') + ': enter which ' + careNow.what + '.'; $('#dog-kennels').focus(); return; }
     const needs = NEED_ORDER.filter(n => $('#dog-need-' + n).checked);
     if ($('#dog-ask').checked && !needs.length) { msg.textContent = 'Asking for availability: tick what is needed (ground search, drones or scan dog).'; return; }
     const perm = edit.report ? ownerPerm(edit.report) : (edit.ownerPermission || '');
     if ($('#dog-ask').checked && (perm === 'waiting' || perm === 'refused')) { msg.textContent = 'You can\u2019t ask for availability yet: the owner has not given permission for a search.'; return; }
     const data = {
-      name: v('name'), status: v('status') || 'missing', foundWhere: v('status') === 'found' ? v('foundWhere') : '', kennelsName: careNow && careNow.field === 'kennelsName' ? v('careName') : '', vetsName: careNow && careNow.field === 'vetsName' ? v('careName') : '', policeStation: careNow && careNow.field === 'policeStation' ? v('careName') : '', breed: v('breed'), colour: v('colour'), sex: v('sex'), age: v('age'),
+      name: v('name'), status: v('status') || 'missing', foundWhere: keepsWhere(v('status')) ? v('foundWhere') : '', kennelsName: careNow && careNow.field === 'kennelsName' ? v('careName') : '', vetsName: careNow && careNow.field === 'vetsName' ? v('careName') : '', policeStation: careNow && careNow.field === 'policeStation' ? v('careName') : '', breed: v('breed'), colour: v('colour'), sex: v('sex'), age: v('age'),
       lastSeenPlace: v('lastSeenPlace'), lastSeenAt: v('lastSeenAt'), description: v('description'), notes: v('notes'),
       lat: edit.spot ? edit.spot.lat : null, lng: edit.spot ? edit.spot.lng : null,
       askAvailability: $('#dog-ask').checked, availNeeds: $('#dog-ask').checked ? needs : [], availabilityAskedByUid: state.user.uid,
       updatedAt: fb.serverTimestamp()
     };
+    if (data.foundWhere && data.foundWhere !== (edit.oldWhere || '')) data.foundWhereAt = fb.serverTimestamp();   // when the dog got there (closes itself 2 days after reaching a vet, police, kennels or warden)
+    if (!data.foundWhere) data.foundWhereAt = null;
     if (edit.thumb) { data.thumb = edit.thumb; data.photoHash = edit.hash || await photoHash(edit.thumb); }   // fingerprint for spotting duplicates
     const btn = $('#dog-save');
     btn.disabled = true;
@@ -4323,6 +4353,8 @@ function showDogEdit(id) {
         const changed = edit.oldStatus && data.status !== edit.oldStatus;
         await fb.updateDoc(fb.doc(fb.db, 'dogs', id), changed ? { ...data, ...statusStamp() } : data);
         if (changed) logStatusChange(id, edit.oldStatus, data.status, data.foundWhere);
+        if (edit.report) await fb.updateDoc(fb.doc(fb.db, 'reports', edit.report.id),
+          { status: 'accepted', outcomeDogId: id, outcomeDogName: data.name, ...reportStamp() }).catch(err => console.warn('Report not marked:', err && err.message));
         const newKey = updateKey(data);
         if (edit.oldKey && newKey !== edit.oldKey) edit.fbOffer = { from: edit.oldKey, to: newKey };   // includes Found -> Safe at kennels
       }
@@ -4382,7 +4414,8 @@ const REPORT_TYPES = {
   lost:  { label: 'Lost my dog',              cls: 'lost',  title: 'Lost dog' },
   loose: { label: 'Seen a loose dog',         cls: 'loose', title: 'Loose dog seen' },
   found: { label: 'Found a dog',              cls: 'found', title: 'Dog found' },
-  posts: { label: 'Sighting of a listed dog', cls: 'posts', title: 'Sighting' }
+  posts: { label: 'Sighting of a listed dog', cls: 'posts', title: 'Sighting' },
+  knows: { label: 'Possible owner',           cls: 'knows', title: 'Possible owner of a found dog' }
 };
 // Loose dog / sighting reports: what the reporter said about immediate danger, and what the page asked them to do.
 const REPORT_DANGER = {
@@ -4411,6 +4444,7 @@ const prettyPhone = p => /^07\d{9}$/.test(p || '') ? p.slice(0, 5) + ' ' + p.sli
 function reportOutcome(r) {
   const by = r.dealtBy ? ' by ' + r.dealtBy : '', at = r.dealtAt ? ', ' + when(r.dealtAt) : '';
   if (r.status === 'accepted') return 'Dog created' + (r.outcomeDogName ? ' (' + r.outcomeDogName + ')' : '') + by + at + '.';
+  if (r.status === 'sighting' && r.type === 'knows') return 'Followed up' + (r.outcomeDogName ? ' (' + r.outcomeDogName + ')' : '') + by + at + '.';
   if (r.status === 'sighting') return 'Added to ' + (r.outcomeDogName || 'a dog') + by + at + '.';
   if (r.status === 'rejected') return 'Rejected' + by + at + (r.rejectReason ? ': ' + r.rejectReason : '.');
   return '';
@@ -4460,7 +4494,7 @@ function showReports() {
           h('span', { class: 'report-tags' }, h('span', { class: 'report-tag ' + t.cls }, t.label),
             REPORT_DANGER[r.danger] ? h('span', { class: 'report-tag urgent' }, 'Urgent \u00b7 ' + REPORT_DANGER[r.danger].label) : null),
           h('strong', null, r.town || 'No place given'),
-          r.dogName ? h('span', null, (r.type === 'posts' ? 'About: ' : 'Dog: ') + r.dogName) : null,
+          r.dogName ? h('span', null, (r.type === 'posts' || r.type === 'knows' ? 'About: ' : 'Dog: ') + r.dogName) : null,
           h('span', null, (reportSeen(r) ? 'Seen ' + reportSeen(r) + ' · ' : '') + 'sent ' + when(r.createdAt)),
           r.reportedFor === 'owner' ? h('span', { class: 'report-behalf-line' + (r.ownerConsent ? ' ok' : r.ownerRefused ? ' no' : '') }, r.ownerConsent ? 'For the owner \u00b7 owner has agreed' : r.ownerRefused ? 'For the owner \u00b7 owner said no to a search' : 'For the owner \u00b7 owner not yet confirmed') : null,
           r.status === 'new' ? h('span', { class: 'report-looking' + (r.lookingBy ? '' : ' none') }, r.lookingBy
@@ -4926,7 +4960,9 @@ function showReport(id) {
         pmsg));
     }
     const rows = [
-      [r.type === 'posts' ? 'About' : 'Dog', r.dogName], ['Breed', r.breed], ['Where', r.town], ['When', reportSeen(r)],
+      [r.type === 'posts' || r.type === 'knows' ? 'About' : 'Dog', r.dogName],
+      ['They say', r.type === 'knows' ? (r.knows === 'mine' ? 'It\u2019s their dog' : 'They know the owner') : ''],
+      ['Breed', r.breed], [r.type === 'knows' ? (r.dogStatus === 'loose' ? 'Loose dog seen in' : 'Found in') : 'Where', r.town], ['When', r.type === 'knows' ? '' : reportSeen(r)],
       ['Owner', r.type === 'lost' && r.ownerConfirmed ? 'The reporter confirmed they are the owner'
         : r.reportedFor === 'owner' ? (r.ownerName || 'Name not given') + (r.ownerConsent ? ' \u00b7 agreement confirmed by ' + (r.ownerConsentBy || 'a coordinator') + (r.ownerConsentAt ? ', ' + when(r.ownerConsentAt) : '') : ' \u00b7 not yet confirmed') : ''],
       ['Microchipped, details up to date', r.chip ? ({ yes: 'Yes', no: 'No', unknown: 'Unknown' })[r.chip] : ''],
@@ -4938,7 +4974,7 @@ function showReport(id) {
       root.appendChild(mapEl);
       makeMap(mapEl, [{ lat: r.lat, lng: r.lng, kind: 'sighting', label: 'Pin from the report' }]).then(m => { live.map = m; });
       root.appendChild(h('a', { class: 'btn wide ghost', href: 'https://www.google.com/maps?q=' + r.lat + ',' + r.lng, target: '_blank', rel: 'noopener' }, 'Open the pin in Maps'));
-    } else root.appendChild(h('p', { class: 'hint' }, 'No map pin was given.'));
+    } else if (r.type !== 'knows') root.appendChild(h('p', { class: 'hint' }, 'No map pin was given.'));
 
     const behalf = r.reportedFor === 'owner';
     if (behalf) {
@@ -4954,6 +4990,10 @@ function showReport(id) {
     root.appendChild(h('div', { class: 'report-who' },
       h('div', null, h('span', { class: 'report-who-label' }, behalf ? 'Reported by (' + (r.relationship || 'for the owner').toLowerCase() + ')' : 'Reported by'), h('strong', null, r.reporterName || 'No name'), h('span', null, prettyPhone(r.reporterPhone))),
       r.reporterPhone ? h('a', { class: 'btn report-call', href: 'tel:' + r.reporterPhone, onclick: contactLog('the reporter') }, behalf ? 'Call reporter' : 'Call') : null));
+    // "I know the owner": the owner's name and number too, so the team can phone the owner.
+    if (r.type === 'knows' && r.knows === 'owner' && r.knowsOwnerPhone) root.appendChild(h('div', { class: 'report-who owner' },
+      h('div', null, h('span', { class: 'report-who-label' }, 'Owner (given by the reporter)'), h('strong', null, r.knowsOwnerName || 'No name'), h('span', null, prettyPhone(r.knowsOwnerPhone))),
+      h('a', { class: 'btn report-call', href: 'tel:' + r.knowsOwnerPhone, onclick: contactLog('the owner') }, 'Call owner')));
     // Optional email, in case the phone number doesn't get through.
     if (r.reporterEmail) root.appendChild(h('div', { class: 'report-email' }, h('span', null, 'Email: ', h('b', null, r.reporterEmail)),
       h('a', { class: 'btn ghost', href: 'mailto:' + r.reporterEmail + '?subject=' + encodeURIComponent('Your report to Lost Dogs Ayrshire'), onclick: contactLog('the reporter', 'email') }, 'Email')));
@@ -5008,13 +5048,50 @@ function showReport(id) {
       go('dog-edit/new');
     } }, 'Accept: create the dog') : null;
     const sightBtn = h('button', { class: 'btn wide' + (r.type === 'posts' ? '' : ' ghost'), type: 'button', onclick: () => { live.mode = live.mode === 'sighting' ? null : 'sighting'; draw(); } }, 'Add as a sighting to a dog');
-    if (r.type === 'posts') box.appendChild(sightBtn); else { box.appendChild(createBtn); box.appendChild(h('p', { class: 'hint' }, photoPending ? 'Locked until the photo has been checked: tap \u201cTap to show photo\u201d above, then mark it.' : behalf && ownerPerm(r) !== 'given' ? 'Opens Add a dog filled in from the report. The owner\u2019s answer goes with it: no search can be asked for until the owner agrees.' : 'Opens Add a dog with the photo, place, time and details filled in.'));
+    if (r.type === 'knows') {
+      // Someone says a found or loose dog is theirs (or knows the owner). Nothing is done until a team member has
+      // spoken with the owner and recorded it here, the same as a report made for the owner.
+      const cur = r.ownerConsent ? 'given' : r.ownerRefused ? 'refused' : 'waiting';
+      const setSpoke = async v => {
+        try {
+          await fb.updateDoc(ref, v === 'waiting'
+            ? { ownerConsent: false, ownerRefused: false, ownerConsentBy: '', ownerConsentByUid: '', ownerConsentAt: null }
+            : { ownerConsent: v === 'given', ownerRefused: v === 'refused', ownerConsentBy: state.profile.name || '', ownerConsentByUid: state.user.uid, ownerConsentAt: fb.serverTimestamp() });
+        } catch (err) { msg.textContent = friendlyError(err); }
+      };
+      box.appendChild(h('p', { class: 'perm-q' }, r.knows === 'owner' ? 'Have you spoken with the owner?' : 'Have you spoken with them (the owner)?'));
+      box.appendChild(h('div', { class: 'perm-pick', role: 'group' },
+        [['waiting', 'Not spoken to them yet'], ['given', 'Spoke with the owner'], ['refused', 'Not their dog / no help wanted']].map(([v, label]) =>
+          h('button', { type: 'button', id: 'spoke-' + v, class: 'perm-btn ' + v + (cur === v ? ' on' : ''), 'aria-pressed': String(cur === v), onclick: () => setSpoke(v) }, label))));
+      if (cur !== 'waiting') box.appendChild(h('p', { class: 'hint' }, 'Recorded by ' + (r.ownerConsentBy || 'a coordinator') + (r.ownerConsentAt ? ', ' + when(r.ownerConsentAt) : '') + '.'));
+      if (r.dogId) box.appendChild(h('button', { class: 'btn wide', type: 'button', onclick: () => go('dog/' + r.dogId) }, r.dogStatus === 'loose' ? 'Open the loose dog' : 'Open the found dog'));
+      box.appendChild(h('button', { class: 'btn wide ghost', type: 'button', id: 'report-followed', disabled: cur === 'waiting', onclick: async e => {
+        if (cur === 'waiting') return;
+        e.target.disabled = true;
+        try { await fb.updateDoc(ref, { status: 'sighting', outcomeDogId: r.dogId || '', outcomeDogName: r.dogName || '', ...reportStamp() }); }
+        catch (err) { e.target.disabled = false; msg.textContent = friendlyError(err); }
+      } }, 'Mark as followed up'));
+      box.appendChild(h('p', { class: 'hint' }, cur === 'waiting'
+        ? 'Locked until you have spoken with the owner and recorded it above. Ask something only the owner would know before giving out where the dog is.'
+        : 'Ask something only the owner would know before giving out where the dog is.'));
+    } else if (r.type === 'posts') box.appendChild(sightBtn);
+    else if (r.type === 'lost' && r.fromDogId) {
+      // The owner started from a loose dog we already list: update that dog to Missing rather than adding a second one.
+      box.appendChild(h('p', { class: 'report-from' }, 'The owner says this is the loose dog we listed' + (r.fromDogPlace ? ' in ' + r.fromDogPlace : '') + '.'));
+      box.appendChild(h('button', { class: 'btn wide', type: 'button', id: 'report-update-dog', disabled: locked, onclick: () => {
+        if (locked) return;
+        reportPrefill = { ...r, photoData: live.photo || '', intoDogId: r.fromDogId };
+        go('dog-edit/' + r.fromDogId);
+      } }, 'Update that dog to Missing'));
+      box.appendChild(h('p', { class: 'hint' }, photoPending ? 'Locked until the photo has been checked: tap \u201cTap to show photo\u201d above, then mark it.' : 'Opens that dog\u2019s Edit screen with the owner\u2019s details (name, breed, microchip) added. Its sightings and Facebook post stay with it.'));
+      box.appendChild(h('button', { class: 'btn wide ghost', type: 'button', onclick: () => go('dog/' + r.fromDogId) }, 'Open the loose dog first'));
+    } else { box.appendChild(createBtn); box.appendChild(h('p', { class: 'hint' }, photoPending ? 'Locked until the photo has been checked: tap \u201cTap to show photo\u201d above, then mark it.' : behalf && ownerPerm(r) !== 'given' ? 'Opens Add a dog filled in from the report. The owner\u2019s answer goes with it: no search can be asked for until the owner agrees.' : 'Opens Add a dog with the photo, place, time and details filled in.'));
       // A Lost my dog report is the owner telling us about their own dog: it is never a sighting, so it can only be accepted (or rejected).
       // If the dog is already listed (say as a loose dog), accept it and then Merge the old listing into the new one.
       if (r.type === 'lost') box.appendChild(h('p', { class: 'hint' }, 'This is the owner\u2019s own report, so it can\u2019t be added as a sighting. If we already have this dog listed (for example as a loose dog), accept it here, then use Merge on the old listing.'));
       else box.appendChild(sightBtn); }
 
-    if (live.mode === 'sighting' && r.type !== 'lost') {
+    if (live.mode === 'sighting' && r.type !== 'lost' && r.type !== 'knows') {
       const pick = h('select', { id: 'report-dog' }, h('option', { value: '' }, live.dogs.length ? 'Choose the dog…' : 'No active dogs'),
         live.dogs.map(d => h('option', { value: d.id, selected: d.id === r.dogId }, (d.name || 'Unnamed dog') + (d.lastSeenPlace ? ' – ' + d.lastSeenPlace : '') + ' (' + ((STATUSES[d.status] || {}).label || '') + ')')));
       const tell = h('input', { type: 'checkbox', id: 'report-notify', checked: true });
