@@ -980,6 +980,15 @@
 .fb-pics figure { margin: 0; text-align: center; }
 .fb-pics img { width: 150px; height: 150px; object-fit: cover; border: 3px solid var(--yellow); border-radius: 10px; display: block; }
 .fb-pics figcaption { font-size: .78rem; font-weight: 800; color: #d9ccff; margin-top: 4px; }
+.rd-pic { width: 100%; border-radius: 12px; display: block; margin: 0 0 12px; }
+.rd-dogs { display: flex; flex-direction: column; gap: 8px; margin: 0 0 14px; }
+.rd-dog { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--purple-deep); }
+.rd-dog img, .rd-dog .rd-none { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.rd-dog .rd-none { display: flex; align-items: center; justify-content: center; border: 2px dashed #b9a6f0; font-size: 1.2rem; }
+.rd-dog .rd-what { flex: 1; min-width: 0; font-size: .9rem; line-height: 1.3; }
+.rd-dog .rd-what b { display: block; font-size: 1rem; }
+.rd-dog label { display: flex !important; flex-direction: column; align-items: center; gap: 2px; font-size: .72rem; font-weight: 800; margin: 0 !important; }
+.rd-dog input[type="checkbox"] { width: 24px !important; height: 24px; min-height: 0; margin: 0; padding: 0; }
 .fb-note { font-size: .92rem; line-height: 1.4; color: #e9e2ff; margin: 0 0 10px; }
 .fb-warn { padding: 10px 12px; background: #fff7c2; color: #3a3152; border-radius: 12px; font-weight: 700; font-size: .92rem; margin: 0 0 12px; }
 #fbpost textarea, #fbpost input, #fbupdate textarea, #fbupdate input, #facebook textarea, #facebook input, #facebook select { width: 100%; box-sizing: border-box; padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; background: #fff; color: #1a1a1a; font: inherit; font-size: .95rem; line-height: 1.45; }
@@ -1911,6 +1920,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
   <button class="back" data-go="home">&larr; Home</button>
   <h2 class="page-title">Missing Dogs</h2>
   <button class="btn wide coord-only" data-go="dog-edit/new" style="margin:0 0 18px">Add a dog</button>
+  <div class="admin-only"><button class="save fb-blue fb-only" type="button" data-go="roundup" id="roundup-go" style="margin:0 0 18px">Post today&rsquo;s round-up to Facebook</button></div>
   <div class="tabs">
     <button class="btn" data-dog-filter="active">Active</button>
     <button class="btn" data-dog-filter="closed">Closed</button>
@@ -2000,6 +2010,12 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 </section>
 
 <!-- ================= FACEBOOK: CHECK BEFORE POSTING ================= -->
+<section class="screen" id="roundup">
+  <button class="back" data-go="dogs">&larr; Missing Dogs</button>
+  <h2 class="page-title">Today&rsquo;s round-up</h2>
+  <div id="roundup-body"></div>
+</section>
+
 <section class="screen" id="fbpost">
   <button class="back" id="fbpost-back" data-go="home">&larr; Back</button>
   <h2 class="page-title">Check before posting</h2>
@@ -2711,6 +2727,7 @@ function render() {
   if (name === 'agreement') { activate('profile'); showProfile(); return setTimeout(() => { const el = $('#profile-agreement'); if (el) el.scrollIntoView({ block: 'start' }); }, 300); }
   if (name === 'profile')   { activate('profile');  return showProfile(); }
   if (name === 'whatsapp')  { activate('whatsapp'); return showWhatsApp(); }
+  if (name === 'roundup')   { if (!isAdmin()) return go('home'); activate('roundup'); return showRoundup(); }
   if (name === 'fbpost')    { if (!isCoord()) return go('home'); activate('fbpost'); return showFacebookPost(arg); }
   if (name === 'fbupdate')  { if (!isCoord()) return go('home'); activate('fbupdate'); return showFacebookUpdate(arg); }
   if (name === 'reports')   { if (!canSeeReports()) return go('home'); activate('reports'); return showReports(); }
@@ -7769,6 +7786,139 @@ async function facebookDraftForDog(dogId) {
     if (template) template = template.replace(/👀 Seen this dog\? Report it at lostdogsayrshire\.org\.uk\/report/, line);
   }
   return { from: 'dog', dogId, back: 'dog/' + dogId, label, images, text, needPlace: !place && /\{location\}/.test(template || '') ? template : '', already: d.fbPostId ? { at: d.fbPostedAt, by: d.fbPostedBy || '', link: d.fbLink || '' } : null };
+}
+
+
+// ============================================================
+//  Daily round-up for Facebook (admins)
+//  One picture of every dog we're still looking for (Missing and Loose dogs), with a second row for dogs
+//  that are safe and whose owner we want (Found, and Closed – safe for up to 7 days, shown in amber on the
+//  website). The admin sees the picture and text first, can leave a dog or its photo out, then posts.
+// ============================================================
+const RD_MAX = 12, RD_HELD_DAYS = 7;
+const rdTags = d => d.status === 'missing' ? ['MISSING'] : d.status === 'loose' ? ['LOOSE DOG']
+  : [d.status === 'closed-safe' ? 'OWNER WANTED' : 'FOUND'].concat(d.foundWhere ? [d.foundWhere.toUpperCase()] : []);
+function rdLoad(src) { return new Promise(res => { if (!src) return res(null); const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; }); }
+function rdWrap(ctx, text, maxW, maxLines) {
+  const words = String(text).split(/\s+/), lines = []; let line = '';
+  for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width <= maxW || !line) line = t; else { lines.push(line); line = w; } }
+  if (line) lines.push(line);
+  if (lines.length > maxLines) { lines.length = maxLines; let l = lines[maxLines - 1]; while (l && ctx.measureText(l + '…').width > maxW) l = l.slice(0, -1); lines[maxLines - 1] = l + '…'; }
+  return lines;
+}
+async function rdPicture(open, held, extra) {
+  const W = 1080, PAD = 40, GAP = 18, TW = (W - PAD * 2 - GAP) / 2, TH = 236, FONT = '-apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  const rows = n => Math.ceil(n / 2);
+  const H = 200 + (open.length ? 60 + rows(open.length) * (TH + GAP) : 0) + (held.length ? 70 + rows(held.length) * (TH + GAP) : 0) + (extra ? 50 : 0) + 190;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const c = cv.getContext('2d');
+  const bg = c.createLinearGradient(0, 0, W * 0.3, H); bg.addColorStop(0, '#5a26d0'); bg.addColorStop(1, '#3a0f9a'); c.fillStyle = bg; c.fillRect(0, 0, W, H);
+  const rr = (x, y, w, h, r) => { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); };
+  const logo = await rdLoad($('#logo-img') && $('#logo-img').src);
+  if (logo) { c.save(); c.beginPath(); c.arc(PAD + 60, 100, 60, 0, Math.PI * 2); c.fillStyle = '#fff'; c.fill(); c.clip(); c.drawImage(logo, PAD, 40, 120, 120); c.restore(); }
+  c.fillStyle = '#fdf90f'; c.font = '900 56px ' + FONT; c.textBaseline = 'alphabetic';
+  c.fillText('STILL LOOKING', PAD + 145, 92); c.fillText('FOR THESE DOGS', PAD + 145, 148);
+  const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  c.fillStyle = '#e9e2ff'; c.font = '700 28px ' + FONT; c.fillText(today + ' · across Ayrshire', PAD + 145, 188 - 6);
+  let y = 210;
+  const paw = (x, y0) => { c.fillStyle = '#fdf90f'; [[0, 10, 15, 13], [-19, -6, 7, 9], [19, -6, 7, 9], [-8, -20, 6.5, 8.5], [8, -20, 6.5, 8.5]].forEach(([dx, dy, rx, ry]) => { c.beginPath(); c.ellipse(x + dx, y0 + dy, rx, ry, 0, 0, Math.PI * 2); c.fill(); }); };
+  const tile = async (d, x, y0, amber) => {
+    rr(x, y0, TW, TH, 22); c.fillStyle = amber ? '#a64b00' : '#2a0b78'; c.fill();
+    const px = x + 16, py = y0 + (TH - 150) / 2;
+    rr(px, py, 150, 150, 16); c.fillStyle = amber ? '#7a3600' : '#3e12a3'; c.fill();
+    const im = d._photo ? await rdLoad(d.thumb) : null;
+    if (im) { c.save(); rr(px, py, 150, 150, 16); c.clip(); const m = Math.min(im.width, im.height); c.drawImage(im, (im.width - m) / 2, (im.height - m) / 2, m, m, px, py, 150, 150); c.restore(); }
+    else { paw(px + 75, py + 62); c.fillStyle = '#e9e2ff'; c.font = '700 17px ' + FONT; c.textAlign = 'center'; c.fillText('No photo', px + 75, py + 128); c.textAlign = 'left'; }
+    c.lineWidth = 5; c.strokeStyle = amber ? '#ffd27a' : '#fdf90f'; rr(px, py, 150, 150, 16); c.stroke();
+    const tx = px + 166, tw = x + TW - 14 - tx; let ty = y0 + 46;
+    c.fillStyle = '#fff'; c.font = '900 28px ' + FONT;
+    rdWrap(c, d.breed || 'Unknown breed', tw, 2).forEach(l => { c.fillText(l, tx, ty); ty += 32; });
+    ty += 4; let tagX = tx;
+    c.font = '900 17px ' + FONT;
+    rdTags(d).forEach((t, i) => {
+      const w = Math.min(tw, c.measureText(t).width + 22);
+      if (tagX + w > tx + tw) { tagX = tx; ty += 36; }
+      rr(tagX, ty, w, 30, 15); c.fillStyle = i === 0 ? (amber ? '#ffd27a' : '#fdf90f') : '#fff'; c.fill();
+      c.fillStyle = amber && i === 0 ? '#4a2200' : '#3e12a3'; c.fillText(t, tagX + 11, ty + 21, w - 22); tagX += w + 8;
+    });
+    ty += 62; c.fillStyle = '#e9e2ff'; c.font = '600 21px ' + FONT;
+    rdWrap(c, d.lastSeenPlace ? 'Town/Village: ' + d.lastSeenPlace : '', tw, 1).forEach(l => c.fillText(l, tx, Math.min(ty, y0 + TH - 16)));
+  };
+  const section = async (title, list, amber) => {
+    c.fillStyle = amber ? '#ffd27a' : '#fff'; c.font = '900 34px ' + FONT; c.fillText(title, PAD, y + 40); y += 60;
+    for (let i = 0; i < list.length; i++) await tile(list[i], PAD + (i % 2) * (TW + GAP), y + Math.floor(i / 2) * (TH + GAP), amber);
+    y += rows(list.length) * (TH + GAP) + (amber ? 0 : 10);
+  };
+  if (open.length) await section('Missing and loose', open, false);
+  if (held.length) await section('Safe – owner wanted', held, true);
+  if (extra) { c.fillStyle = '#fdf90f'; c.font = '800 28px ' + FONT; c.textAlign = 'center'; c.fillText('+ ' + extra + ' more on our website', W / 2, y + 30); c.textAlign = 'left'; y += 50; }
+  rr(PAD, y + 10, W - PAD * 2, 110, 22); c.fillStyle = '#fdf90f'; c.fill();
+  c.fillStyle = '#3e12a3'; c.textAlign = 'center'; c.font = '900 34px ' + FONT; c.fillText('Seen one? Know who they belong to?', W / 2, y + 58);
+  c.font = '800 28px ' + FONT; c.fillText('lostdogsayrshire.org.uk/report', W / 2, y + 98);
+  c.fillStyle = '#fdf90f'; c.font = '800 24px ' + FONT; c.fillText('💜🐾 #purpleandyellowcommunity 🐾💛', W / 2, y + 160); c.textAlign = 'left';
+  return cv.toDataURL('image/jpeg', 0.9);
+}
+const rdText = hasHeld => '🐾 STILL LOOKING FOR THESE DOGS 🐾\n\nPlease keep an eye out for these dogs across Ayrshire. Seen one, or know who they belong to? Tell us here: https://lostdogsayrshire.org.uk/report'
+  + (hasHeld ? '\n\nThe dogs in the bottom row are safe, and we’re looking for their owners.' : '') + '\n\n💜🐾 #purpleandyellowcommunity 🐾💛';
+async function showRoundup() {
+  const fb = state.fb, root = $('#roundup-body');
+  root.textContent = '';
+  if (!canPostFacebook()) { root.appendChild(h('p', { class: 'empty' }, 'Facebook is not linked yet.')); return; }
+  root.appendChild(h('p', { class: 'empty' }, 'Making the picture…'));
+  let all = [], last = null;
+  try {
+    const [snap, meta] = await Promise.all([fb.getDocs(fb.collection(fb.db, 'dogs')), fb.getDoc(fb.doc(fb.db, 'settings', 'roundup')).catch(() => null)]);
+    all = snap.docs.map(x => ({ id: x.id, ...x.data() }));
+    last = meta && meta.exists() ? meta.data() : null;
+  } catch (err) { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, friendlyError(err))); return; }
+  const now = Date.now(), newest = (a, b) => millis(b.createdAt) - millis(a.createdAt);
+  const dogs = all.filter(d => ['missing', 'loose'].includes(d.status)).sort(newest)
+    .concat(all.filter(d => d.status === 'found' || (d.status === 'closed-safe' && now - millis(d.statusAt) < RD_HELD_DAYS * 864e5)).sort(newest));
+  dogs.forEach(d => { d._in = true; d._photo = !!d.thumb; });
+  const state2 = { text: null };
+  const draw = async () => {
+    root.textContent = '';
+    if (!dogs.length) { root.appendChild(h('p', { class: 'empty' }, 'There are no missing, loose or found dogs right now, so there’s nothing to post.')); return; }
+    const chosen = dogs.filter(d => d._in), open = chosen.filter(d => ['missing', 'loose'].includes(d.status)), held = chosen.filter(d => !['missing', 'loose'].includes(d.status));
+    const showOpen = open.slice(0, RD_MAX), showHeld = held.slice(0, Math.max(0, RD_MAX - showOpen.length)), extra = chosen.length - showOpen.length - showHeld.length;
+    root.appendChild(h('div', { class: 'fb-to' }, h('img', { src: $('#logo-img').src, alt: '' }), h('div', null, h('span', null, 'Posting to'), h('strong', null, fbSetting.pageName || 'the Facebook Page'))));
+    if (last && last.at) {
+      const same = Array.isArray(last.dogIds) && last.dogIds.slice().sort().join() === chosen.map(d => d.id).sort().join();
+      const today = new Date(millis(last.at)).toDateString() === new Date().toDateString();
+      root.appendChild(h('p', { class: 'fb-warn' }, 'Last round-up: ' + when(last.at) + (last.by ? ' by ' + last.by : '') + '.'
+        + (today ? ' One has already been posted today.' : '') + (same ? ' The dogs haven’t changed since then, so you may want to skip today.' : '')));
+    }
+    if (!chosen.length) root.appendChild(h('p', { class: 'fb-warn' }, 'Every dog has been left out. Tick at least one dog to include.'));
+    const pic = chosen.length ? await rdPicture(showOpen, showHeld, extra) : '';
+    if (pic) root.appendChild(h('img', { class: 'rd-pic', id: 'roundup-pic', src: pic, alt: 'The round-up picture' }));
+    root.appendChild(h('p', { class: 'fb-note' }, 'Untick a dog to leave it out. Untick Photo if its photo is a screenshot or shows anything personal: a paw is shown instead.'));
+    root.appendChild(h('div', { class: 'rd-dogs' }, dogs.map(d => h('div', { class: 'rd-dog' },
+      d.thumb ? h('img', { src: d.thumb, alt: '' }) : h('span', { class: 'rd-none' }, '🐾'),
+      h('span', { class: 'rd-what' }, h('b', null, d.breed || d.name || 'Unknown'), rdTags(d).join(' · ') + (d.lastSeenPlace ? ' · ' + d.lastSeenPlace : '')),
+      h('label', null, h('input', { type: 'checkbox', checked: d._in, 'data-rd-in': d.id, onchange: e => { d._in = e.target.checked; draw(); } }), 'Include'),
+      d.thumb ? h('label', null, h('input', { type: 'checkbox', checked: d._photo, disabled: !d._in, 'data-rd-photo': d.id, onchange: e => { d._photo = e.target.checked; draw(); } }), 'Photo') : null))));
+    const ta = h('textarea', { id: 'roundup-text', rows: '9' }); ta.value = state2.text !== null ? state2.text : rdText(held.length > 0);
+    ta.addEventListener('input', () => { state2.text = ta.value; });
+    root.appendChild(h('label', { for: 'roundup-text' }, 'Post text (you can change it)'));
+    root.appendChild(ta);
+    const msg = h('p', { class: 'form-msg', role: 'status' });
+    const post = h('button', { class: 'save fb-blue', type: 'button', id: 'roundup-post', disabled: !pic, onclick: async () => {
+      if (!ta.value.trim()) { msg.textContent = 'Write the post text first.'; return; }
+      post.disabled = true; msg.textContent = 'Posting to Facebook…';
+      try {
+        const res = await callFacebook('facebookPost', { images: [pic.split(',')[1]], message: ta.value.trim(), label: 'round-up', roundup: { dogIds: chosen.map(d => d.id) } });
+        const r = (res && res.data) || {};
+        root.textContent = '';
+        root.appendChild(h('div', { class: 'fb-done' },
+          h('div', { class: 'tick' }, tickIcon('#3e12a3', 56)),
+          h('h3', null, r.practice ? 'Practice only' : 'Round-up posted'),
+          h('p', null, r.practice ? 'This is the practice site, so nothing was posted.' : 'Today’s round-up is now live on ' + (fbSetting.pageName || 'the Page') + '.'),
+          r.link ? h('a', { class: 'save fb-blue', href: r.link, target: '_blank', rel: 'noopener', style: 'display:block;text-decoration:none;margin-top:14px' }, 'Open the post on Facebook') : null,
+          h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'dogs' }, 'Back to Missing Dogs')));
+      } catch (err) { post.disabled = false; msg.textContent = fbError(err); }
+    } }, 'Post to Facebook');
+    root.appendChild(post); root.appendChild(msg);
+  };
+  draw();
 }
 
 function showFacebookPost(arg) {
