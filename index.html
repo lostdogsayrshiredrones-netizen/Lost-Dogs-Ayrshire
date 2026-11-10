@@ -991,7 +991,7 @@
 .rd-dog input[type="checkbox"] { width: 24px !important; height: 24px; min-height: 0; margin: 0; padding: 0; }
 .fb-note { font-size: .92rem; line-height: 1.4; color: #e9e2ff; margin: 0 0 10px; }
 .fb-warn { padding: 10px 12px; background: #fff7c2; color: #3a3152; border-radius: 12px; font-weight: 700; font-size: .92rem; margin: 0 0 12px; }
-#fbpost textarea, #fbpost input, #fbupdate textarea, #fbupdate input, #facebook textarea, #facebook input, #facebook select { width: 100%; box-sizing: border-box; padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; background: #fff; color: #1a1a1a; font: inherit; font-size: .95rem; line-height: 1.45; }
+#fbpost textarea, #fbpost input, #fbupdate textarea, #fbupdate input, #fbupdate select, #facebook textarea, #facebook input, #facebook select { width: 100%; box-sizing: border-box; padding: 12px; border: 3px solid var(--yellow); border-radius: 12px; background: #fff; color: #1a1a1a; font: inherit; font-size: .95rem; line-height: 1.45; }
 #fbpost label, #fbupdate label, #facebook label { display: block; margin: 12px 0 4px; font-weight: 800; }
 .fb-done { text-align: center; padding: 10px 0; }
 .fb-done .tick { width: 96px; height: 96px; margin: 10px auto 14px; border-radius: 50%; background: var(--yellow); display: flex; align-items: center; justify-content: center; }
@@ -8019,6 +8019,13 @@ function tickIcon(colour, px) {
 const FB_UPDATE_STATUSES = ['found', 'reunited', 'home-safe', 'no-further-sightings', 'paws-down'];
 const canUpdateFacebook = d => canPostFacebook() && !!(d && d.fbPostId) && FB_UPDATE_STATUSES.includes(d.status);
 // The group's own wording for the new status (the same text as its standard poster).
+// Every built-in poster that has wording, for the "Poster" choice on the Facebook update screen.
+const CARE_POSTER_NAMES = { 'safe-at-vets': 'Safe with vet', 'safe-at-police': 'Safe at police station', 'safe-at-kennels': 'Safe at kennels' };
+function posterChoices() {
+  return [...document.querySelectorAll('img[id$="-img"]')].map(im => im.id.slice(0, -4))
+    .filter(k => $('#' + k + ' .post') && (POSTER_NAMES[k] || CARE_POSTER_NAMES[k]))
+    .map(k => [k, POSTER_NAMES[k] || CARE_POSTER_NAMES[k]]);
+}
 function fbUpdateTemplate(status) {
   const care = Object.values(CARE).find(c => c.key === status), std = care ? care.poster : (STATUSES[status] || {}).poster;
   if (!std) return '';
@@ -8053,28 +8060,55 @@ function showFacebookUpdate(dogId) {
     root.appendChild(h('div', { class: 'fb-to' }, d.thumb ? h('img', { src: d.thumb, alt: '', style: 'border-radius:8px' }) : h('img', { src: $('#logo-img').src, alt: '' }),
       h('div', null, h('span', null, 'Original post' + (d.fbPostedAt ? ' · ' + when(d.fbPostedAt) : '')), h('strong', null, (d.name && !/^unknown$/i.test(d.name) ? d.name + ' · ' : '') + (d.lastSeenPlace || 'Facebook post')))));
     if (d.fbUpdateStatus) root.appendChild(h('p', { class: 'fb-warn' }, 'Already updated to ' + updateLabel(d.fbUpdateStatus) + (d.fbUpdatedBy ? ' by ' + d.fbUpdatedBy : '') + (d.fbUpdatedAt ? ', ' + when(d.fbUpdatedAt) : '') + '. This replaces that update.'));
-    const template = addDogLink(careFill(fbUpdateTemplate(updateKey(d)), d), d.status === 'found' ? dogLinkLine(d, dogId) : ''), place = String(d.lastSeenPlace || '').trim();
-    const needPlace = /\{location\}/.test(template) && !place;
+    const place = String(d.lastSeenPlace || '').trim();
+    // The poster (and its wording) follows the dog's new status. If it's not the right one, the admin can pick
+    // another here: the picture and the wording both change to match.
+    const pStd0 = careOf(d) ? careOf(d).poster : st.poster;
+    const posterList = posterChoices();
+    let posterKey = pStd0 && $('#' + pStd0 + '-img') ? pStd0 : '';
+    const noTags = t => String(t || '').split('\n').filter(line => !/^\s*(#[^\s#]+\s*)+$/.test(line)).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    const templateFor = key => {
+      const raw = key && $('#' + key + ' .post') ? noTags($('#' + key + ' .post').getAttribute('data-template')) : fbUpdateTemplate(updateKey(d));
+      // Vets, police and kennels posters: the dog's own name for that place if it has one, otherwise [Vets Name] etc. to fill in.
+      const care = Object.values(CARE).find(c => c.poster === key), mine = careOf(d);
+      const filled = care ? String(raw).replace(/\{(kennels|vets|station)\}/g, mine === care && careName(d) ? careName(d) : care.fill) : careFill(raw, d);
+      return addDogLink(filled, d.status === 'found' || key === 'found-dog' || /^safe-at-/.test(key) ? dogLinkLine(d, dogId) : '');
+    };
+    let template = templateFor(posterKey);
     const fill = p => template.replace(/\{location\}/g, p || '[Town/Village]');
     const ta = h('textarea', { id: 'fbupdate-text', rows: '10' }); ta.value = fill(place);
-    root.appendChild(h('label', { for: 'fbupdate-text' }, 'Added to the top of the post (your ' + updateLabel(updateKey(d)) + ' wording; you can change it)'));
-    let placeBox = null;
-    if (needPlace) {
-      placeBox = h('input', { id: 'fbupdate-place', type: 'text', autocomplete: 'off', autocapitalize: 'words', placeholder: 'e.g. Kilwinning' });
-      placeBox.addEventListener('input', () => { ta.value = fill(placeBox.value.trim()); });
-      root.appendChild(h('label', { for: 'fbupdate-place' }, 'Town/Village'));
-      root.appendChild(placeBox);
+    if (posterList.length) {
+      const sel = h('select', { id: 'fbupdate-poster' }, posterList.map(([k, label]) => h('option', { value: k, selected: k === posterKey }, (k === pStd0 ? '✓ ' : '') + label)));
+      root.appendChild(h('label', { for: 'fbupdate-poster' }, 'Poster'));
+      root.appendChild(sel);
+      root.appendChild(h('p', { class: 'fb-note' }, '✓ matches the dog’s new status. Not the right poster? Choose the correct one: the picture and the wording below change to match.'));
+      sel.addEventListener('change', () => {
+        posterKey = sel.value; template = templateFor(posterKey);
+        ta.value = fill(placeBox && placeBox.value.trim() ? placeBox.value.trim() : place);
+        placeWrap.hidden = !(/\{location\}/.test(template) && !place);
+        drawPics();
+      });
     }
+    root.appendChild(h('label', { for: 'fbupdate-text' }, 'Added to the top of the post (you can change it)'));
+    const placeBox = h('input', { id: 'fbupdate-place', type: 'text', autocomplete: 'off', autocapitalize: 'words', placeholder: 'e.g. Kilwinning' });
+    placeBox.addEventListener('input', () => { ta.value = fill(placeBox.value.trim()); });
+    const placeWrap = h('div', { hidden: !(/\{location\}/.test(template) && !place) }, h('label', { for: 'fbupdate-place' }, 'Town/Village'), placeBox);
+    root.appendChild(placeWrap);
     root.appendChild(ta);
     root.appendChild(h('p', { class: 'fb-note', style: 'margin-top:10px' }, 'The original text stays underneath, after a line saying Original post.'));
     // TRIAL: also swap the post's pictures for the new status poster and the dog's photo.
     // Facebook may refuse; if so only the text changes (as before) and the result says so.
-    const pStd = careOf(d) ? careOf(d).poster : st.poster, pImg = pStd && $('#' + pStd + '-img');
     let swap = null;
-    if (pImg) {   // Facebook clears the old pictures on the first try and takes the new ones on the second (the server does both)
+    const pics = h('div', { class: 'fb-pics' });
+    const drawPics = () => {
+      pics.textContent = '';
+      const pi = posterKey && $('#' + posterKey + '-img');
+      if (pi) pics.appendChild(h('figure', null, h('img', { src: pi.src, alt: 'New poster', id: 'fbupdate-poster-img' }), h('figcaption', null, 'Picture 1: the poster')));
+      if (d.thumb) pics.appendChild(h('figure', null, h('img', { src: d.thumb, alt: 'The dog’s photo' }), h('figcaption', null, 'Picture 2: the dog’s photo')));
+    };
+    drawPics();
+    if (posterList.length) {   // Facebook clears the old pictures on the first try and takes the new ones on the second (the server does both)
       swap = h('input', { type: 'checkbox', id: 'fbupdate-pics', checked: true });
-      const pics = h('div', { class: 'fb-pics' }, h('figure', null, h('img', { src: pImg.src, alt: 'New poster' }), h('figcaption', null, 'Picture 1: the new poster')),
-        d.thumb ? h('figure', null, h('img', { src: d.thumb, alt: 'The dog’s photo' }), h('figcaption', null, 'Picture 2: the dog’s photo')) : null);
       root.appendChild(h('label', { class: 'fb-mark' }, swap, h('span', null, h('strong', null, 'Change the pictures to the new poster'),
         h('small', null, 'Replaces the post’s pictures with the new poster and the dog’s photo. This uses a Facebook workaround, so the result screen will tell you if it didn’t work.'))));
       root.appendChild(pics);
@@ -8083,9 +8117,11 @@ function showFacebookUpdate(dogId) {
     const msg = h('p', { class: 'form-msg', role: 'status' });
     const btn = h('button', { class: 'save fb-blue', type: 'button', onclick: async () => {
       if (!ta.value.trim()) { msg.textContent = 'Write the update first.'; return; }
-      if (placeBox && !placeBox.value.trim()) { msg.textContent = 'Enter the town or village first.'; placeBox.focus(); return; }
+      if (!placeWrap.hidden && !placeBox.value.trim()) { msg.textContent = 'Enter the town or village first.'; placeBox.focus(); return; }
       if (/\[Town\/Village\]/.test(ta.value)) { msg.textContent = 'Replace [Town/Village] in the text with the place first.'; return; }
       if (/\[(Kennels|Vets|Station) Name\]/.test(ta.value)) { msg.textContent = 'Replace ' + ta.value.match(/\[(Kennels|Vets|Station) Name\]/)[0] + ' in the text with the name first.'; return; }
+      const pImg = posterKey && $('#' + posterKey + '-img');
+      if (swap && swap.checked && !pImg) { msg.textContent = 'Choose a poster first, or untick Change the pictures.'; return; }
       btn.disabled = true; msg.textContent = 'Updating the Facebook post…';
       try {
         const images = [];
