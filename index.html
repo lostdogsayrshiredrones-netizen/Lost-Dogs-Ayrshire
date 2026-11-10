@@ -8071,12 +8071,12 @@ function showFacebookUpdate(dogId) {
     // Facebook may refuse; if so only the text changes (as before) and the result says so.
     const pStd = careOf(d) ? careOf(d).poster : st.poster, pImg = pStd && $('#' + pStd + '-img');
     let swap = null;
-    if (pImg) {
+    if (pImg) {   // Facebook clears the old pictures on the first try and takes the new ones on the second (the server does both)
       swap = h('input', { type: 'checkbox', id: 'fbupdate-pics', checked: true });
       const pics = h('div', { class: 'fb-pics' }, h('figure', null, h('img', { src: pImg.src, alt: 'New poster' }), h('figcaption', null, 'Picture 1: the new poster')),
         d.thumb ? h('figure', null, h('img', { src: d.thumb, alt: 'The dog’s photo' }), h('figcaption', null, 'Picture 2: the dog’s photo')) : null);
-      root.appendChild(h('label', { class: 'fb-mark' }, swap, h('span', null, h('strong', null, 'Also change the pictures (trial)'),
-        h('small', null, 'Swaps the post’s pictures for the new poster and the dog’s photo. Facebook may not allow it; if not, just the text is updated.'))));
+      root.appendChild(h('label', { class: 'fb-mark' }, swap, h('span', null, h('strong', null, 'Change the pictures to the new poster'),
+        h('small', null, 'Replaces the post’s pictures with the new poster and the dog’s photo. This uses a Facebook workaround, so the result screen will tell you if it didn’t work.'))));
       root.appendChild(pics);
       swap.addEventListener('change', () => { pics.hidden = !swap.checked; });
     }
@@ -8100,10 +8100,12 @@ function showFacebookUpdate(dogId) {
         if (!r.practice && r.pictures) {   // trial result: say plainly what Facebook did
           root.textContent = '';
           root.appendChild(h('div', { class: 'fb-done' }, h('div', { class: 'tick' }, tickIcon('#3e12a3', 56)),
-            h('h3', null, r.pictures.changed ? 'Post updated, with the new poster' : 'Text updated'),
+            h('h3', null, r.pictures.changed ? 'Post updated, with the new poster' : r.pictures.noPictures ? 'Text updated – pictures missing' : 'Text updated'),
             h('p', null, r.pictures.changed
-              ? 'Facebook accepted the new pictures. Open the post to check they show as expected.'
-              : 'Facebook didn’t allow the pictures to be changed, so the post keeps its original pictures. The update text is at the top as usual.'),
+              ? 'The post now shows the new poster and the dog’s photo. Open the post to check.'
+              : r.pictures.noPictures
+                ? 'The update text is at the top, but Facebook didn’t accept the new pictures and the post now has no pictures. Press Update the Facebook post on the dog’s page to try again, or add the pictures on Facebook (… → Edit post).'
+                : 'Facebook didn’t allow the pictures to be changed, so the post keeps its original pictures. The update text is at the top as usual.'),
             !r.pictures.changed && r.pictures.reason ? h('p', { class: 'fb-note' }, 'Facebook said: ' + r.pictures.reason) : null,
             r.link ? h('a', { class: 'save fb-blue', href: r.link, target: '_blank', rel: 'noopener', style: 'display:block;text-decoration:none;margin-top:14px' }, 'Open the post on Facebook') : null,
             h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'dog/' + dogId }, 'Back to the dog')));
