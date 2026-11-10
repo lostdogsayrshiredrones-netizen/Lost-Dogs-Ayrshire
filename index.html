@@ -585,6 +585,23 @@
   }
   .pin.sighting { border-color: var(--purple); }
 
+  #dog-photo-edit { display: block; margin-top: 10px; }
+  .ptool { position: fixed; inset: 0; z-index: 9000; background: #14062e; color: #fff; display: flex; flex-direction: column; }
+  .ptool-top { padding: calc(10px + env(safe-area-inset-top)) 14px 8px; }
+  .ptool-top h2 { margin: 0; font-size: 1.15rem; color: var(--yellow); }
+  .ptool-top p { margin: 4px 0 0; font-size: .9rem; line-height: 1.35; }
+  .ptool-top p.warn { margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: #fff4c2; color: #4a3a00; font-weight: 800; }
+  .ptool-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 6px; position: relative; }
+  .ptool-stage canvas { max-width: 100%; max-height: 100%; touch-action: none; border-radius: 6px; background: #000; }
+  .ptool-crop { position: absolute; border: 3px dashed var(--yellow); background: rgba(253,249,15,.12); pointer-events: none; }
+  .ptool-modes { display: flex; gap: 8px; padding: 6px 14px 0; }
+  .ptool-modes button { flex: 1; padding: 10px; border-radius: 12px; border: 3px solid var(--yellow); background: none; color: var(--yellow); font: inherit; font-weight: 900; }
+  .ptool-modes button.on { background: var(--yellow); color: var(--purple); }
+  .ptool-bar { display: flex; gap: 8px; padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); }
+  .ptool-bar button { flex: 1; padding: 12px 8px; border-radius: 12px; border: 0; font: inherit; font-weight: 900; }
+  .ptool-bar .undo, .ptool-bar .cancel { background: #3e12a3; color: #fff; }
+  .ptool-bar .done { background: var(--yellow); color: var(--purple); }
+  .ptool-bar button:disabled { opacity: .45; }
   #dog-photo-preview { width: 120px; height: 120px; object-fit: cover; margin-top: 10px; border: 4px solid var(--yellow); border-radius: 14px; }
 
   /* Members */
@@ -1935,6 +1952,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <button class="btn ghost" id="dog-photo-btn" type="button" onclick="document.getElementById('dog-photo').click()">Choose a photo</button>
     <input id="dog-photo" type="file" accept="image/*" hidden>
     <img id="dog-photo-preview" alt="Chosen photo" hidden>
+    <button class="btn ghost" id="dog-photo-edit" type="button" hidden>Blur names or crop</button>
     <label for="dog-breed">Breed</label>
     <input id="dog-breed" name="breed" type="text" autocomplete="off" autocapitalize="words" list="breed-list" placeholder="Start typing, e.g. Lab… (the public sees this, not the name)">
     <datalist id="breed-list"></datalist>
@@ -4166,7 +4184,7 @@ function showDogEdit(id) {
   const showWhere = () => { $('#dog-found-box').hidden = !keepsWhere(statusBox.value); const c = keepsWhere(statusBox.value) && CARE[whereSel.value]; $('#dog-kennels-box').hidden = !c; if (c) { $('#dog-kennels-label').textContent = c.ask; $('#dog-kennels').placeholder = c.ph; } };
   statusBox.onchange = showWhere; whereSel.onchange = showWhere; showWhere();
   msg.textContent = '';
-  $('#dog-photo-preview').hidden = true;
+  $('#dog-photo-preview').hidden = true; $('#dog-photo-edit').hidden = true;
   state.subs.push(() => { if (edit.map) { edit.map.remove(); edit.map = null; } });
 
   const setSpot = latlng => {
@@ -4206,8 +4224,8 @@ function showDogEdit(id) {
     const pic = r.photoData || r.thumb;
     if (pic) fetch(pic).then(res => res.blob()).then(async blob => {
       edit.photo = await shrinkImage(blob, 1100, 700000);
-      edit.thumb = await shrinkImage(blob, 360, 60000, true);
-      $('#dog-photo-preview').src = edit.thumb; $('#dog-photo-preview').hidden = false;
+      edit.thumb = await shrinkImage(blob, 360, 60000, true); edit.fullBlob = blob;
+      $('#dog-photo-preview').src = edit.thumb; $('#dog-photo-preview').hidden = false; $('#dog-photo-edit').hidden = false;
       edit.hash = await photoHash(edit.thumb); dupCheck();
     }).catch(() => {});
     msg.textContent = 'Filled in from a public report. Check everything, then save.';
@@ -4225,8 +4243,8 @@ function showDogEdit(id) {
       + (r.chip ? ' Microchipped, details up to date: ' + ({ yes: 'Yes', no: 'No', unknown: 'Unknown' })[r.chip] + '.' : '');
     const pic = !d.thumb && (r.photoData || r.thumb);
     if (pic) fetch(pic).then(res => res.blob()).then(async blob => {
-      edit.photo = await shrinkImage(blob, 1100, 700000); edit.thumb = await shrinkImage(blob, 360, 60000, true);
-      $('#dog-photo-preview').src = edit.thumb; $('#dog-photo-preview').hidden = false;
+      edit.photo = await shrinkImage(blob, 1100, 700000); edit.thumb = await shrinkImage(blob, 360, 60000, true); edit.fullBlob = blob;
+      $('#dog-photo-preview').src = edit.thumb; $('#dog-photo-preview').hidden = false; $('#dog-photo-edit').hidden = false;
     }).catch(() => {});
     msg.textContent = 'Filled in from the owner\u2019s report: now Missing. Check everything, then save.';
   }
@@ -4251,26 +4269,59 @@ function showDogEdit(id) {
       edit.wasAsking = !!d.askAvailability;
       edit.ownerPermission = d.ownerPermission || '';
       edit.existingThumb = d.thumb || null;
-      if (d.thumb) { $('#dog-photo-preview').src = d.thumb; $('#dog-photo-preview').hidden = false; }
+      if (d.thumb) { $('#dog-photo-preview').src = d.thumb; $('#dog-photo-preview').hidden = false; $('#dog-photo-edit').hidden = false; }
       if (typeof d.lat === 'number') edit.spot = { lat: d.lat, lng: d.lng };
       if (edit.report) fillFromOwner(edit.report, d);
       startMap();
     }).catch(err => { msg.textContent = friendlyError(err); });
   }
 
+  // Use a photo (a file, or the result of Blur names or crop): only this version is ever saved.
+  async function usePhoto(blob) {
+    edit.photo = await shrinkImage(blob, 1100, 700000);
+    edit.thumb = await shrinkImage(blob, 360, 60000, true);
+    edit.fullBlob = blob;
+    $('#dog-photo-preview').src = edit.thumb;
+    $('#dog-photo-preview').hidden = false; $('#dog-photo-edit').hidden = false;
+    edit.hash = await photoHash(edit.thumb);
+    if (isNew) dupCheck();
+  }
   $('#dog-photo').onchange = async e => {
     const f = e.target.files[0];
+    e.target.value = '';
     if (!f) return;
     msg.textContent = 'Preparing photo…';
     try {
-      edit.photo = await shrinkImage(f, 1100, 700000);
-      edit.thumb = await shrinkImage(f, 360, 60000, true);
-      $('#dog-photo-preview').src = edit.thumb;
-      $('#dog-photo-preview').hidden = false;
+      let use = f;
+      if (await looksLikeScreenshot(f)) {   // a screenshot of a post: ask them to hide names first
+        msg.textContent = '';
+        const out = await openPhotoTool(f, true);
+        if (out === null) { msg.textContent = 'Photo not added.'; return; }
+        if (out !== 'unchanged') use = out;
+      }
+      msg.textContent = 'Preparing photo…';
+      await usePhoto(use);
       msg.textContent = '';
-      edit.hash = await photoHash(edit.thumb);
-      if (isNew) dupCheck();
     } catch (err) { msg.textContent = 'That photo could not be read. Try another.'; }
+  };
+  // Blur names or crop the photo already there (a new one, one from a report, or the dog's saved photo).
+  $('#dog-photo-edit').onclick = async () => {
+    try {
+      let src = edit.fullBlob;
+      if (!src && edit.photo) src = await (await fetch(edit.photo)).blob();
+      if (!src && !isNew) {
+        msg.textContent = 'Opening the photo…';
+        const big = await fb.getDoc(fb.doc(fb.db, 'dogs', id, 'images', 'main')).catch(() => null);
+        const data = (big && big.exists() && big.data().data) || edit.existingThumb;
+        if (data) src = await (await fetch(data)).blob();
+        msg.textContent = '';
+      }
+      if (!src) { msg.textContent = 'There is no photo to edit yet.'; return; }
+      const out = await openPhotoTool(src, false);
+      if (!out || out === 'unchanged') return;
+      msg.textContent = 'Preparing photo…'; await usePhoto(out);
+      msg.textContent = 'Photo updated. Press Save to keep it.';
+    } catch (err) { msg.textContent = 'That photo could not be opened.'; }
   };
 
   $('#dog-remove-pin').onclick = () => setSpot(null);
@@ -4375,6 +4426,106 @@ function showDogEdit(id) {
 }
 
 // Resize a chosen photo in the browser and return it as a JPEG data URL under maxChars long.
+// ---- Blur names or crop a photo ----
+// Team members often add screenshots of Facebook posts, which show people's names. Before a photo is saved,
+// they can rub a finger over a name to blur it, or crop the photo down to just the dog. Only the edited photo is saved.
+function looksLikeScreenshot(blob) {
+  return new Promise(res => { const u = URL.createObjectURL(blob), im = new Image();
+    im.onload = () => { URL.revokeObjectURL(u); res(im.height / im.width >= 1.7); };   // phone-screen shaped
+    im.onerror = () => { URL.revokeObjectURL(u); res(false); }; im.src = u; });
+}
+function openPhotoTool(blob, screenshot) {
+  return new Promise(resolve => {
+    const u = URL.createObjectURL(blob), img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(u); resolve(null); };
+    img.onload = () => {
+      URL.revokeObjectURL(u);
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const cv = h('canvas'), ctx = cv.getContext('2d');
+      cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      // A heavily pixelated copy of the photo: rubbing paints this over the original, so names can't be read.
+      // Each square is the average colour of the pixels under it, so letters smudge away completely.
+      const mos = document.createElement('canvas');
+      const remakeMosaic = () => {
+        const W = cv.width, H = cv.height, block = Math.max(10, Math.round(Math.max(W, H) / 60));
+        const src = ctx.getImageData(0, 0, W, H).data;
+        mos.width = W; mos.height = H; const m = mos.getContext('2d');
+        for (let by = 0; by < H; by += block) for (let bx = 0; bx < W; bx += block) {
+          let r = 0, g = 0, b = 0, n = 0;
+          for (let y = by; y < Math.min(H, by + block); y += 2) for (let x = bx; x < Math.min(W, bx + block); x += 2) { const i = (y * W + x) * 4; r += src[i]; g += src[i + 1]; b += src[i + 2]; n++; }
+          m.fillStyle = 'rgb(' + Math.round(r / n) + ',' + Math.round(g / n) + ',' + Math.round(b / n) + ')';
+          m.fillRect(bx, by, block, block);
+        }
+      };
+      remakeMosaic();
+      const history = []; let mode = 'blur', drag = null, cropBox = null, changed = false;
+      const brush = () => Math.max(14, Math.round(cv.width * 0.05));
+      const crop = h('div', { class: 'ptool-crop', hidden: true });
+      const undoBtn = h('button', { type: 'button', class: 'undo', disabled: true }, 'Undo');
+      const cropBtn = h('button', { type: 'button', class: 'done', hidden: true }, 'Crop to box');
+      const doneBtn = h('button', { type: 'button', class: 'done' }, 'Done');
+      const hint = h('p', null, 'Rub your finger over any names to blur them.');
+      const modeBtns = [['blur', 'Blur'], ['crop', 'Crop']].map(([m, label]) => h('button', { type: 'button', class: m === mode ? 'on' : '', onclick: () => setMode(m) }, label));
+      const wrap = h('div', { class: 'ptool', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Blur names or crop the photo' },
+        h('div', { class: 'ptool-top' }, h('h2', null, 'Blur names or crop'), hint,
+          screenshot ? h('p', { class: 'warn' }, 'This looks like a screenshot. Please hide any names before saving, or crop it to just the dog.') : null),
+        h('div', { class: 'ptool-modes' }, ...modeBtns),
+        h('div', { class: 'ptool-stage' }, cv, crop),
+        h('div', { class: 'ptool-bar' }, h('button', { type: 'button', class: 'cancel', onclick: () => finish(false) }, 'Cancel'), undoBtn, cropBtn, doneBtn));
+      function setMode(m) {
+        mode = m; modeBtns.forEach((b, i) => b.classList.toggle('on', ['blur', 'crop'][i] === m));
+        hint.textContent = m === 'blur' ? 'Rub your finger over any names to blur them.' : 'Drag a box around the dog, then press Crop to box.';
+        cropBtn.hidden = m !== 'crop'; doneBtn.hidden = m === 'crop'; crop.hidden = true; cropBox = null; cropBtn.disabled = true;
+      }
+      const save = () => { history.push(ctx.getImageData(0, 0, cv.width, cv.height)); if (history.length > 15) history.shift(); undoBtn.disabled = false; };
+      const at = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height, r }; };
+      const dab = (x, y) => { ctx.save(); ctx.beginPath(); ctx.arc(x, y, brush(), 0, Math.PI * 2); ctx.clip(); ctx.drawImage(mos, 0, 0); ctx.restore(); };
+      cv.addEventListener('pointerdown', e => {
+        e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} const p = at(e);
+        if (mode === 'blur') { save(); changed = true; drag = p; dab(p.x, p.y); }
+        else { drag = p; cropBox = null; }
+      });
+      cv.addEventListener('pointermove', e => {
+        if (!drag) return; const p = at(e);
+        if (mode === 'blur') {
+          const steps = Math.max(1, Math.ceil(Math.hypot(p.x - drag.x, p.y - drag.y) / (brush() / 3)));
+          for (let i = 1; i <= steps; i++) dab(drag.x + (p.x - drag.x) * i / steps, drag.y + (p.y - drag.y) * i / steps);
+          drag = p;
+        } else {
+          const x0 = Math.max(0, Math.min(drag.x, p.x)), y0 = Math.max(0, Math.min(drag.y, p.y)), x1 = Math.min(cv.width, Math.max(drag.x, p.x)), y1 = Math.min(cv.height, Math.max(drag.y, p.y));
+          cropBox = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+          const r = p.r, st = cv.parentNode.getBoundingClientRect(), sx = r.width / cv.width;
+          Object.assign(crop.style, { left: (r.left - st.left + x0 * sx) + 'px', top: (r.top - st.top + y0 * sx) + 'px', width: (cropBox.w * sx) + 'px', height: (cropBox.h * sx) + 'px' });
+          crop.hidden = false; cropBtn.disabled = cropBox.w < 20 || cropBox.h < 20;
+        }
+      });
+      const up = () => { drag = null; };
+      cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+      undoBtn.onclick = () => {
+        const last = history.pop(); if (!last) return;
+        if (last.width !== cv.width || last.height !== cv.height) { cv.width = last.width; cv.height = last.height; }
+        ctx.putImageData(last, 0, 0); remakeMosaic(); undoBtn.disabled = !history.length; changed = history.length > 0;
+      };
+      cropBtn.onclick = () => {
+        if (!cropBox || cropBtn.disabled) return;
+        save(); changed = true;
+        const piece = ctx.getImageData(Math.round(cropBox.x), Math.round(cropBox.y), Math.round(cropBox.w), Math.round(cropBox.h));
+        cv.width = piece.width; cv.height = piece.height; ctx.putImageData(piece, 0, 0); remakeMosaic();
+        setMode('blur');
+      };
+      doneBtn.onclick = () => finish(true);
+      function finish(keep) {
+        wrap.remove(); document.body.style.overflow = '';
+        if (!keep || !changed) return resolve(keep ? 'unchanged' : null);
+        cv.toBlob(b => resolve(b), 'image/jpeg', 0.92);
+      }
+      document.body.appendChild(wrap); document.body.style.overflow = 'hidden';
+    };
+    img.src = u;
+  });
+}
+
 function shrinkImage(file, maxSide, maxChars, square) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
