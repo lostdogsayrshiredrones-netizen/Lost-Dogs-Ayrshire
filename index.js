@@ -313,6 +313,9 @@ exports.facebookPost = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async r
   if (dogId && !/^[A-Za-z0-9_-]{1,64}$/.test(dogId)) throw new HttpsError('invalid-argument', 'Which dog?');
   const dogRef = dogId ? db.collection('dogs').doc(dogId) : null;
   if (dogRef && !(await dogRef.get()).exists) throw new HttpsError('not-found', 'That dog is not listed.');
+  // The daily round-up (admins only): remember when it went out and which dogs were in it.
+  const roundup = !dogId && d.roundup && Array.isArray(d.roundup.dogIds) ? d.roundup.dogIds.filter(x => typeof x === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(x)).slice(0, 60) : null;
+  if (roundup) await caller(request, ['admin', 'developer']);
   const secret = await db.collection('fbsecret').doc('page').get();
   if (!secret.exists || !secret.data().token) throw new HttpsError('failed-precondition', 'Facebook is not linked yet. Ask the developer to link it.');
   const { pageId, token } = secret.data();
@@ -347,6 +350,7 @@ exports.facebookPost = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async r
       fbUpdateStatus: '', fbUpdatedAt: null, fbUpdatedBy: '' });
     await dogRef.collection('updates').add({ kind: 'facebook', text: 'Posted to the Facebook Page (' + what + ').', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
   }
+  if (roundup) await db.collection('settings').doc('roundup').set({ at: admin.firestore.FieldValue.serverTimestamp(), by: me.name, link, dogIds: roundup, count: roundup.length });
   return { postId, link };
 });
 
