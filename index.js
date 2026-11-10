@@ -387,29 +387,46 @@ exports.facebookUpdate = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async
   // TRIAL: also swap the post's pictures for the new poster and the dog's photo. Facebook doesn't promise
   // apps can change a post's pictures, so if it refuses, the text is updated on its own (as before) and the
   // app is told what happened.
+  // Swap the post's pictures for the new poster and the dog's photo. Facebook has no documented way to do this,
+  // but testing (10 Nov 2026) showed: the first try fails and clears the old pictures, and a second try then
+  // attaches the new ones. So: try, and if Facebook refuses, wait a moment and try once more with fresh uploads.
+  // Afterwards the post is checked; if it ended up with no pictures, the app is told plainly.
   const images = Array.isArray(d.images) ? d.images : [];
   let pictures = null;
   if (images.length) {
     if (images.length > 2 || !images.every(b => typeof b === 'string' && /^[A-Za-z0-9+/=]+$/.test(b) && b.length < 6e6))
       throw new HttpsError('invalid-argument', 'The pictures could not be read.');
-    const pageId = secret.data().pageId, ids = [];
-    try {
-      for (const b of images) {
-        const form = new FormData();
-        form.append('source', new Blob([Buffer.from(b, 'base64')], { type: 'image/jpeg' }), 'poster.jpg');
-        form.append('published', 'false'); form.append('access_token', token);
-        ids.push((await graph('POST', pageId + '/photos', form)).id);
+    const pageId = secret.data().pageId;
+    const attempt = async () => {
+      const ids = [];
+      try {
+        for (const b of images) {
+          const form = new FormData();
+          form.append('source', new Blob([Buffer.from(b, 'base64')], { type: 'image/jpeg' }), 'poster.jpg');
+          form.append('published', 'false'); form.append('access_token', token);
+          ids.push((await graph('POST', pageId + '/photos', form)).id);
+        }
+        const form = new URLSearchParams({ message, access_token: token });
+        ids.forEach((id, i) => form.append('attached_media[' + i + ']', JSON.stringify({ media_fbid: id })));
+        await graph('POST', dog.fbPostId, form);
+        return null;
+      } catch (err) {
+        for (const id of ids) await graph('DELETE', id + '?access_token=' + encodeURIComponent(token)).catch(() => {});   // tidy the unused uploads
+        const e = err.fb || {};
+        console.warn('Facebook picture update refused:', e.code, e.message);
+        return String(e.message || err.message || 'Facebook refused').slice(0, 200);
       }
-      const form = new URLSearchParams({ message, access_token: token });
-      ids.forEach((id, i) => form.append('attached_media[' + i + ']', JSON.stringify({ media_fbid: id })));
-      await graph('POST', dog.fbPostId, form);
-      pictures = { changed: true };
-    } catch (err) {
-      const e = err.fb || {};
-      console.warn('Facebook picture update refused:', e.code, e.message);
-      pictures = { changed: false, reason: String(e.message || err.message || '').slice(0, 200) };
-      for (const id of ids) await graph('DELETE', id + '?access_token=' + encodeURIComponent(token)).catch(() => {});   // tidy the unused uploads
-    }
+    };
+    let reason = await attempt(), tries = 1;
+    if (reason) { await new Promise(r => setTimeout(r, 2500)); reason = await attempt(); tries = 2; }
+    pictures = reason ? { changed: false, reason, tries } : { changed: true, tries };
+  }
+  if (pictures && !pictures.changed) {
+    // Did the failed tries leave the post without any pictures?
+    try {
+      const att = await graph('GET', dog.fbPostId, { fields: 'attachments{media,subattachments}', access_token: token });
+      pictures.noPictures = !(att.attachments && att.attachments.data && att.attachments.data.length);
+    } catch (e) {}
   }
   if (!pictures || !pictures.changed) try { await graph('POST', dog.fbPostId, new URLSearchParams({ message, access_token: token })); }
   catch (err) {
@@ -422,7 +439,7 @@ exports.facebookUpdate = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async
   const key = dog.status === 'found' && CARE_KEY[dog.foundWhere] ? CARE_KEY[dog.foundWhere] : String(dog.status || '');
   const label = UPDATE_LABEL[key] || String(dog.status || 'update');
   await dogRef.update({ fbUpdateStatus: key, fbUpdatedAt: admin.firestore.FieldValue.serverTimestamp(), fbUpdatedBy: me.name });
-  await dogRef.collection('updates').add({ kind: 'facebook', text: 'Facebook post updated (' + label + ')' + (pictures ? (pictures.changed ? ', with the new poster' : '; the pictures could not be changed') : '') + '.', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+  await dogRef.collection('updates').add({ kind: 'facebook', text: 'Facebook post updated (' + label + ')' + (pictures ? (pictures.changed ? ', with the new poster' : pictures.noPictures ? '; the new pictures were not accepted and the post now has no pictures' : '; the pictures could not be changed') : '') + '.', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
   return { updated: true, link: dog.fbLink || '', pictures };
 });
 
