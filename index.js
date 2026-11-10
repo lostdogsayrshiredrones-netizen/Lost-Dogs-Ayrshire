@@ -358,7 +358,7 @@ exports.facebookPost = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async r
 // original Facebook post. The original text stays underneath; a later update replaces the earlier one.
 const FB_SPLIT = '\n\n\u2B07\uFE0F Original post \u2B07\uFE0F\n\n';
 const UPDATE_LABEL = { 'found-kennels': 'Safe at kennels', 'found-vets': 'Safe with vet', 'found-police': 'Safe at police station', found: 'Found', reunited: 'Reunited', 'home-safe': 'Home safe', 'no-further-sightings': 'No further sightings', 'paws-down': 'Paws down' };
-exports.facebookUpdate = onCall({ timeoutSeconds: 60 }, async request => {
+exports.facebookUpdate = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async request => {
   const me = await caller(request, FB_ROLES);
   const db = admin.firestore(), d = request.data || {};
   const dogId = String(d.dogId || '');
@@ -384,7 +384,34 @@ exports.facebookUpdate = onCall({ timeoutSeconds: 60 }, async request => {
   if (!current) current = String(dog.fbMessage || '');
   const original = current.includes(FB_SPLIT) ? current.slice(current.indexOf(FB_SPLIT) + FB_SPLIT.length) : current;
   const message = original ? text + FB_SPLIT + original : text;
-  try { await graph('POST', dog.fbPostId, new URLSearchParams({ message, access_token: token })); }
+  // TRIAL: also swap the post's pictures for the new poster and the dog's photo. Facebook doesn't promise
+  // apps can change a post's pictures, so if it refuses, the text is updated on its own (as before) and the
+  // app is told what happened.
+  const images = Array.isArray(d.images) ? d.images : [];
+  let pictures = null;
+  if (images.length) {
+    if (images.length > 2 || !images.every(b => typeof b === 'string' && /^[A-Za-z0-9+/=]+$/.test(b) && b.length < 6e6))
+      throw new HttpsError('invalid-argument', 'The pictures could not be read.');
+    const pageId = secret.data().pageId, ids = [];
+    try {
+      for (const b of images) {
+        const form = new FormData();
+        form.append('source', new Blob([Buffer.from(b, 'base64')], { type: 'image/jpeg' }), 'poster.jpg');
+        form.append('published', 'false'); form.append('access_token', token);
+        ids.push((await graph('POST', pageId + '/photos', form)).id);
+      }
+      const form = new URLSearchParams({ message, access_token: token });
+      ids.forEach((id, i) => form.append('attached_media[' + i + ']', JSON.stringify({ media_fbid: id })));
+      await graph('POST', dog.fbPostId, form);
+      pictures = { changed: true };
+    } catch (err) {
+      const e = err.fb || {};
+      console.warn('Facebook picture update refused:', e.code, e.message);
+      pictures = { changed: false, reason: String(e.message || err.message || '').slice(0, 200) };
+      for (const id of ids) await graph('DELETE', id + '?access_token=' + encodeURIComponent(token)).catch(() => {});   // tidy the unused uploads
+    }
+  }
+  if (!pictures || !pictures.changed) try { await graph('POST', dog.fbPostId, new URLSearchParams({ message, access_token: token })); }
   catch (err) {
     const e = err.fb || {};
     if (e.code === 100) throw new HttpsError('failed-precondition', 'Facebook would not let this post be edited' + (e.message ? ': ' + String(e.message).slice(0, 160) : '.'));
@@ -395,8 +422,8 @@ exports.facebookUpdate = onCall({ timeoutSeconds: 60 }, async request => {
   const key = dog.status === 'found' && CARE_KEY[dog.foundWhere] ? CARE_KEY[dog.foundWhere] : String(dog.status || '');
   const label = UPDATE_LABEL[key] || String(dog.status || 'update');
   await dogRef.update({ fbUpdateStatus: key, fbUpdatedAt: admin.firestore.FieldValue.serverTimestamp(), fbUpdatedBy: me.name });
-  await dogRef.collection('updates').add({ kind: 'facebook', text: 'Facebook post updated (' + label + ').', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
-  return { updated: true, link: dog.fbLink || '' };
+  await dogRef.collection('updates').add({ kind: 'facebook', text: 'Facebook post updated (' + label + ')' + (pictures ? (pictures.changed ? ', with the new poster' : '; the pictures could not be changed') : '') + '.', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+  return { updated: true, link: dog.fbLink || '', pictures };
 });
 
 // ---- Merge a duplicate dog into the one being kept (admins) ----
