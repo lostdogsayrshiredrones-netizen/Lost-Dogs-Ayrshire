@@ -153,9 +153,33 @@ exports.notify = onCall(async request => {
 // Once a day, any dog that has been closed (Reunited, Home safe, No further sightings, Paws down)
 // for more than 30 days is deleted, together with its photos, posters, updates, sightings and availability.
 // Reopening a dog (changing it back to Missing, Loose dog or Found) stops the clock.
-const CLOSED = ['reunited', 'home-safe', 'no-further-sightings', 'paws-down', 'merged'];   // merged duplicates go too
+const CLOSED = ['reunited', 'home-safe', 'no-further-sightings', 'paws-down', 'merged', 'closed-safe'];   // merged duplicates go too
 const KEEP_DAYS = 30;
 const millis = ts => (ts && typeof ts.toMillis === 'function') ? ts.toMillis() : 0;
+
+// ---- Found dogs that are safe (vet, police, kennels, dog warden) close themselves after 2 days ----
+// The dog keeps its tag ("Safe with vet" etc.). It moves to Closed in the app, and shows in amber on the
+// website for 7 days so an owner can still come forward. Checked every hour.
+const SAFE_PLACES = ['Safe with vet', 'Safe at police station', 'Safe at kennels', 'Safe with dog warden'];
+const AUTO_CLOSE_MS = 2 * 24 * 3600e3;
+exports.autoCloseSafeDogs = onSchedule({ schedule: 'every 1 hours', timeZone: 'Europe/London' }, async () => {
+  const db = admin.firestore();
+  const found = await db.collection('dogs').where('status', '==', 'found').get();
+  let closed = 0;
+  for (const doc of found.docs) {
+    const d = doc.data();
+    if (!SAFE_PLACES.includes(d.foundWhere)) continue;
+    const since = millis(d.foundWhereAt) || millis(d.statusAt) || millis(d.updatedAt) || millis(d.createdAt);
+    if (!since || Date.now() - since < AUTO_CLOSE_MS) continue;
+    await doc.ref.update({ status: 'closed-safe', statusBy: 'Automatic (safe for 2 days)', statusByUid: '', statusAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    await doc.ref.collection('updates').add({ kind: 'status', from: 'found', to: 'closed-safe',
+      text: 'Closed automatically: ' + d.foundWhere.toLowerCase() + ' for 2 days. Still shown on the website for 7 days in case the owner comes forward.',
+      byName: 'Automatic', byUid: '', createdAt: admin.firestore.FieldValue.serverTimestamp() });
+    closed++;
+  }
+  if (closed) console.log('Auto-closed ' + closed + ' safe found dog(s).');
+});
 
 exports.tidyClosedDogs = onSchedule({ schedule: 'every day 03:00', timeZone: 'Europe/London' }, async () => {
   const db = admin.firestore();
@@ -449,7 +473,7 @@ exports.mergeDogs = onCall({ timeoutSeconds: 120 }, async request => {
 // checked, robots and floods are turned away, and only then is it saved and the coordinators and admins told.
 const crypto = require('crypto');
 const PUBLIC_STATUS = { missing: 'Missing', loose: 'Loose dog', found: 'Found' };
-const REPORT_TYPES = { lost: 'Lost dog', loose: 'Loose dog seen', found: 'Dog found', posts: 'Sighting' };
+const REPORT_TYPES = { lost: 'Lost dog', loose: 'Loose dog seen', found: 'Dog found', posts: 'Sighting', knows: 'Possible owner' };
 const REPORT_LIMITS = { perHour: 5, perDay: 12, allPerDay: 300, checksPerHour: 10, checksPerDay: 25 };
 // Who is alerted to new reports. For now only the developer, while it is being tried out.
 // To open it up later: ['coordinator', 'admin', 'developer'] (and canSeeReports in the app).
@@ -466,25 +490,29 @@ const SAFE_STATUS = { 'home-safe': 'Home safe', reunited: 'Reunited' };
 // Where a Found dog is now. Only these general phrases are ever shown publicly (never the vet, finder or address).
 const FOUND_WHERE = ['Safe with finder', 'On route to vets', 'Safe with vet', 'On route to police station', 'Safe at police station', 'Safe with dog warden', 'Safe at kennels'];
 const SAFE_SHOW_MS = 24 * 3600e3;
+// Closed while safe at a vet, police station, kennels or with the dog warden: amber on the website for 7 days,
+// so an owner (or someone who knows the owner) can still come forward.
+const HELD_SHOW_MS = 7 * 24 * 3600e3;
 exports.publicDogs = onCall({ cors: true }, async () => {
   if (publicCache.dogs && Date.now() - publicCache.at < 60 * 1000) return { dogs: publicCache.dogs };
   const now = Date.now();
-  const snap = await admin.firestore().collection('dogs').where('status', 'in', Object.keys(PUBLIC_STATUS).concat(Object.keys(SAFE_STATUS))).get();
+  const snap = await admin.firestore().collection('dogs').where('status', 'in', Object.keys(PUBLIC_STATUS).concat(Object.keys(SAFE_STATUS), ['closed-safe'])).get();
   const dogs = snap.docs.map(d => {
-    const x = d.data(), safe = !!SAFE_STATUS[x.status];
+    const x = d.data(), safe = !!SAFE_STATUS[x.status], held = x.status === 'closed-safe';
     if (safe && !(millis(x.statusAt) > now - SAFE_SHOW_MS)) return null;     // safe for more than a day (or no date): gone
+    if (held && !(millis(x.statusAt) > now - HELD_SHOW_MS)) return null;     // closed safe for more than 7 days: gone
     return {
       id: d.id,
       // Never the dog's name: people would go out calling it, which can scare a lost dog away. The breed instead.
       breed: String(x.breed || '').trim().slice(0, 60) || 'Unknown',
       area: String(x.lastSeenPlace || '').trim().slice(0, 80),
-      status: x.status, statusLabel: safe ? SAFE_STATUS[x.status] : PUBLIC_STATUS[x.status], safe,
-      foundWhere: x.status === 'found' && FOUND_WHERE.includes(x.foundWhere) ? x.foundWhere : '',
+      status: x.status, statusLabel: safe ? SAFE_STATUS[x.status] : held ? 'Owner wanted' : PUBLIC_STATUS[x.status], safe, held,
+      foundWhere: (x.status === 'found' || held) && FOUND_WHERE.includes(x.foundWhere) ? x.foundWhere : '',
       thumb: typeof x.thumb === 'string' && x.thumb.startsWith('data:image/') && x.thumb.length < 120000 ? x.thumb : '',
       added: millis(x.createdAt)
     };
   }).filter(Boolean)
-    .sort((a, b) => (a.safe - b.safe) || (b.added - a.added))        // dogs still being looked for come first
+    .sort((a, b) => (a.safe - b.safe) || (a.held - b.held) || (b.added - a.added))        // open first, then amber, then green
     .map(({ added, ...rest }) => rest);
   publicCache = { at: now, dogs };
   return { dogs };
@@ -643,15 +671,19 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   const type = String(d.type || '');
   if (!REPORT_TYPES[type]) throw bad('Please choose what you are reporting.');
   if (d.consent !== true) throw bad('Please tick the box so a coordinator can contact you.');
-  const town = cleanText(d.town, 60);
-  if (town.length < 2) throw bad('Please add the Town/Village.');
+  let town = cleanText(d.town, 60);
+  if (type !== 'knows' && town.length < 2) throw bad('Please add the Town/Village.');
   const details = cleanText(d.details, 1000, true);
-  if (type !== 'posts' && details.length < 5) throw bad('Please add a short description.');
+  if (type !== 'posts' && type !== 'knows' && details.length < 5) throw bad('Please add a short description.');
+  // "I know this dog" (a found dog): is it theirs, or do they know the owner?
+  const knows = type === 'knows' ? String(d.knows || '') : '';
+  if (type === 'knows' && !['mine', 'owner'].includes(knows)) throw bad('Please tell us if this is your dog.');
+  let knowsOwner = null;   // "I know the owner": their name and number, so we can phone them
   // Lost dog: is it microchipped, with the details up to date? (yes / no / unknown)
   const chip = type === 'lost' ? String(d.chip || '') : '';
   if (type === 'lost' && !['yes', 'no', 'unknown'].includes(chip)) throw bad('Please answer the microchip question: Yes, No or Unknown.');
   // Breed: picked from the list or typed (needed for a lost dog; "if you know" for loose and found dogs).
-  const breed = type === 'posts' ? '' : cleanText(d.breed, 60);
+  const breed = type === 'posts' || type === 'knows' ? '' : cleanText(d.breed, 60);
   if (type === 'lost' && !breed) throw bad("Please add your dog's breed, or choose Not sure.");
   const name = cleanText(d.name, 60);
   if (!name) throw bad('Please add your name.');
@@ -666,17 +698,17 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   if (dayMs < now - 366 * 24 * 3600e3) throw bad('Please check the date.');
   const seenTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(d.time || '')) ? String(d.time) : '';
   let lat = null, lng = null;
-  if (d.lat != null || d.lng != null) {
+  if (type !== 'knows' && (d.lat != null || d.lng != null)) {
     lat = Number(d.lat); lng = Number(d.lng);
     if (!(lat > 54 && lat < 57 && lng > -7 && lng < -2.5)) throw bad('The map pin is outside our area. Please check it.');
     lat = Math.round(lat * 1e5) / 1e5; lng = Math.round(lng * 1e5) / 1e5;
   }
   const isJpeg = (v, max) => typeof v === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(v) && v.length <= max;
   const photo = d.photo ? String(d.photo) : '', thumb = d.thumb ? String(d.thumb) : '';
-  if (type === 'posts' && (photo || thumb)) throw bad('Photos are not needed for a sighting.');
+  if ((type === 'posts' || type === 'knows') && (photo || thumb)) throw bad('Photos are not needed for this.');
   if (photo && !isJpeg(photo, 600000)) throw bad('That photo could not be used. Please try a different one.');
   if (thumb && !isJpeg(thumb, 80000)) throw bad('That photo could not be used. Please try a different one.');
-  let dogId = '', dogName = '', behalf = null, danger = '';
+  let dogId = '', dogName = '', dogStatus = '', behalf = null, danger = '', fromDog = null;
   if (type === 'loose' || type === 'posts') {
     danger = String(d.danger || '');     // (left empty by a page opened before this question existed)
     if (danger && danger !== 'no' && !DANGER[danger]) throw bad('Please tell us if the dog is in immediate danger.');
@@ -688,6 +720,23 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
     if (dog.exists && SAFE_STATUS[dog.data().status]) throw bad('Good news: that dog is now ' + SAFE_STATUS[dog.data().status].toLowerCase() + ', so no more sightings are needed. Thank you!');
     if (!dog.exists || !PUBLIC_STATUS[dog.data().status]) throw bad('That dog is no longer listed. Please choose "I’ve seen a loose dog" instead.');
     dogName = String(dog.data().name || '').slice(0, 60);
+  } else if (type === 'knows') {
+    dogId = String(d.dogId || '');
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(dogId)) throw bad('Please tap the dog.');
+    const dog = await db.collection('dogs').doc(dogId).get();
+    if (dog.exists && SAFE_STATUS[dog.data().status]) throw bad('Good news: that dog is now ' + SAFE_STATUS[dog.data().status].toLowerCase() + '. Thank you!');
+    if (!dog.exists || !['found', 'loose', 'closed-safe'].includes(dog.data().status)) throw bad('That dog is no longer listed. Please phone us on 07715 950588.');
+    dogName = String(dog.data().name || '').slice(0, 60);
+    dogStatus = dog.data().status;
+    town = String(dog.data().lastSeenPlace || '').trim().slice(0, 60) || 'Not given';   // where the dog was found or seen
+    if (knows === 'owner') {
+      const ownerName = cleanText(d.knowsOwnerName, 60);
+      const ownerPhone = String(d.knowsOwnerPhone || '').replace(/[\s()\-.]/g, '').replace(/^\+44/, '0').replace(/^0044/, '0');
+      if (!ownerName) throw bad("Please add the owner's name.");
+      if (!realUkPhone(ownerPhone)) throw bad("Please check the owner's phone number.");
+      if (ownerPhone === phone) throw bad("Please give the owner's own number, not yours.");
+      knowsOwner = { ownerName, ownerPhone };
+    }
   } else if (type === 'lost') {
     // A lost dog is reported by its owner, or by someone reporting for the owner (who gives the owner's name and number).
     // Either way nothing is acted on until the owner has agreed: for someone reporting for the owner, a coordinator
@@ -705,6 +754,13 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
     } else throw bad('We can only take a lost dog report from the owner. Please ask the owner to phone us on 07715 950588.');
     dogName = cleanText(d.dogName, 60);
     if (!dogName) throw bad("Please add your dog's name.");
+    // Started from a listed loose dog ("This is my dog"): remember which, so the team can update that dog instead of adding a second one.
+    if (d.fromDogId) {
+      const fid = String(d.fromDogId);
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(fid)) throw bad('Please try again.');
+      const fd = await db.collection('dogs').doc(fid).get();
+      if (fd.exists && fd.data().status === 'loose') fromDog = { fromDogId: fid, fromDogPlace: String(fd.data().lastSeenPlace || '').slice(0, 80) };
+    }
   }
 
   // Automatic photo check. A photo already checked when it was chosen (with a valid stamp) is not checked again.
@@ -723,6 +779,9 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
     type, status: 'new', dogId, dogName, town, lat, lng, seenDate, seenTime, details,
     ...(chip ? { chip } : {}),
     ...(breed ? { breed } : {}),
+    ...(knows ? { knows, dogStatus } : {}),
+    ...(knowsOwner ? { knowsOwnerName: knowsOwner.ownerName, knowsOwnerPhone: knowsOwner.ownerPhone } : {}),
+    ...(fromDog || {}),
     reporterName: name, reporterPhone: phone, ...(email ? { reporterEmail: email } : {}), thumb: thumb || '', hasPhoto: !!photo, photoAuto,
     ownerConfirmed: type === 'lost' && !behalf,
     danger: danger || '', urgent: !!DANGER[danger],
@@ -736,7 +795,8 @@ exports.submitReport = onCall({ cors: true, timeoutSeconds: 30 }, async request 
   // Tell whoever handles reports.
   const title = (DANGER[danger] ? 'URGENT public report: ' : 'New public report: ') + (type === 'posts' ? 'sighting' : REPORT_TYPES[type].toLowerCase()) + (behalf ? ' (for the owner)' : '');
   const body = type === 'posts' ? (dogName && !/^unknown$/i.test(dogName) ? dogName + ' seen in ' : 'Listed dog seen in ') + town
-    : type === 'lost' ? dogName + ' lost in ' + town : type === 'found' ? 'Found in ' + town : 'Seen in ' + town;
+    : type === 'knows' ? (knows === 'mine' ? 'Someone says they own ' : 'Someone knows the owner of ') + (dogName && !/^unknown$/i.test(dogName) ? dogName : 'the ' + (dogStatus === 'loose' ? 'loose dog seen' : 'dog found') + ' in ' + town)
+    : type === 'lost' ? dogName + ' lost in ' + town + (fromDog ? ' \u00b7 the owner of the loose dog in ' + (fromDog.fromDogPlace || 'our list') : '') : type === 'found' ? 'Found in ' + town : 'Seen in ' + town;
   const alertBody = DANGER[danger] ? DANGER[danger] + ' \u00b7 ' + body : body;
   try { await sendTo(await peopleWithRole(REPORT_ROLES), title, alertBody, SITE + '#report/' + ref.id, 'report'); }
   catch (e) { console.warn('Report alert not sent:', e && e.message); }
