@@ -93,6 +93,11 @@
   .pick label:has(input:checked) .tag.where { background: var(--soft); }
   .dog .seen { margin-left: auto; font-size: .8rem; font-weight: 800; color: var(--yellow); text-align: right; }
   .dog.safe { cursor: default; background: #1d6b33; }
+  .dog.quiet { cursor: default; background: #fdf90f; color: #2a0b78; }   /* yellow: no further sightings */
+  .dog.quiet img, .dog.quiet .nophoto { border-color: #3e12a3; }
+  .dog.quiet .nophoto { color: #3e12a3; }
+  .dog.quiet small.town, .dog.quiet small.town b, .dog.quiet .seen.quiet { color: #2a0b78; }
+  .tag.quiet { background: #3e12a3; color: #fdf90f; }
   .dog.held { background: #a64b00; }                       /* amber: safe at a vet, police, kennels or warden; owner wanted */
   .dog.held img, .dog.held .nophoto { border-color: #ffd27a; }
   .tag.held { background: #ffd27a; color: #4a2200; }
@@ -772,16 +777,16 @@ function markPics() {
 // Each dog tile reads the same way: the breed, its status tag(s), then the town/village.
 function dogLines(d) {
   return '<b>Breed: ' + esc(d.breed || 'Unknown') + '</b>' +
-    '<span class="tags"><span class="tag' + (d.safe ? ' safe' : d.held ? ' held' : '') + '">' + esc(d.statusLabel) + '</span>' +
+    '<span class="tags"><span class="tag' + (d.safe ? ' safe' : d.held ? ' held' : d.quiet ? ' quiet' : '') + '">' + esc(d.statusLabel) + '</span>' +
     (d.foundWhere && !d.safe ? '<span class="tag where">' + esc(d.foundWhere) + '</span>' : '') + '</span>' +
     (d.area ? '<small class="town">Town/Village: <b>' + esc(d.area) + '</b></small>' : '');
 }
 function drawDogs(note) {
   const html = note ? '<p class="foot" style="text-align:left">' + esc(note) + '</p>'
-    : DOGS.map(d => d.safe
-      ? '<div class="dog safe">' + dogPic(d) +
+    : DOGS.map(d => d.safe || d.quiet
+      ? '<div class="dog ' + (d.quiet ? 'quiet' : 'safe') + '">' + dogPic(d) +
         '<span>' + dogLines(d) + '</span>' +
-        '<span class="seen safe">Thank you<br>for sharing!</span></div>'
+        (d.quiet ? '<span class="seen quiet">No further<br>sightings</span></div>' : '<span class="seen safe">Thank you<br>for sharing!</span></div>')
       : '<button type="button" class="dog' + (d.held ? ' held' : '') + '" data-dog="' + esc(d.id) + '">' + dogPic(d) +
         '<span>' + dogLines(d) + '</span>' +
         '<span class="seen">' + (d.held ? 'Is this<br>your dog?' : d.status === 'found' ? 'Know<br>this dog?' : 'Seen<br>this dog?') + '</span></button>').join('');
@@ -791,7 +796,7 @@ function drawDogs(note) {
 async function loadDogs(tries) {
   try {
     DOGS = ((await publicDogs()).data.dogs || []);
-    const looking = DOGS.some(d => !d.safe);   // any dog people can still report a sighting for, or come forward about?
+    const looking = DOGS.some(d => !d.safe && !d.quiet);   // any dog people can still report a sighting for, or come forward about?
     // A Facebook link to a found dog (report.html?dog=ID) opens "I know this dog" instead of a sighting.
     if (wantDog && type === 'posts' && !$('report').hidden && DOGS.some(d => d.id === wantDog && !d.safe && (d.status === 'found' || d.held))) { type = 'knows'; setupForm(wantDog); }
     drawDogs('');
@@ -799,7 +804,7 @@ async function loadDogs(tries) {
     $('all-safe').hidden = looking;   // good-news note when every dog is safe (or none are listed)
     if (!$('report').hidden && (type === 'posts' || type === 'knows')) fillPick($('r-pick').querySelector('input:checked') ? $('r-pick').querySelector('input:checked').value : wantDog);
     // Link for a dog that is now safe or no longer listed: show the list instead (a safe dog shows its good news there).
-    if (wantDog && !DOGS.some(d => d.id === wantDog && !d.safe) && !$('report').hidden && (type === 'posts' || type === 'knows')) show('dogs');
+    if (wantDog && !DOGS.some(d => d.id === wantDog && !d.safe && !d.quiet) && !$('report').hidden && (type === 'posts' || type === 'knows')) show('dogs');
     wantDog = null;
   } catch (e) {
     if ((tries || 0) < 2) return setTimeout(() => loadDogs((tries || 0) + 1), 2500);

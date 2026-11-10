@@ -8066,7 +8066,20 @@ function showFacebookUpdate(dogId) {
       root.appendChild(placeBox);
     }
     root.appendChild(ta);
-    root.appendChild(h('p', { class: 'fb-note', style: 'margin-top:10px' }, 'The original text stays underneath, after a line saying Original post. The pictures stay the same (Facebook does not let apps change them).'));
+    root.appendChild(h('p', { class: 'fb-note', style: 'margin-top:10px' }, 'The original text stays underneath, after a line saying Original post.'));
+    // TRIAL: also swap the post's pictures for the new status poster and the dog's photo.
+    // Facebook may refuse; if so only the text changes (as before) and the result says so.
+    const pStd = careOf(d) ? careOf(d).poster : st.poster, pImg = pStd && $('#' + pStd + '-img');
+    let swap = null;
+    if (pImg) {
+      swap = h('input', { type: 'checkbox', id: 'fbupdate-pics', checked: true });
+      const pics = h('div', { class: 'fb-pics' }, h('figure', null, h('img', { src: pImg.src, alt: 'New poster' }), h('figcaption', null, 'Picture 1: the new poster')),
+        d.thumb ? h('figure', null, h('img', { src: d.thumb, alt: 'The dog’s photo' }), h('figcaption', null, 'Picture 2: the dog’s photo')) : null);
+      root.appendChild(h('label', { class: 'fb-mark' }, swap, h('span', null, h('strong', null, 'Also change the pictures (trial)'),
+        h('small', null, 'Swaps the post’s pictures for the new poster and the dog’s photo. Facebook may not allow it; if not, just the text is updated.'))));
+      root.appendChild(pics);
+      swap.addEventListener('change', () => { pics.hidden = !swap.checked; });
+    }
     const msg = h('p', { class: 'form-msg', role: 'status' });
     const btn = h('button', { class: 'save fb-blue', type: 'button', onclick: async () => {
       if (!ta.value.trim()) { msg.textContent = 'Write the update first.'; return; }
@@ -8075,8 +8088,27 @@ function showFacebookUpdate(dogId) {
       if (/\[(Kennels|Vets|Station) Name\]/.test(ta.value)) { msg.textContent = 'Replace ' + ta.value.match(/\[(Kennels|Vets|Station) Name\]/)[0] + ' in the text with the name first.'; return; }
       btn.disabled = true; msg.textContent = 'Updating the Facebook post…';
       try {
-        const res = await callFacebook('facebookUpdate', { dogId, text: ta.value.trim() });
+        const images = [];
+        if (swap && swap.checked) {
+          images.push((await asJpeg(pImg.src, 1080)).split(',')[1]);
+          let photoSrc = d.thumb || '';
+          try { const p = await fb.getDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'main')); if (p.exists() && p.data().data) photoSrc = p.data().data; } catch (e) {}
+          if (photoSrc) images.push((await asJpegMarked(photoSrc, 1400)).split(',')[1]);
+        }
+        const res = await callFacebook('facebookUpdate', { dogId, text: ta.value.trim(), images });
         const r = (res && res.data) || {};
+        if (!r.practice && r.pictures) {   // trial result: say plainly what Facebook did
+          root.textContent = '';
+          root.appendChild(h('div', { class: 'fb-done' }, h('div', { class: 'tick' }, tickIcon('#3e12a3', 56)),
+            h('h3', null, r.pictures.changed ? 'Post updated, with the new poster' : 'Text updated'),
+            h('p', null, r.pictures.changed
+              ? 'Facebook accepted the new pictures. Open the post to check they show as expected.'
+              : 'Facebook didn’t allow the pictures to be changed, so the post keeps its original pictures. The update text is at the top as usual.'),
+            !r.pictures.changed && r.pictures.reason ? h('p', { class: 'fb-note' }, 'Facebook said: ' + r.pictures.reason) : null,
+            r.link ? h('a', { class: 'save fb-blue', href: r.link, target: '_blank', rel: 'noopener', style: 'display:block;text-decoration:none;margin-top:14px' }, 'Open the post on Facebook') : null,
+            h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'dog/' + dogId }, 'Back to the dog')));
+          return;
+        }
         if (!r.practice) { go('dog/' + dogId); return; }
         root.textContent = '';
         root.appendChild(h('div', { class: 'fb-done' }, h('div', { class: 'tick' }, tickIcon('#3e12a3', 56)), h('h3', null, 'Practice only'),
