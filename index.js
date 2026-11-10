@@ -518,6 +518,8 @@ let publicCache = { at: 0, dogs: null };
 // Dogs that are Home safe or Reunited stay on the list for 24 hours with that good news, then drop off.
 // They cannot be picked for a sighting, so no more reports come in about them.
 const SAFE_STATUS = { 'home-safe': 'Home safe', reunited: 'Reunited' };
+// No further sightings: shown in yellow on the website for a day, like Home safe and Reunited are in green.
+const QUIET_STATUS = { 'no-further-sightings': 'No further sightings' };
 // Where a Found dog is now. Only these general phrases are ever shown publicly (never the vet, finder or address).
 const FOUND_WHERE = ['Safe with finder', 'On route to vets', 'Safe with vet', 'On route to police station', 'Safe at police station', 'Safe with dog warden', 'Safe at kennels'];
 const SAFE_SHOW_MS = 24 * 3600e3;
@@ -527,23 +529,23 @@ const HELD_SHOW_MS = 7 * 24 * 3600e3;
 exports.publicDogs = onCall({ cors: true }, async () => {
   if (publicCache.dogs && Date.now() - publicCache.at < 60 * 1000) return { dogs: publicCache.dogs };
   const now = Date.now();
-  const snap = await admin.firestore().collection('dogs').where('status', 'in', Object.keys(PUBLIC_STATUS).concat(Object.keys(SAFE_STATUS), ['closed-safe'])).get();
+  const snap = await admin.firestore().collection('dogs').where('status', 'in', Object.keys(PUBLIC_STATUS).concat(Object.keys(SAFE_STATUS), Object.keys(QUIET_STATUS), ['closed-safe'])).get();
   const dogs = snap.docs.map(d => {
-    const x = d.data(), safe = !!SAFE_STATUS[x.status], held = x.status === 'closed-safe';
-    if (safe && !(millis(x.statusAt) > now - SAFE_SHOW_MS)) return null;     // safe for more than a day (or no date): gone
+    const x = d.data(), safe = !!SAFE_STATUS[x.status], held = x.status === 'closed-safe', quiet = !!QUIET_STATUS[x.status];
+    if ((safe || quiet) && !(millis(x.statusAt) > now - SAFE_SHOW_MS)) return null;     // safe (or no further sightings) for more than a day: gone
     if (held && !(millis(x.statusAt) > now - HELD_SHOW_MS)) return null;     // closed safe for more than 7 days: gone
     return {
       id: d.id,
       // Never the dog's name: people would go out calling it, which can scare a lost dog away. The breed instead.
       breed: String(x.breed || '').trim().slice(0, 60) || 'Unknown',
       area: String(x.lastSeenPlace || '').trim().slice(0, 80),
-      status: x.status, statusLabel: safe ? SAFE_STATUS[x.status] : held ? 'Owner wanted' : PUBLIC_STATUS[x.status], safe, held,
+      status: x.status, statusLabel: safe ? SAFE_STATUS[x.status] : quiet ? QUIET_STATUS[x.status] : held ? 'Owner wanted' : PUBLIC_STATUS[x.status], safe, held, quiet,
       foundWhere: (x.status === 'found' || held) && FOUND_WHERE.includes(x.foundWhere) ? x.foundWhere : '',
       thumb: typeof x.thumb === 'string' && x.thumb.startsWith('data:image/') && x.thumb.length < 120000 ? x.thumb : '',
       added: millis(x.createdAt)
     };
   }).filter(Boolean)
-    .sort((a, b) => (a.safe - b.safe) || (a.held - b.held) || (b.added - a.added))        // open first, then amber, then green
+    .sort((a, b) => (a.safe - b.safe) || (a.quiet - b.quiet) || (a.held - b.held) || (b.added - a.added))        // open, amber, yellow, then green
     .map(({ added, ...rest }) => rest);
   publicCache = { at: now, dogs };
   return { dogs };
