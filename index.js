@@ -157,12 +157,77 @@ const CLOSED = ['reunited', 'home-safe', 'no-further-sightings', 'paws-down', 'm
 const KEEP_DAYS = 30;
 const millis = ts => (ts && typeof ts.toMillis === 'function') ? ts.toMillis() : 0;
 
+// ---- Loose dogs with no activity for 24 hours become "No further sightings" ----
+// Activity is anything that happens on the dog: a sighting, an update or note, a status change, edited details,
+// or someone pressing "Keep open for another 24 hours". About 2 hours before, the coordinators get an alert so
+// they can keep it open. At 24 hours the status changes, and if the dog was posted from the app its Facebook
+// post gets the No Further Sightings message at the top and the No Further Sightings poster (plus the dog's photo).
+// Checked every hour, with the safe-dogs check below.
+const QUIET_MS = 24 * 3600e3, QUIET_WARN_MS = 22 * 3600e3;
+const NFS_POSTER = 'https://lostdogsayrshire.org.uk/posters/no-further-sightings.jpg';
+const NFS_TEXT = '\ud83d\udc9b\ud83d\udc9cNo Further Sightings\ud83d\udc9c\ud83d\udc9b\n\nWe have received no further sightings in the last 24 hours for this dog.\nA huge thank you to everyone who shared, kept an eye out and supported.';
+async function lastActivity(ref, d) {
+  const latest = async name => { try { const q = await ref.collection(name).orderBy('createdAt', 'desc').limit(1).get(); return q.empty ? 0 : millis(q.docs[0].data().createdAt); } catch (e) { return 0; } };
+  return Math.max(millis(d.createdAt), millis(d.statusAt), millis(d.updatedAt), millis(d.keepOpenAt), await latest('updates'), await latest('sightings'));
+}
+async function quietLooseDogs() {
+  const db = admin.firestore(), now = Date.now();
+  const loose = await db.collection('dogs').where('status', '==', 'loose').get();
+  for (const doc of loose.docs) {
+    const d = doc.data(), since = await lastActivity(doc.ref, d);
+    if (!since) continue;
+    const quiet = now - since, place = String(d.lastSeenPlace || '').trim();
+    if (quiet >= QUIET_MS) { await quietOne(doc.ref, d).catch(err => console.error('No further sightings failed for', doc.id, err && err.message)); continue; }
+    // Heads-up about 2 hours before, once for each quiet spell.
+    if (quiet >= QUIET_WARN_MS && !(millis(d.quietWarnedAt) > since)) {
+      const closeAt = new Date(since + QUIET_MS).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' });
+      await doc.ref.update({ quietWarnedAt: admin.firestore.FieldValue.serverTimestamp() });
+      await sendTo(await peopleWithRole(['coordinator', 'admin', 'developer']), 'No further sightings soon',
+        'The loose dog' + (place ? ' in ' + place : '') + ' will be marked No further sightings at about ' + closeAt + '. Tap to keep it open.', SITE + '#dog/' + doc.id, 'quiet').catch(() => {});
+    }
+  }
+}
+async function quietOne(ref, d) {
+  const db = admin.firestore(), FV = admin.firestore.FieldValue;
+  await ref.update({ status: 'no-further-sightings', statusBy: 'Automatic (24 hours with no activity)', statusByUid: '', statusAt: FV.serverTimestamp(), updatedAt: FV.serverTimestamp() });
+  let fbNote = '';
+  if (d.fbPostId) {
+    try {
+      const secret = await db.collection('fbsecret').doc('page').get();
+      if (!secret.exists || !secret.data().token) throw new Error('Facebook is not linked');
+      const token = secret.data().token;
+      let current = '';
+      try { current = String((await graph('GET', d.fbPostId, { fields: 'message', access_token: token })).message || ''); } catch (e) { current = String(d.fbMessage || ''); }
+      const original = current.includes(FB_SPLIT) ? current.slice(current.indexOf(FB_SPLIT) + FB_SPLIT.length) : current;
+      const message = original ? NFS_TEXT + FB_SPLIT + original : NFS_TEXT;
+      // The poster from the website, and the dog's photo as it was posted (with its watermark).
+      let pictures = null;
+      try {
+        const res = await fetch(NFS_POSTER);
+        const posterB64 = res.ok ? Buffer.from(await res.arrayBuffer()).toString('base64') : '';
+        const ph = await ref.collection('images').doc('fbphoto').get();
+        const photoB64 = ph.exists && ph.data().data ? String(ph.data().data).split(',')[1] : '';
+        if (posterB64 && photoB64) pictures = await fbSwapPictures(d.fbPostId, secret.data().pageId, token, message, [posterB64, photoB64]);
+      } catch (e) { console.warn('No further sightings: pictures not changed:', e.message); }
+      if (!pictures || !pictures.changed) await graph('POST', d.fbPostId, new URLSearchParams({ message, access_token: token }));
+      await ref.update({ fbUpdateStatus: 'no-further-sightings', fbUpdatedAt: FV.serverTimestamp(), fbUpdatedBy: 'Automatic',
+        ...(pictures && pictures.changed ? { fbPosterAt: FV.serverTimestamp() } : {}) });
+      fbNote = pictures && pictures.changed ? ' The Facebook post was updated with the No Further Sightings poster.'
+        : pictures && pictures.noPictures ? ' The Facebook post was updated, but Facebook didn\u2019t accept the new pictures and the post now has no pictures.'
+        : ' The Facebook post was updated (text only; its pictures were not changed).';
+    } catch (err) { fbNote = ' The Facebook post could not be updated: ' + String((err.fb && err.fb.message) || err.message || '').slice(0, 120); }
+  }
+  await ref.collection('updates').add({ kind: 'status', from: 'loose', to: 'no-further-sightings',
+    text: 'Marked No further sightings automatically: no activity for 24 hours.' + fbNote, byName: 'Automatic', byUid: '', createdAt: FV.serverTimestamp() });
+}
+
 // ---- Found dogs that are safe (vet, police, kennels, dog warden) close themselves after 2 days ----
 // The dog keeps its tag ("Safe with vet" etc.). It moves to Closed in the app, and shows in amber on the
 // website for 7 days so an owner can still come forward. Checked every hour.
 const SAFE_PLACES = ['Safe with vet', 'Safe at police station', 'Safe at kennels', 'Safe with dog warden'];
 const AUTO_CLOSE_MS = 2 * 24 * 3600e3;
-exports.autoCloseSafeDogs = onSchedule({ schedule: 'every 1 hours', timeZone: 'Europe/London' }, async () => {
+exports.autoCloseSafeDogs = onSchedule({ schedule: 'every 1 hours', timeZone: 'Europe/London', timeoutSeconds: 300, memory: '512MiB' }, async () => {
+  await quietLooseDogs().catch(err => console.error('Loose dog check failed:', err && err.message));
   const db = admin.firestore();
   const found = await db.collection('dogs').where('status', '==', 'found').get();
   let closed = 0;
@@ -346,6 +411,8 @@ exports.facebookPost = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async r
   const link = parts.length === 2 ? 'https://www.facebook.com/' + parts[0] + '/posts/' + parts[1] : 'https://www.facebook.com/' + postId;
   const what = String(d.label || 'poster').slice(0, 60);
   if (dogRef) {
+    // Keep the dog's photo exactly as posted (with its watermark), so an automatic update can use it again.
+    if (images.length === 2 && images[1].length < 900000) await dogRef.collection('images').doc('fbphoto').set({ kind: 'fbphoto', data: 'data:image/jpeg;base64,' + images[1], at: admin.firestore.FieldValue.serverTimestamp() }).catch(() => {});
     await dogRef.update({ fbPostId: postId, fbLink: link, fbMessage: message, fbPostedAt: admin.firestore.FieldValue.serverTimestamp(), fbPostedBy: me.name,
       fbUpdateStatus: '', fbUpdatedAt: null, fbUpdatedBy: '' });
     await dogRef.collection('updates').add({ kind: 'facebook', text: 'Posted to the Facebook Page (' + what + ').', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
@@ -357,14 +424,55 @@ exports.facebookPost = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async r
 // When a dog's case moves on (Found, Reunited, Home safe and so on), put the news at the top of the
 // original Facebook post. The original text stays underneath; a later update replaces the earlier one.
 const FB_SPLIT = '\n\n\u2B07\uFE0F Original post \u2B07\uFE0F\n\n';
-const UPDATE_LABEL = { 'found-kennels': 'Safe at kennels', 'found-vets': 'Safe with vet', 'found-police': 'Safe at police station', found: 'Found', reunited: 'Reunited', 'home-safe': 'Home safe', 'no-further-sightings': 'No further sightings', 'paws-down': 'Paws down' };
+const UPDATE_LABEL = { missing: 'New poster', loose: 'New photo', 'found-kennels': 'Safe at kennels', 'found-vets': 'Safe with vet', 'found-police': 'Safe at police station', found: 'Found', reunited: 'Reunited', 'home-safe': 'Home safe', 'no-further-sightings': 'No further sightings', 'paws-down': 'Paws down' };
+// Swap a post's pictures (and set its text) in one go. Facebook has no documented way to do this, but testing
+// (10 Nov 2026) showed: the first try fails and clears the old pictures, and a second try then attaches the new
+// ones. So: try, and if Facebook refuses, wait a moment and try once more with fresh uploads. Afterwards, if it
+// still failed, the post is checked so we can say plainly whether it was left with no pictures.
+// images: base64 JPEGs (1 or 2). Returns { changed, tries, reason?, noPictures? }.
+async function fbSwapPictures(postId, pageId, token, message, images) {
+  const attempt = async () => {
+    const ids = [];
+    try {
+      for (const b of images) {
+        const form = new FormData();
+        form.append('source', new Blob([Buffer.from(b, 'base64')], { type: 'image/jpeg' }), 'poster.jpg');
+        form.append('published', 'false'); form.append('access_token', token);
+        ids.push((await graph('POST', pageId + '/photos', form)).id);
+      }
+      const form = new URLSearchParams({ message, access_token: token });
+      ids.forEach((id, i) => form.append('attached_media[' + i + ']', JSON.stringify({ media_fbid: id })));
+      await graph('POST', postId, form);
+      return null;
+    } catch (err) {
+      for (const id of ids) await graph('DELETE', id + '?access_token=' + encodeURIComponent(token)).catch(() => {});   // tidy the unused uploads
+      const e = err.fb || {};
+      console.warn('Facebook picture update refused:', e.code, e.message);
+      return String(e.message || err.message || 'Facebook refused').slice(0, 200);
+    }
+  };
+  let reason = await attempt(), tries = 1;
+  if (reason) { await new Promise(r => setTimeout(r, 2500)); reason = await attempt(); tries = 2; }
+  const pictures = reason ? { changed: false, reason, tries } : { changed: true, tries };
+  if (!pictures.changed) {
+    try {
+      const att = await graph('GET', postId, { fields: 'attachments{media,subattachments}', access_token: token });
+      pictures.noPictures = !(att.attachments && att.attachments.data && att.attachments.data.length);
+    } catch (e) {}
+  }
+  return pictures;
+}
+
 exports.facebookUpdate = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async request => {
   const me = await caller(request, FB_ROLES);
   const db = admin.firestore(), d = request.data || {};
   const dogId = String(d.dogId || '');
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(dogId)) throw new HttpsError('invalid-argument', 'Which dog?');
   const text = String(d.text || '').trim();
-  if (!text) throw new HttpsError('invalid-argument', 'Write the update first.');
+  // Pictures only (a missing or loose dog's new poster or photo): the post's text is left exactly as it is.
+  const picturesOnly = d.picturesOnly === true;
+  if (picturesOnly && !(Array.isArray(d.images) && d.images.length)) throw new HttpsError('invalid-argument', 'There is no new picture to put on the post.');
+  if (!text && !picturesOnly) throw new HttpsError('invalid-argument', 'Write the update first.');
   if (text.length > 3000) throw new HttpsError('invalid-argument', 'The update is too long.');
   const dogRef = db.collection('dogs').doc(dogId), dogSnap = await dogRef.get();
   if (!dogSnap.exists) throw new HttpsError('not-found', 'That dog is not listed.');
@@ -383,62 +491,34 @@ exports.facebookUpdate = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async
   }
   if (!current) current = String(dog.fbMessage || '');
   const original = current.includes(FB_SPLIT) ? current.slice(current.indexOf(FB_SPLIT) + FB_SPLIT.length) : current;
-  const message = original ? text + FB_SPLIT + original : text;
-  // TRIAL: also swap the post's pictures for the new poster and the dog's photo. Facebook doesn't promise
-  // apps can change a post's pictures, so if it refuses, the text is updated on its own (as before) and the
-  // app is told what happened.
-  // Swap the post's pictures for the new poster and the dog's photo. Facebook has no documented way to do this,
-  // but testing (10 Nov 2026) showed: the first try fails and clears the old pictures, and a second try then
-  // attaches the new ones. So: try, and if Facebook refuses, wait a moment and try once more with fresh uploads.
-  // Afterwards the post is checked; if it ended up with no pictures, the app is told plainly.
+  const message = picturesOnly ? current : original ? text + FB_SPLIT + original : text;
   const images = Array.isArray(d.images) ? d.images : [];
   let pictures = null;
   if (images.length) {
     if (images.length > 2 || !images.every(b => typeof b === 'string' && /^[A-Za-z0-9+/=]+$/.test(b) && b.length < 6e6))
       throw new HttpsError('invalid-argument', 'The pictures could not be read.');
-    const pageId = secret.data().pageId;
-    const attempt = async () => {
-      const ids = [];
-      try {
-        for (const b of images) {
-          const form = new FormData();
-          form.append('source', new Blob([Buffer.from(b, 'base64')], { type: 'image/jpeg' }), 'poster.jpg');
-          form.append('published', 'false'); form.append('access_token', token);
-          ids.push((await graph('POST', pageId + '/photos', form)).id);
-        }
-        const form = new URLSearchParams({ message, access_token: token });
-        ids.forEach((id, i) => form.append('attached_media[' + i + ']', JSON.stringify({ media_fbid: id })));
-        await graph('POST', dog.fbPostId, form);
-        return null;
-      } catch (err) {
-        for (const id of ids) await graph('DELETE', id + '?access_token=' + encodeURIComponent(token)).catch(() => {});   // tidy the unused uploads
-        const e = err.fb || {};
-        console.warn('Facebook picture update refused:', e.code, e.message);
-        return String(e.message || err.message || 'Facebook refused').slice(0, 200);
-      }
-    };
-    let reason = await attempt(), tries = 1;
-    if (reason) { await new Promise(r => setTimeout(r, 2500)); reason = await attempt(); tries = 2; }
-    pictures = reason ? { changed: false, reason, tries } : { changed: true, tries };
+    pictures = await fbSwapPictures(dog.fbPostId, secret.data().pageId, token, message, images);
+    if (pictures.changed && images.length === 2 && images[1].length < 900000)
+      await dogRef.collection('images').doc('fbphoto').set({ kind: 'fbphoto', data: 'data:image/jpeg;base64,' + images[1], at: admin.firestore.FieldValue.serverTimestamp() }).catch(() => {});
   }
-  if (pictures && !pictures.changed) {
-    // Did the failed tries leave the post without any pictures?
-    try {
-      const att = await graph('GET', dog.fbPostId, { fields: 'attachments{media,subattachments}', access_token: token });
-      pictures.noPictures = !(att.attachments && att.attachments.data && att.attachments.data.length);
-    } catch (e) {}
-  }
-  if (!pictures || !pictures.changed) try { await graph('POST', dog.fbPostId, new URLSearchParams({ message, access_token: token })); }
+  if (!picturesOnly && (!pictures || !pictures.changed)) try { await graph('POST', dog.fbPostId, new URLSearchParams({ message, access_token: token })); }
   catch (err) {
     const e = err.fb || {};
     if (e.code === 100) throw new HttpsError('failed-precondition', 'Facebook would not let this post be edited' + (e.message ? ': ' + String(e.message).slice(0, 160) : '.'));
     throw fbProblem(err);
   }
+  if (picturesOnly) {
+    if (pictures.changed) await dogRef.update({ fbPosterAt: admin.firestore.FieldValue.serverTimestamp() });
+    await dogRef.collection('updates').add({ kind: 'facebook', text: pictures.changed ? 'Facebook post picture updated (new ' + (dog.status === 'missing' ? 'poster' : 'photo') + '); the text was left as it was.'
+      : pictures.noPictures ? 'The new picture was not accepted by Facebook and the post now has no pictures.' : 'Facebook would not change the post\u2019s picture.', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+    return { updated: !!pictures.changed, link: dog.fbLink || '', pictures, picturesOnly: true };
+  }
   // A Found dog that is safe at kennels has its own wording, so it counts as its own update.
   const CARE_KEY = { 'Safe at kennels': 'found-kennels', 'Safe with vet': 'found-vets', 'Safe at police station': 'found-police' };
   const key = dog.status === 'found' && CARE_KEY[dog.foundWhere] ? CARE_KEY[dog.foundWhere] : String(dog.status || '');
   const label = UPDATE_LABEL[key] || String(dog.status || 'update');
-  await dogRef.update({ fbUpdateStatus: key, fbUpdatedAt: admin.firestore.FieldValue.serverTimestamp(), fbUpdatedBy: me.name });
+  await dogRef.update({ fbUpdateStatus: key, fbUpdatedAt: admin.firestore.FieldValue.serverTimestamp(), fbUpdatedBy: me.name,
+    ...(pictures && pictures.changed ? { fbPosterAt: admin.firestore.FieldValue.serverTimestamp() } : {}) });   // the post now has the latest poster/photo
   await dogRef.collection('updates').add({ kind: 'facebook', text: 'Facebook post updated (' + label + ')' + (pictures ? (pictures.changed ? ', with the new poster' : pictures.noPictures ? '; the new pictures were not accepted and the post now has no pictures' : '; the pictures could not be changed') : '') + '.', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
   return { updated: true, link: dog.fbLink || '', pictures };
 });
@@ -449,7 +529,7 @@ exports.facebookUpdate = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async
 // is tidied away with the closed cases. Its Facebook post: moved to the kept dog if that one has none;
 // otherwise deleted on Facebook if the admin asks (the app made it, so it can), or a reminder is left on
 // the kept dog's page to remove it by hand.
-const FB_FIELDS = ['fbPostId', 'fbLink', 'fbPostedAt', 'fbPostedBy', 'fbMessage', 'fbUpdateStatus', 'fbUpdatedAt', 'fbUpdatedBy'];
+const FB_FIELDS = ['fbPostId', 'fbLink', 'fbPostedAt', 'fbPostedBy', 'fbMessage', 'fbUpdateStatus', 'fbUpdatedAt', 'fbUpdatedBy', 'fbPosterAt'];
 exports.mergeDogs = onCall({ timeoutSeconds: 120 }, async request => {
   const me = await caller(request, ['admin', 'developer']);
   const db = admin.firestore(), d = request.data || {}, S = admin.firestore.FieldValue;
