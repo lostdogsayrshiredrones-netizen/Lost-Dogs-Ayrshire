@@ -980,6 +980,13 @@
 .fb-pics figure { margin: 0; text-align: center; }
 .fb-pics img { width: 150px; height: 150px; object-fit: cover; border: 3px solid var(--yellow); border-radius: 10px; display: block; }
 .fb-pics figcaption { font-size: .78rem; font-weight: 800; color: #d9ccff; margin-top: 4px; }
+.quiet-box { margin: 14px 0; padding: 12px 14px; border-radius: 14px; background: var(--purple-deep); }
+.quiet-box p { margin: 0 0 10px; font-size: .92rem; line-height: 1.4; }
+.quiet-box.soon { background: #fff4c2; color: #4a3a00; } .quiet-box.soon strong { color: #a64b00; }
+.lp-card { margin: 14px 0; padding: 14px; border-radius: 14px; background: var(--purple-deep); }
+.lp-card h3 { margin: 0 0 10px; color: var(--yellow); }
+.lp-card .lp-img { display: block; width: 100%; max-width: 360px; margin: 0 auto 10px; border-radius: 10px; border: 3px solid var(--yellow); }
+.lp-btns { display: flex; gap: 10px; flex-wrap: wrap; } .lp-btns > * { flex: 1; text-align: center; text-decoration: none; }
 .rd-pic { width: 100%; border-radius: 12px; display: block; margin: 0 0 12px; }
 .rd-dogs { display: flex; flex-direction: column; gap: 8px; margin: 0 0 14px; }
 .rd-dog { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--purple-deep); }
@@ -1963,6 +1970,10 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <input id="dog-photo" type="file" accept="image/*" hidden>
     <img id="dog-photo-preview" alt="Chosen photo" hidden>
     <button class="btn ghost" id="dog-photo-edit" type="button" hidden>Blur names or crop</button>
+    <div id="dog-poster-box" hidden>
+      <button class="btn wide" id="dog-make-poster" type="button" style="margin-top:10px">Make a Lost Dog poster</button>
+      <p class="field-help">Saves the dog, then opens the poster maker. The poster is kept with this dog, and you can edit it (or make an A4 copy) any time.</p>
+    </div>
     <label for="dog-breed">Breed</label>
     <input id="dog-breed" name="breed" type="text" autocomplete="off" autocapitalize="words" list="breed-list" placeholder="Start typing, e.g. Lab… (the public sees this, not the name)">
     <datalist id="breed-list"></datalist>
@@ -2154,9 +2165,9 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 
 <!-- ================= CREATE LOST DOG POSTER ================= -->
 <section class="screen" id="create-poster">
-  <button class="back" data-go="home">&larr; Home</button>
-  <h2 class="page-title">Create Lost Dog Poster</h2>
-  <p class="intro">Fill in the details and the poster is made for you.</p>
+  <button class="back" id="poster-back" data-go="home">&larr; Home</button>
+  <h2 class="page-title" id="poster-title">Create Lost Dog Poster</h2>
+  <p class="intro" id="poster-intro">Fill in the details and the poster is made for you.</p>
   <form class="form" id="poster-form" novalidate>
     <label for="poster-photo-btn">Photo of the dog</label>
     <button class="btn ghost" id="poster-photo-btn" type="button" onclick="document.getElementById('poster-photo').click()">Choose a photo</button>
@@ -2195,9 +2206,10 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <label for="poster-contact">Contact number</label>
     <input id="poster-contact" type="tel" autocomplete="off" value="07715 950588" maxlength="24">
   </form>
+  <button class="save" id="poster-save-dog" type="button" hidden>Save to this dog</button>
   <button class="save" id="poster-save" type="button">Save to device</button>
   <p class="form-msg" id="poster-msg" role="status"></p>
-  <div class="fb-box fb-only" hidden>
+  <div class="fb-box fb-only" id="poster-fb-box" hidden>
     <button class="btn wide fb-btn" id="poster-fb" type="button">Post to our Facebook Page</button>
     <p class="field-help">Posts the square poster with ready-written text to the Page. You check it first.</p>
   </div>
@@ -2727,6 +2739,8 @@ function render() {
   if (name === 'agreement') { activate('profile'); showProfile(); return setTimeout(() => { const el = $('#profile-agreement'); if (el) el.scrollIntoView({ block: 'start' }); }, 300); }
   if (name === 'profile')   { activate('profile');  return showProfile(); }
   if (name === 'whatsapp')  { activate('whatsapp'); return showWhatsApp(); }
+  if (name === 'create-poster' && arg) { if (!isCoord()) return go('home'); activate('create-poster'); return openPosterForDog(arg); }
+  if (name === 'create-poster') { activate('create-poster'); return openPosterForDog(''); }
   if (name === 'roundup')   { if (!isAdmin()) return go('home'); activate('roundup'); return showRoundup(); }
   if (name === 'fbpost')    { if (!isCoord()) return go('home'); activate('fbpost'); return showFacebookPost(arg); }
   if (name === 'fbupdate')  { if (!isCoord()) return go('home'); activate('fbupdate'); return showFacebookUpdate(arg); }
@@ -3812,7 +3826,27 @@ function showDog(id) {
     }
     if (d.fbPostId && d.fbUpdateStatus && isCoord()) root.appendChild(h('p', { class: 'fb-note', style: 'margin:-4px 0 8px' },
       'Facebook post updated to ' + updateLabel(d.fbUpdateStatus) + (d.fbUpdatedBy ? ' by ' + d.fbUpdatedBy : '') + (d.fbUpdatedAt ? ', ' + when(d.fbUpdatedAt) : '') + '.'));
-    if (canUpdateFacebook(d) && d.fbUpdateStatus !== updateKey(d)) root.appendChild(h('button', { class: 'btn wide fb-btn', type: 'button', style: 'margin:12px 0 0', 'data-go': 'fbupdate/' + id }, 'Update the Facebook post'));
+    if (canUpdateFacebook(d) && FB_UPDATE_STATUSES.includes(d.status) && d.fbUpdateStatus !== updateKey(d)) root.appendChild(h('button', { class: 'btn wide fb-btn', type: 'button', style: 'margin:12px 0 0', 'data-go': 'fbupdate/' + id }, 'Update the Facebook post'));
+    if (canPostFacebook() && posterNewerThanPost(d)) root.appendChild(h('button', { class: 'btn wide fb-btn', type: 'button', id: 'fb-newposter', style: 'margin:12px 0 0', onclick: () => { fbUpdatePoster = id; go('fbupdate/' + id); } },
+      d.status === 'missing' ? 'Update Facebook with the new poster' : 'Update Facebook with the new photo'));
+    if (d.status === 'missing' && isCoord()) root.appendChild(lostPosterCard(id, d));
+    // Loose dogs become No further sightings by themselves after 24 hours with no activity (the server checks
+    // hourly, and alerts coordinators about 2 hours before). Keep open restarts the 24 hours.
+    if (d.status === 'loose' && isCoord()) {
+      const ms = t => (t ? millis(t) : 0);   // millis() treats a missing time as now
+      const soon = !!d.quietWarnedAt && ms(d.quietWarnedAt) > Math.max(ms(d.keepOpenAt), ms(d.updatedAt));
+      const kmsg = h('p', { class: 'form-msg', role: 'status' });
+      root.appendChild(h('div', { class: 'quiet-box' + (soon ? ' soon' : '') },
+        h('p', null, soon ? h('strong', null, 'Closing soon: ') : null, 'This loose dog will be marked ', h('b', null, 'No further sightings'), ' automatically after 24 hours with no activity (no sightings, updates or changes), and its Facebook post updated.'),
+        h('button', { class: 'btn wide', type: 'button', id: 'keep-open', onclick: async e => {
+          e.target.disabled = true;
+          try {
+            await fb.updateDoc(fb.doc(fb.db, 'dogs', id), { keepOpenAt: fb.serverTimestamp(), quietWarnedAt: null });
+            await fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'), { kind: 'note', text: 'Kept open for another 24 hours.', byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() });
+            kmsg.textContent = 'Kept open for another 24 hours.';
+          } catch (err) { e.target.disabled = false; kmsg.textContent = friendlyError(err); }
+        } }, 'Keep open for another 24 hours'), kmsg));
+    }
     if (canPostFacebook()) root.appendChild(h('button', { class: 'btn wide fb-btn', type: 'button', style: 'margin:12px 0', 'data-go': 'fbpost/' + id }, d.fbPostId ? 'Post to Facebook again' : 'Post to Facebook'));
 
     // --- Details
@@ -4199,7 +4233,9 @@ function showDogEdit(id) {
   whereSel.appendChild(h('option', { value: '' }, 'Choose\u2026'));
   FOUND_WHERE.forEach(w => whereSel.appendChild(h('option', { value: w }, w)));
   const showWhere = () => { $('#dog-found-box').hidden = !keepsWhere(statusBox.value); const c = keepsWhere(statusBox.value) && CARE[whereSel.value]; $('#dog-kennels-box').hidden = !c; if (c) { $('#dog-kennels-label').textContent = c.ask; $('#dog-kennels').placeholder = c.ph; } };
-  statusBox.onchange = showWhere; whereSel.onchange = showWhere; showWhere();
+  const showPosterBtn = () => { $('#dog-poster-box').hidden = !(isNew && statusBox.value === 'missing'); };
+  statusBox.onchange = () => { showWhere(); showPosterBtn(); }; whereSel.onchange = showWhere; showWhere(); showPosterBtn();
+  $('#dog-make-poster').onclick = () => { posterAfterSave = true; form.dispatchEvent(new Event('submit', { cancelable: true })); };
   msg.textContent = '';
   $('#dog-photo-preview').hidden = true; $('#dog-photo-edit').hidden = true;
   state.subs.push(() => { if (edit.map) { edit.map.remove(); edit.map = null; } });
@@ -4278,6 +4314,7 @@ function showDogEdit(id) {
       showWhere();
       edit.oldStatus = d.status || 'missing';
       edit.oldWhere = d.foundWhere || '';
+      edit.orig = d;
       edit.oldKey = updateKey({ ...d, status: d.status || 'missing' });
       edit.fbPostId = d.fbPostId || '';
       $('#dog-ask').checked = !!d.askAvailability;
@@ -4381,6 +4418,7 @@ function showDogEdit(id) {
     e.preventDefault();
     const thenFacebook = fbAfterSave && isNew && canPostFacebook();
     fbAfterSave = false;
+    const thenPoster = posterAfterSave && isNew; posterAfterSave = false;
     const v = k => (form.elements[k] ? form.elements[k].value.trim() : '');
     if (!v('name')) { msg.textContent = 'Enter the dog\'s name (or a short description if unknown).'; return; }
     if (isNew && edit.dupShown && edit.dupShown.length) { msg.textContent = 'Is this the same dog as one already on the app? Choose \u201cOpen that dog\u201d or \u201cNo, it\u2019s a different dog\u201d above.'; $('#dog-dup').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
@@ -4401,6 +4439,10 @@ function showDogEdit(id) {
     if (data.foundWhere && data.foundWhere !== (edit.oldWhere || '')) data.foundWhereAt = fb.serverTimestamp();   // when the dog got there (closes itself 2 days after reaching a vet, police, kennels or warden)
     if (!data.foundWhere) data.foundWhereAt = null;
     if (edit.thumb) { data.thumb = edit.thumb; data.photoHash = edit.hash || await photoHash(edit.thumb); }   // fingerprint for spotting duplicates
+    // A new photo, or (for a missing dog) details printed on its Lost Dog poster: the poster has changed.
+    const o = edit.orig || {};
+    const posterChanged = !isNew && (!!edit.thumb || (data.status === 'missing' && ['colour', 'sex', 'lastSeenPlace', 'lastSeenAt'].some(k => String(data[k] || '') !== String(o[k] || ''))));
+    if (posterChanged && NEW_POSTER_STATUSES.includes(data.status)) data.posterAt = fb.serverTimestamp();
     const btn = $('#dog-save');
     btn.disabled = true;
     msg.textContent = 'Saving…';
@@ -4429,9 +4471,16 @@ function showDogEdit(id) {
       // The full-size photo lives in its own record so the list stays quick to load.
       if (edit.photo) await fb.setDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'main'),
         { kind: 'photo', data: edit.photo, createdAt: fb.serverTimestamp() });
+      if (data.status === 'missing' && posterChanged && !isNew) {   // the dog has a poster already: remake it with the new photo or details (its own settings kept)
+        const had = await fb.getDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'poster')).catch(() => null);
+        if (had && had.exists()) { msg.textContent = 'Updating the poster…'; await saveLostPoster(dogId, data).catch(err => console.warn('Poster not saved:', err && err.message)); }
+      }
       if (isNew) sendPush({ type: 'dog', dogId });
       else if (data.askAvailability && !edit.wasAsking) sendPush({ type: 'availability', dogId });
       btn.disabled = false;
+      // Posted already, and the photo or poster has changed: offer to update the Facebook post's pictures.
+      if (!thenFacebook && posterChanged && edit.fbPostId && NEW_POSTER_STATUSES.includes(data.status) && canPostFacebook()) { fbUpdatePoster = dogId; go('fbupdate/' + dogId); return; }
+      if (thenPoster) { go('create-poster/' + dogId); return; }
       if (thenFacebook) { fbDraft = { justSaved: dogId }; go('fbpost/' + dogId); return; }
       if (edit.fbOffer && edit.fbPostId && offerFacebookUpdate(dogId, edit.fbOffer.from, edit.fbOffer.to, { fbPostId: edit.fbPostId })) return;
       go('dog/' + dogId);
@@ -7561,6 +7610,7 @@ function initPosterMaker() {
   $('#poster-photo').addEventListener('change', e => {
     const f = e.target.files[0];
     if (!f) return;
+    poster.photoFile = f;
     const url = URL.createObjectURL(f);
     const img = new Image();
     img.onload = () => {
@@ -7699,11 +7749,11 @@ function lostDogText(v) {
   return lines.join('\n');
 }
 // Draw the Lost Dog poster with a given photo (or none), without touching what is open in the poster maker.
-function lostDogPoster(values, photo, size) {
+function lostDogPoster(values, photo, size, pos) {
   const keep = { photo: poster.photo, noPhoto: poster.noPhoto, z: $('#poster-zoom').value, x: $('#poster-x').value, y: $('#poster-y').value };
   try {
     poster.photo = photo || null; poster.noPhoto = !photo;
-    $('#poster-zoom').value = 100; $('#poster-x').value = 50; $('#poster-y').value = 50;
+    $('#poster-zoom').value = (pos && pos.z) || 100; $('#poster-x').value = pos && pos.x != null ? pos.x : 50; $('#poster-y').value = pos && pos.y != null ? pos.y : 50;
     const c = document.createElement('canvas'); c.width = c.height = size || 1080;
     drawPoster(c, values);
     return c.toDataURL('image/jpeg', 0.88);
@@ -7743,6 +7793,41 @@ function addDogLink(text, line) {
   return /\n\n(#|Thank you for caring)/.test(text) ? text.replace(/\n\n(#|Thank you for caring)/, '\n\n' + line + '\n\n$1') : text.trimEnd() + '\n\n' + line;
 }
 
+// ---- A missing dog's own Lost Dog poster ----
+// Made from the dog's details and photo, and kept on its case (dogs/{id}/images/poster) so it can be seen,
+// saved to a phone, and remade after the details or photo change (for example when a photo arrives later).
+const NEW_POSTER_STATUSES = ['missing', 'loose'];   // posts whose pictures come from the dog's photo and details
+function lostValues(d) {
+  const when = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d.lastSeenAt || ''));
+  return { name: d.name || '', colour: d.colour || '', sex: /^(male|female)$/i.test(d.sex || '') ? d.sex : '', area: String(d.lastSeenPlace || '').trim(),
+    date: when ? when[3] + '/' + when[2] + '/' + when[1] : '', contact: $('#poster-contact').defaultValue || '07715 950588' };
+}
+async function dogPhotoSrc(dogId, d) {
+  const fb = state.fb; let src = (d && d.thumb) || '';
+  try { const p = await fb.getDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'main')); if (p.exists() && p.data().data) src = p.data().data; } catch (e) {}
+  return src;
+}
+async function savedPosterSettings(dogId) {
+  try { const p = await state.fb.getDoc(state.fb.doc(state.fb.db, 'dogs', dogId, 'images', 'poster')); return p.exists() ? (p.data().settings || null) : null; } catch (e) { return null; }
+}
+// The poster as it stands: the settings chosen in the poster maker (colour, area, date, contact, photo position)
+// if it has been made, otherwise the dog's details; and the dog's photo.
+async function makeLostPoster(dogId, d, set) {
+  set = set || await savedPosterSettings(dogId);
+  const src = await dogPhotoSrc(dogId, d), photo = src && !(set && set.noPhoto && !d.thumb) ? await loadImage(src).catch(() => null) : null;
+  const v = set ? { colour: set.colour || '', sex: set.sex || '', area: set.area || '', contact: set.contact || '07715 950588',
+    date: set.date ? set.date.split('-').reverse().join('/') : '' } : lostValues(d);
+  return lostDogPoster(v, photo, 1080, set ? { z: set.zoom, x: set.x, y: set.y } : null);
+}
+async function saveLostPoster(dogId, d, set) {
+  const fb = state.fb; set = set || await savedPosterSettings(dogId);
+  const data = await makeLostPoster(dogId, d, set);
+  await fb.setDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'poster'), { kind: 'poster', data, settings: set || null, hasPhoto: !!(d.thumb), madeAt: fb.serverTimestamp(), madeBy: state.profile.name || '' });
+  return data;
+}
+// The dog's photo or poster has changed since it was put on Facebook: offer to update the post's pictures.
+const posterNewerThanPost = d => !!(d && d.fbPostId && d.posterAt && NEW_POSTER_STATUSES.includes(d.status) && millis(d.posterAt) > Math.max(d.fbPosterAt ? millis(d.fbPosterAt) : 0, d.fbPostedAt ? millis(d.fbPostedAt) : 0));
+
 // From a dog: the right poster for its status, plus the dog's photo, with the matching wording.
 async function facebookDraftForDog(dogId) {
   const fb = state.fb;
@@ -7773,7 +7858,9 @@ async function facebookDraftForDog(dogId) {
     const v = { name: d.name || '', colour: d.colour || '', sex: /^(male|female)$/i.test(d.sex || '') ? d.sex : '', area: place,
       date: when ? when[3] + '/' + when[2] + '/' + when[1] : '', contact: $('#poster-contact').defaultValue || '07715 950588' };
     const photo = photoSrc ? await loadImage(photoSrc).catch(() => null) : null;
-    images.push({ src: lostDogPoster(v, photo, 1080), caption: 'The poster' });
+    const set = await savedPosterSettings(dogId);   // the dog's own poster, if one has been made
+    const lp = set ? await makeLostPoster(dogId, d, set) : lostDogPoster(v, photo, 1080);
+    images.push({ src: lp, caption: 'The poster' });
     text = lostDogText(v);
   }
   // Missing, loose or found (including safe at kennels, vet or police station): the dog's own link, which opens
@@ -8017,7 +8104,7 @@ function tickIcon(colour, px) {
 
 // ---- 5.1: when a case moves on, put the news at the top of the original Facebook post ----
 const FB_UPDATE_STATUSES = ['found', 'reunited', 'home-safe', 'no-further-sightings', 'paws-down'];
-const canUpdateFacebook = d => canPostFacebook() && !!(d && d.fbPostId) && FB_UPDATE_STATUSES.includes(d.status);
+const canUpdateFacebook = d => canPostFacebook() && !!(d && d.fbPostId) && (FB_UPDATE_STATUSES.includes(d.status) || NEW_POSTER_STATUSES.includes(d.status));
 // The group's own wording for the new status (the same text as its standard poster).
 // Every built-in poster that has wording, for the "Poster" choice on the Facebook update screen.
 const CARE_POSTER_NAMES = { 'safe-at-vets': 'Safe with vet', 'safe-at-police': 'Safe at police station', 'safe-at-kennels': 'Safe at kennels' };
@@ -8037,7 +8124,102 @@ function fbUpdateTemplate(status) {
   const img = $('#' + std + '-img');
   return img ? img.getAttribute('alt') || '' : '';
 }
-let fbUpdateJustChanged = '';
+let fbUpdateJustChanged = '', fbUpdatePoster = '';
+// The dog's own Lost Dog poster on its page: see it, save it to the phone, or remake it from the details.
+function lostPosterCard(id, d) {
+  const fb = state.fb, card = h('div', { class: 'lp-card' }, h('h3', null, 'Lost Dog poster'), h('p', { class: 'fb-note' }, 'Loading\u2026'));
+  fb.getDoc(fb.doc(fb.db, 'dogs', id, 'images', 'poster')).then(p => {
+    card.textContent = ''; card.appendChild(h('h3', null, 'Lost Dog poster'));
+    if (!(p.exists() && p.data().data)) {
+      card.appendChild(h('p', { class: 'fb-note' }, 'No poster has been made for this dog yet.'));
+      card.appendChild(h('button', { class: 'btn wide', type: 'button', id: 'lp-add', 'data-go': 'create-poster/' + id }, 'Add a Lost Dog poster for this dog'));
+      return;
+    }
+    const x = p.data();
+    card.appendChild(h('img', { class: 'lp-img', src: x.data, alt: 'This dog\u2019s Lost Dog poster' }));
+    card.appendChild(h('p', { class: 'fb-note' }, 'Kept with this dog' + (x.madeBy ? ' \u00b7 made by ' + x.madeBy : '') + (x.madeAt ? ', ' + when(x.madeAt) : '') + '. Press Edit poster to change anything, add a photo, or make an A4 copy for printing.'));
+    card.appendChild(h('div', { class: 'lp-btns' },
+      h('button', { class: 'btn', type: 'button', id: 'lp-edit', 'data-go': 'create-poster/' + id }, 'Edit poster'),
+      h('a', { class: 'btn ghost', href: x.data, download: 'Lost-dog-poster.jpg' }, 'Save to device')));
+  }).catch(() => { card.textContent = ''; card.appendChild(h('h3', null, 'Lost Dog poster')); card.appendChild(h('button', { class: 'btn wide', type: 'button', 'data-go': 'create-poster/' + id }, 'Add a Lost Dog poster for this dog')); });
+  return card;
+}
+
+// ---- The poster maker, for one dog ----
+// Opened from a missing dog (or straight after adding one): filled in from the dog (or from its saved poster),
+// with the dog's photo. "Save to this dog" keeps the poster and its settings on the dog's case, so it can be
+// edited again later, saved as A4, or put on Facebook. A photo chosen here also becomes the dog's photo if it had none.
+let posterDog = null, posterAfterSave = false;
+async function openPosterForDog(id) {
+  const fb = state.fb;
+  poster.photoFile = null;
+  $('#poster-save-dog').hidden = !id; $('#poster-fb-box').classList.toggle('no-dog', !!id);
+  if ($('#poster-fb-box')) $('#poster-fb-box').style.display = id ? 'none' : '';
+  if (!id && posterDog) {   // back to the general poster maker after a dog's poster: start clean
+    ['poster-colour', 'poster-date', 'poster-area'].forEach(k => { $('#' + k).value = ''; }); $('#poster-contact').value = $('#poster-contact').defaultValue;
+    poster.photo = null; poster.noPhoto = false; $('#poster-photo-tools').hidden = true; $('#poster-photo-btn').textContent = 'Choose a photo';
+    const nb = $('#poster-nophoto'); nb.setAttribute('aria-pressed', 'false'); nb.classList.add('ghost'); nb.textContent = 'No photo available'; $('#poster-nophoto-note').textContent = '';
+    refreshPoster();
+  }
+  if (!id) { posterDog = null; $('#poster-title').textContent = 'Create Lost Dog Poster'; $('#poster-intro').textContent = 'Fill in the details and the poster is made for you.'; $('#poster-back').setAttribute('data-go', 'home'); $('#poster-back').innerHTML = '&larr; Home'; return; }
+  if (posterDog && posterDog.id === id && posterDog.keep) { posterDog.keep = false; return; }   // coming back to the same dog: leave the work as it is
+  $('#poster-msg').textContent = 'Loading the dog\u2026';
+  $('#poster-back').setAttribute('data-go', 'dog/' + id); $('#poster-back').innerHTML = '&larr; Back to the dog';
+  try {
+    const snap = await fb.getDoc(fb.doc(fb.db, 'dogs', id));
+    if (!snap.exists()) { $('#poster-msg').textContent = 'This dog is no longer listed.'; return; }
+    const d = snap.data(), set = await savedPosterSettings(id);
+    posterDog = { id, d, hadPoster: !!set };
+    $('#poster-title').textContent = 'Lost Dog poster' + (d.name && !/^unknown$/i.test(d.name) ? ' for ' + d.name : '');
+    $('#poster-intro').textContent = set ? 'This dog\u2019s poster. Change anything, then press Save to this dog.' : 'Filled in from the dog\u2019s details. Check it, then press Save to this dog.';
+    const v = lostValues(d), iso = v.date ? v.date.split('/').reverse().join('-') : '';
+    $('#poster-colour').value = set ? set.colour || '' : v.colour;
+    $('#poster-sex').value = set ? set.sex || '' : (v.sex ? v.sex[0].toUpperCase() + v.sex.slice(1).toLowerCase() : '');
+    $('#poster-date').value = set ? set.date || '' : iso;
+    $('#poster-area').value = set ? set.area || '' : v.area;
+    $('#poster-contact').value = set ? set.contact || $('#poster-contact').defaultValue : $('#poster-contact').defaultValue;
+    $('#poster-zoom').value = set && set.zoom ? set.zoom : 100; $('#poster-x').value = set && set.x != null ? set.x : 50; $('#poster-y').value = set && set.y != null ? set.y : 50;
+    const src = await dogPhotoSrc(id, d), photo = src ? await loadImage(src).catch(() => null) : null;
+    poster.photo = photo; poster.noPhoto = !photo;
+    $('#poster-photo-btn').textContent = photo ? 'Change photo' : 'Choose a photo';
+    $('#poster-photo-tools').hidden = !photo;
+    const nb = $('#poster-nophoto'); nb.setAttribute('aria-pressed', String(!photo)); nb.classList.toggle('ghost', !!photo); nb.textContent = photo ? 'No photo available' : 'No photo available \u2713';
+    $('#poster-nophoto-note').textContent = photo ? '' : 'The poster will say "Photo to follow". Choose a photo when you have one.';
+    $('#poster-msg').textContent = '';
+    refreshPoster();
+  } catch (err) { $('#poster-msg').textContent = friendlyError(err); }
+}
+$('#poster-save-dog').addEventListener('click', async () => {
+  if (!posterDog) return;
+  const fb = state.fb, id = posterDog.id, btn = $('#poster-save-dog'), m = $('#poster-msg');
+  const v = posterValues(), missing = [];
+  if (!v.area) missing.push('the area');
+  if (!v.contact) missing.push('a contact number');
+  if (missing.length) { m.textContent = 'Still needed: ' + missing.join(', ') + '.'; return; }
+  btn.disabled = true; m.textContent = 'Saving the poster to this dog\u2026';
+  try {
+    const set = { colour: v.colour, sex: $('#poster-sex').value, date: $('#poster-date').value, area: v.area, contact: v.contact,
+      zoom: +$('#poster-zoom').value, x: +$('#poster-x').value, y: +$('#poster-y').value, noPhoto: !!poster.noPhoto };
+    const upd = { posterAt: fb.serverTimestamp(), updatedAt: fb.serverTimestamp() };
+    let d = posterDog.d;
+    if (poster.photoFile && !poster.noPhoto) {   // a photo chosen here becomes the dog's photo too
+      const full = await shrinkImage(poster.photoFile, 1100, 700000), thumb = await shrinkImage(poster.photoFile, 360, 60000, true);
+      await fb.setDoc(fb.doc(fb.db, 'dogs', id, 'images', 'main'), { kind: 'photo', data: full, createdAt: fb.serverTimestamp() });
+      Object.assign(upd, { thumb, photoHash: await photoHash(thumb) }); d = { ...d, thumb };
+    }
+    await fb.updateDoc(fb.doc(fb.db, 'dogs', id), upd);
+    // The square poster for Facebook and the dog's page, drawn exactly as it is on screen.
+    const c = document.createElement('canvas'); c.width = c.height = 1080; drawPoster(c, v);
+    const data = c.toDataURL('image/jpeg', 0.88);
+    await fb.setDoc(fb.doc(fb.db, 'dogs', id, 'images', 'poster'), { kind: 'poster', data, settings: set, hasPhoto: !!poster.photo && !poster.noPhoto, madeAt: fb.serverTimestamp(), madeBy: state.profile.name || '' });
+    fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'), { kind: 'note', text: (posterDog.hadPoster ? 'Lost Dog poster updated.' : 'Lost Dog poster made.'), byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() }).catch(() => {});
+    btn.disabled = false; m.textContent = '';
+    poster.photoFile = null;
+    // Already on Facebook: offer to put the new poster on the post (the text stays as it is).
+    if (d.fbPostId && canPostFacebook()) { fbUpdatePoster = id; go('fbupdate/' + id); return; }
+    go('dog/' + id);
+  } catch (err) { btn.disabled = false; m.textContent = friendlyError(err); }
+});
 // Called after a status change: offer the update when it applies.
 function offerFacebookUpdate(dogId, before, after, dog) {
   if (before === after || !FB_UPDATE_STATUSES.includes(/^found-/.test(after) ? 'found' : after) || !canPostFacebook() || !(dog && dog.fbPostId)) return false;
@@ -8051,23 +8233,32 @@ function showFacebookUpdate(dogId) {
   root.textContent = '';
   root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
   const justChanged = fbUpdateJustChanged === dogId; fbUpdateJustChanged = '';
-  fb.getDoc(fb.doc(fb.db, 'dogs', dogId)).then(snap => {
+  const posterMode = fbUpdatePoster === dogId; fbUpdatePoster = '';
+  fb.getDoc(fb.doc(fb.db, 'dogs', dogId)).then(async snap => {
     root.textContent = '';
     if (!snap.exists()) { root.appendChild(h('p', { class: 'empty' }, 'This dog is no longer listed.')); return; }
     const d = snap.data({ serverTimestamps: 'estimate' }), st = STATUSES[d.status] || { label: d.status };
     if (!canUpdateFacebook(d)) { root.appendChild(h('p', { class: 'empty' }, d.fbPostId ? 'There is no Facebook update for this status.' : 'This dog has not been posted to Facebook from the app.')); return; }
+    const newPoster = NEW_POSTER_STATUSES.includes(d.status);   // a missing or loose dog: the update is a new poster or photo
+    // A missing dog's own Lost Dog poster, as it stands now (made fresh from the details and photo).
+    const lostImg = d.status === 'missing' ? await makeLostPoster(dogId, d).catch(() => '') : '';
     if (justChanged) root.appendChild(h('p', { class: 'fb-warn', style: 'background:#1d8a3a;color:#fff' }, 'Status changed to ' + updateLabel(updateKey(d)) + '.'));
+    if (posterMode) root.appendChild(h('p', { class: 'fb-warn', style: 'background:#1d8a3a;color:#fff' }, d.status === 'missing' ? 'Saved. The dog\u2019s Lost Dog poster has been remade.' : 'Saved. The dog\u2019s photo has changed.'));
     root.appendChild(h('div', { class: 'fb-to' }, d.thumb ? h('img', { src: d.thumb, alt: '', style: 'border-radius:8px' }) : h('img', { src: $('#logo-img').src, alt: '' }),
       h('div', null, h('span', null, 'Original post' + (d.fbPostedAt ? ' · ' + when(d.fbPostedAt) : '')), h('strong', null, (d.name && !/^unknown$/i.test(d.name) ? d.name + ' · ' : '') + (d.lastSeenPlace || 'Facebook post')))));
     if (d.fbUpdateStatus) root.appendChild(h('p', { class: 'fb-warn' }, 'Already updated to ' + updateLabel(d.fbUpdateStatus) + (d.fbUpdatedBy ? ' by ' + d.fbUpdatedBy : '') + (d.fbUpdatedAt ? ', ' + when(d.fbUpdatedAt) : '') + '. This replaces that update.'));
     const place = String(d.lastSeenPlace || '').trim();
     // The poster (and its wording) follows the dog's new status. If it's not the right one, the admin can pick
     // another here: the picture and the wording both change to match.
-    const pStd0 = careOf(d) ? careOf(d).poster : st.poster;
-    const posterList = posterChoices();
-    let posterKey = pStd0 && $('#' + pStd0 + '-img') ? pStd0 : '';
+    const pStd0 = d.status === 'missing' && lostImg ? 'lost-dog' : careOf(d) ? careOf(d).poster : st.poster;
+    const posterList = (lostImg ? [['lost-dog', 'Lost Dog poster (this dog)']] : []).concat(posterChoices());
+    let posterKey = pStd0 === 'lost-dog' || (pStd0 && $('#' + pStd0 + '-img')) ? pStd0 : '';
     const noTags = t => String(t || '').split('\n').filter(line => !/^\s*(#[^\s#]+\s*)+$/.test(line)).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    const newPosterText = () => d.status === 'missing'
+      ? '\ud83d\udc9b\ud83d\udc9c Update \u2013 new poster \ud83d\udc9c\ud83d\udc9b\n\nThis dog is still missing. Here is the updated poster' + (d.thumb ? ', now with a photo' : '') + '. Please keep sharing and keep an eye out.\n\nPlease do not shout, pursue, grab or whistle.\n\n' + dogLinkLine(d, dogId)
+      : '\ud83d\udc9b\ud83d\udc9c Update \u2013 photo added \ud83d\udc9c\ud83d\udc9b\n\nWe now have a photo of this loose dog. Please keep an eye out and keep sharing.\n\nPlease do not pursue or call the dog.\n\n' + dogLinkLine(d, dogId);
     const templateFor = key => {
+      if (newPoster && (key === 'lost-dog' || key === pStd0)) return newPosterText();
       const raw = key && $('#' + key + ' .post') ? noTags($('#' + key + ' .post').getAttribute('data-template')) : fbUpdateTemplate(updateKey(d));
       // Vets, police and kennels posters: the dog's own name for that place if it has one, otherwise [Vets Name] etc. to fill in.
       const care = Object.values(CARE).find(c => c.poster === key), mine = careOf(d);
@@ -8081,7 +8272,7 @@ function showFacebookUpdate(dogId) {
       const sel = h('select', { id: 'fbupdate-poster' }, posterList.map(([k, label]) => h('option', { value: k, selected: k === posterKey }, (k === pStd0 ? '✓ ' : '') + label)));
       root.appendChild(h('label', { for: 'fbupdate-poster' }, 'Poster'));
       root.appendChild(sel);
-      root.appendChild(h('p', { class: 'fb-note' }, '✓ matches the dog’s new status. Not the right poster? Choose the correct one: the picture and the wording below change to match.'));
+      root.appendChild(h('p', { class: 'fb-note' }, (newPoster ? '✓ is the right poster for this dog. ' : '✓ matches the dog’s new status. ') + 'Not the right poster? Choose the correct one: the picture and the wording below change to match.'));
       sel.addEventListener('change', () => {
         posterKey = sel.value; template = templateFor(posterKey);
         ta.value = fill(placeBox && placeBox.value.trim() ? placeBox.value.trim() : place);
@@ -8102,6 +8293,7 @@ function showFacebookUpdate(dogId) {
     const pics = h('div', { class: 'fb-pics' });
     const drawPics = () => {
       pics.textContent = '';
+      if (posterKey === 'lost-dog') { pics.appendChild(h('figure', null, h('img', { src: lostImg, alt: 'The new poster', id: 'fbupdate-poster-img' }), h('figcaption', null, 'The dog\u2019s new Lost Dog poster'))); return; }
       const pi = posterKey && $('#' + posterKey + '-img');
       if (pi) pics.appendChild(h('figure', null, h('img', { src: pi.src, alt: 'New poster', id: 'fbupdate-poster-img' }), h('figcaption', null, 'Picture 1: the poster')));
       if (d.thumb) pics.appendChild(h('figure', null, h('img', { src: d.thumb, alt: 'The dog’s photo' }), h('figcaption', null, 'Picture 2: the dog’s photo')));
@@ -8114,30 +8306,44 @@ function showFacebookUpdate(dogId) {
       root.appendChild(pics);
       swap.addEventListener('change', () => { pics.hidden = !swap.checked; });
     }
+    // A missing or loose dog's new poster or photo: only the picture changes. The post's text is left exactly
+    // as it is, so the text box and the picture tick are hidden, and nothing else is needed.
+    if (newPoster) {
+      ta.hidden = true; placeWrap.hidden = true;
+      [...root.querySelectorAll('label[for="fbupdate-text"], p.fb-note')].forEach(x => { x.hidden = true; });
+      if (swap) swap.closest('label').hidden = true;
+      pics.hidden = false;
+      root.insertBefore(h('p', { class: 'fb-note', id: 'fbupdate-picsonly' }, 'Only the picture on the Facebook post changes. The post\u2019s text stays exactly as it is.'), pics);
+    }
     const msg = h('p', { class: 'form-msg', role: 'status' });
     const btn = h('button', { class: 'save fb-blue', type: 'button', onclick: async () => {
-      if (!ta.value.trim()) { msg.textContent = 'Write the update first.'; return; }
-      if (!placeWrap.hidden && !placeBox.value.trim()) { msg.textContent = 'Enter the town or village first.'; placeBox.focus(); return; }
-      if (/\[Town\/Village\]/.test(ta.value)) { msg.textContent = 'Replace [Town/Village] in the text with the place first.'; return; }
-      if (/\[(Kennels|Vets|Station) Name\]/.test(ta.value)) { msg.textContent = 'Replace ' + ta.value.match(/\[(Kennels|Vets|Station) Name\]/)[0] + ' in the text with the name first.'; return; }
+      if (!newPoster && !ta.value.trim()) { msg.textContent = 'Write the update first.'; return; }
+      if (!newPoster && !placeWrap.hidden && !placeBox.value.trim()) { msg.textContent = 'Enter the town or village first.'; placeBox.focus(); return; }
+      if (!newPoster && /\[Town\/Village\]/.test(ta.value)) { msg.textContent = 'Replace [Town/Village] in the text with the place first.'; return; }
+      if (!newPoster && /\[(Kennels|Vets|Station) Name\]/.test(ta.value)) { msg.textContent = 'Replace ' + ta.value.match(/\[(Kennels|Vets|Station) Name\]/)[0] + ' in the text with the name first.'; return; }
       const pImg = posterKey && $('#' + posterKey + '-img');
-      if (swap && swap.checked && !pImg) { msg.textContent = 'Choose a poster first, or untick Change the pictures.'; return; }
+      if (swap && swap.checked && !pImg && posterKey !== 'lost-dog') { msg.textContent = 'Choose a poster first, or untick Change the pictures.'; return; }
       btn.disabled = true; msg.textContent = 'Updating the Facebook post…';
       try {
         const images = [];
-        if (swap && swap.checked) {
+        if (swap && swap.checked && posterKey === 'lost-dog') images.push(lostImg.split(',')[1]);   // the Lost Dog poster already has the photo on it
+        else if (swap && swap.checked) {
           images.push((await asJpeg(pImg.src, 1080)).split(',')[1]);
           let photoSrc = d.thumb || '';
           try { const p = await fb.getDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'main')); if (p.exists() && p.data().data) photoSrc = p.data().data; } catch (e) {}
           if (photoSrc) images.push((await asJpegMarked(photoSrc, 1400)).split(',')[1]);
         }
-        const res = await callFacebook('facebookUpdate', { dogId, text: ta.value.trim(), images });
+        const res = await callFacebook('facebookUpdate', newPoster ? { dogId, text: '', images, picturesOnly: true } : { dogId, text: ta.value.trim(), images });
         const r = (res && res.data) || {};
         if (!r.practice && r.pictures) {   // trial result: say plainly what Facebook did
           root.textContent = '';
           root.appendChild(h('div', { class: 'fb-done' }, h('div', { class: 'tick' }, tickIcon('#3e12a3', 56)),
-            h('h3', null, r.pictures.changed ? 'Post updated, with the new poster' : r.pictures.noPictures ? 'Text updated – pictures missing' : 'Text updated'),
-            h('p', null, r.pictures.changed
+            h('h3', null, r.picturesOnly ? (r.pictures.changed ? 'Picture updated' : r.pictures.noPictures ? 'Picture missing' : 'Picture not changed')
+              : r.pictures.changed ? 'Post updated, with the new poster' : r.pictures.noPictures ? 'Text updated – pictures missing' : 'Text updated'),
+            h('p', null, r.picturesOnly ? (r.pictures.changed ? 'The Facebook post now shows the new ' + (d.status === 'missing' ? 'poster' : 'poster and photo') + '. Its text hasn’t changed. Open the post to check.'
+              : r.pictures.noPictures ? 'Facebook didn’t accept the new picture and the post now has no picture. Press Update Facebook with the new ' + (d.status === 'missing' ? 'poster' : 'photo') + ' on the dog’s page to try again, or add it on Facebook (… → Edit post).'
+              : 'Facebook didn’t allow the picture to be changed. The post is as it was.')
+              : r.pictures.changed
               ? 'The post now shows the new poster and the dog’s photo. Open the post to check.'
               : r.pictures.noPictures
                 ? 'The update text is at the top, but Facebook didn’t accept the new pictures and the post now has no pictures. Press Update the Facebook post on the dog’s page to try again, or add the pictures on Facebook (… → Edit post).'
@@ -8153,7 +8359,7 @@ function showFacebookUpdate(dogId) {
           h('p', null, 'This is the practice site, so Facebook was not changed. In the real app the original post would now show the update at the top.'),
           h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'dog/' + dogId }, 'Back to the dog')));
       } catch (err) { btn.disabled = false; msg.textContent = fbError(err); }
-    } }, 'Update Facebook');
+    } }, newPoster ? 'Update the picture on Facebook' : 'Update Facebook');
     root.appendChild(btn);
     root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'dog/' + dogId }, 'Not now'));
     root.appendChild(msg);
