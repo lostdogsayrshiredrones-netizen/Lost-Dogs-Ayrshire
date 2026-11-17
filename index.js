@@ -223,7 +223,7 @@ async function quietOne(ref, d) {
 
 // ---- Found dogs that are safe (vet, police, kennels, dog warden) close themselves after 2 days ----
 // The dog keeps its tag ("Safe with vet" etc.). It moves to Closed in the app, and shows in amber on the
-// website for 7 days so an owner can still come forward. Checked every hour.
+// website for 2 more days so an owner can still come forward. Checked every hour.
 const SAFE_PLACES = ['Safe with vet', 'Safe at police station', 'Safe at kennels', 'Safe with dog warden'];
 const AUTO_CLOSE_MS = 2 * 24 * 3600e3;
 exports.autoCloseSafeDogs = onSchedule({ schedule: 'every 1 hours', timeZone: 'Europe/London', timeoutSeconds: 300, memory: '512MiB' }, async () => {
@@ -239,7 +239,7 @@ exports.autoCloseSafeDogs = onSchedule({ schedule: 'every 1 hours', timeZone: 'E
     await doc.ref.update({ status: 'closed-safe', statusBy: 'Automatic (safe for 2 days)', statusByUid: '', statusAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp() });
     await doc.ref.collection('updates').add({ kind: 'status', from: 'found', to: 'closed-safe',
-      text: 'Closed automatically: ' + d.foundWhere.toLowerCase() + ' for 2 days. Still shown on the website for 7 days in case the owner comes forward.',
+      text: 'Closed automatically: ' + d.foundWhere.toLowerCase() + ' for 2 days. Still shown on the website for 2 more days in case the owner comes forward.',
       byName: 'Automatic', byUid: '', createdAt: admin.firestore.FieldValue.serverTimestamp() });
     closed++;
   }
@@ -620,9 +620,9 @@ const QUIET_STATUS = { 'no-further-sightings': 'No further sightings' };
 // Where a Found dog is now. Only these general phrases are ever shown publicly (never the vet, finder or address).
 const FOUND_WHERE = ['Safe with finder', 'On route to vets', 'Safe with vet', 'On route to police station', 'Safe at police station', 'Safe with dog warden', 'Safe at kennels'];
 const SAFE_SHOW_MS = 24 * 3600e3;
-// Closed while safe at a vet, police station, kennels or with the dog warden: amber on the website for 7 days,
+// Closed while safe at a vet, police station, kennels or with the dog warden: amber on the website for 2 days,
 // so an owner (or someone who knows the owner) can still come forward.
-const HELD_SHOW_MS = 7 * 24 * 3600e3;
+const HELD_SHOW_MS = 2 * 24 * 3600e3;
 exports.publicDogs = onCall({ cors: true }, async () => {
   if (publicCache.dogs && Date.now() - publicCache.at < 60 * 1000) return { dogs: publicCache.dogs };
   const now = Date.now();
@@ -630,7 +630,7 @@ exports.publicDogs = onCall({ cors: true }, async () => {
   const dogs = snap.docs.map(d => {
     const x = d.data(), safe = !!SAFE_STATUS[x.status], held = x.status === 'closed-safe', quiet = !!QUIET_STATUS[x.status];
     if ((safe || quiet) && !(millis(x.statusAt) > now - SAFE_SHOW_MS)) return null;     // safe (or no further sightings) for more than a day: gone
-    if (held && !(millis(x.statusAt) > now - HELD_SHOW_MS)) return null;     // closed safe for more than 7 days: gone
+    if (held && !(millis(x.statusAt) > now - HELD_SHOW_MS)) return null;     // closed safe for more than 2 days: gone
     return {
       id: d.id,
       // Never the dog's name: people would go out calling it, which can scare a lost dog away. The breed instead.
