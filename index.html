@@ -1490,22 +1490,10 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 
     <!-- (The WhatsApp tile moved to a button on each dog's page in 5.3) -->
 
-    <!-- TILE: Create Lost Dog Poster -->
-    <button class="tile" data-go="create-poster">
-      <img alt="" id="poster-tile-img">
-      <span class="tile-name">Create Lost Dog Poster</span>
-    </button>
-
     <!-- TILE: Posters -->
     <button class="tile" data-go="posters">
       <span class="art icon emoji" aria-hidden="true">🖼️</span>
       <span class="tile-name">Posters</span>
-    </button>
-
-    <!-- TILE: SOPs -->
-    <button class="tile" data-go="sops">
-      <span class="art icon emoji" aria-hidden="true">📑</span>
-      <span class="tile-name">Lost Dogs Ayrshire SOPs</span>
     </button>
 
     <!-- TILE: Documents (Training, Forms, Guidance) -->
@@ -1516,23 +1504,11 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     </button>
 
 
-    <!-- TILE: Members & Map (admins only): who is where, and their equipment -->
-    <button class="tile admin-only" data-go="volunteers">
-      <span class="art icon emoji" aria-hidden="true">📍</span>
-      <span class="tile-name">Members &amp; Map</span>
-    </button>
-
-    <!-- TILE: Access & Roles (admins only): approve people and set roles -->
-    <button class="tile admin-only" data-go="members">
-      <span class="art icon emoji" aria-hidden="true">🔑</span>
-      <span class="count" id="members-count" hidden>0</span>
-      <span class="tile-name">Access &amp; Roles</span>
-    </button>
-
-    <!-- TILE: Website Topics (admins): advice pages on the website, e.g. Fireworks, Stormy weather -->
-    <button class="tile admin-only" data-go="topics">
-      <span class="art icon emoji" aria-hidden="true">🌐</span>
-      <span class="tile-name">Website Topics</span>
+    <!-- TILE: Admin (admins only): Members & Map, Access & Roles, Website Topics -->
+    <button class="tile admin-only" data-go="admin">
+      <span class="art icon emoji" aria-hidden="true">⚙️</span>
+      <span class="count" id="admin-count" hidden>0</span>
+      <span class="tile-name">Admin</span>
     </button>
 
   </nav>
@@ -1549,9 +1525,38 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 6.0 · 24 Oct 2026</p>
+  <p class="version">Version 7.0 · 18 Nov 2026</p>
   <p class="credit">Built for Lost Dogs Ayrshire.<br>For any issues, please contact Lost Dogs Ayrshire.<br>&copy; 2026 Lost Dogs Ayrshire. All rights reserved.</p>
 </main>
+
+<!-- ================= ADMIN MENU (admins) ================= -->
+<section class="screen" id="admin">
+  <button class="back" data-go="home">&larr; Home</button>
+  <h2 class="page-title">Admin</h2>
+  <p class="intro">Choose a section.</p>
+  <nav class="tiles" aria-label="Admin">
+
+    <!-- TILE: Members & Map (admins only): who is where, and their equipment -->
+    <button class="tile" data-go="volunteers">
+      <span class="art icon emoji" aria-hidden="true">📍</span>
+      <span class="tile-name">Members &amp; Map</span>
+    </button>
+
+    <!-- TILE: Access & Roles (admins only): approve people and set roles -->
+    <button class="tile" data-go="members">
+      <span class="art icon emoji" aria-hidden="true">🔑</span>
+      <span class="count" id="members-count" hidden>0</span>
+      <span class="tile-name">Access &amp; Roles</span>
+    </button>
+
+    <!-- TILE: Website Topics (admins): advice pages on the website, e.g. Fireworks, Stormy weather -->
+    <button class="tile" data-go="topics">
+      <span class="art icon emoji" aria-hidden="true">🌐</span>
+      <span class="tile-name">Website Topics</span>
+    </button>
+
+  </nav>
+</section>
 
 <!-- ================= POSTERS MENU ================= -->
 <section class="screen" id="posters">
@@ -1561,6 +1566,12 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
   <p class="intro">Tap a poster to open it and save it to your device.</p>
   <p class="form-msg" id="poster-list-msg" role="status"></p>
   <nav class="tiles" id="poster-tiles" aria-label="Posters">
+
+    <!-- TILE: Create Lost Dog Poster -->
+    <button class="tile" data-go="create-poster">
+      <img alt="" id="poster-tile-img">
+      <span class="tile-name">Create Lost Dog Poster</span>
+    </button>
 
     <!-- TILE: Loose Dog -->
     <button class="tile" data-go="loose-dog">
@@ -1627,7 +1638,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 
 <!-- ================= SOPs MENU ================= -->
 <section class="screen" id="sops">
-  <button class="back" data-go="home">&larr; Home</button>
+  <button class="back" data-go="documents">&larr; Documents</button>
   <h2 class="page-title">Lost Dogs Ayrshire SOPs</h2>
   <p class="intro">Tap an SOP to open it or save it to your device.</p>
   <nav class="tiles" aria-label="Standard Operating Procedures">
@@ -1899,7 +1910,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 6.0 · 24 Oct 2026</p>
+  <p class="version">Version 7.0 · 18 Nov 2026</p>
   <p class="credit">Built for Lost Dogs Ayrshire.<br>For any issues, please contact Lost Dogs Ayrshire.<br>&copy; 2026 Lost Dogs Ayrshire. All rights reserved.</p>
 </section>
 
@@ -2109,7 +2120,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 
 <!-- ================= WEBSITE TOPICS (admins) ================= -->
 <section class="screen" id="topics">
-  <button class="back" data-go="home">&larr; Home</button>
+  <button class="back" data-go="admin">&larr; Admin</button>
   <h2 class="page-title">Website Topics</h2>
   <p class="intro">Advice pages on the website, for example Fireworks or Stormy weather. They show under &ldquo;Advice &amp; seasonal tips&rdquo; on the home page.</p>
   <button class="btn wide" data-go="topic-edit/new" style="margin:0 0 16px">Add a topic</button>
@@ -2154,7 +2165,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 
 <!-- ================= MEMBERS (admins) ================= -->
 <section class="screen" id="members">
-  <button class="back" data-go="home">&larr; Home</button>
+  <button class="back" data-go="admin">&larr; Admin</button>
   <h2 class="page-title">Access &amp; Roles</h2>
   <button class="btn wide ghost dev-only" type="button" data-go="facebook" style="margin:0 0 16px">Facebook Page link</button>
   <button class="btn wide ghost dev-only" type="button" data-go="whatsapp" style="margin:0 0 16px">WhatsApp chat link</button>
@@ -2165,7 +2176,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 
 <!-- ================= CREATE LOST DOG POSTER ================= -->
 <section class="screen" id="create-poster">
-  <button class="back" id="poster-back" data-go="home">&larr; Home</button>
+  <button class="back" id="poster-back" data-go="posters">&larr; Posters</button>
   <h2 class="page-title" id="poster-title">Create Lost Dog Poster</h2>
   <p class="intro" id="poster-intro">Fill in the details and the poster is made for you.</p>
   <form class="form" id="poster-form" novalidate>
@@ -2402,7 +2413,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 
 <!-- ================= VOLUNTEER MAP (admins) ================= -->
 <section class="screen" id="volunteers">
-  <button class="back" data-go="home">&larr; Home</button>
+  <button class="back" data-go="admin">&larr; Admin</button>
   <h2 class="page-title">Members &amp; Map</h2>
   <p class="intro" id="vol-count"></p>
   <div class="row vol-actions">
@@ -2550,7 +2561,7 @@ const STATUSES = {
   // A duplicate merged into another dog by an admin: hidden from every list, tidied away with closed cases.
   'merged':               { label: 'Merged',               active: false, poster: null, hidden: true },
   // A Found dog safe at a vet, police station, kennels or with the dog warden for 2 days is closed automatically
-  // (or by hand). It keeps its tag, and shows in amber on the website for 7 days so the owner can still come forward.
+  // (or by hand). It keeps its tag, and shows in amber on the website for 2 days so the owner can still come forward.
   'closed-safe':          { label: 'Closed \u2013 safe',      active: false, poster: null }
 };
 const keepsWhere = s => s === 'found' || s === 'closed-safe';   // statuses that keep the "where is the dog now" tag
@@ -2733,6 +2744,7 @@ function render() {
   if (name === 'dogs')      { activate('dogs');     return showDogs(); }
   if (name === 'dog')       { activate('dog');      return showDog(arg); }
   if (name === 'dog-edit')  { if (!isCoord()) return go('dogs'); activate('dog-edit'); return showDogEdit(arg); }
+  if (name === 'admin')     { if (!isAdmin()) return go('home'); return activate('admin'); }
   if (name === 'members')   { if (!isAdmin()) return go('home'); activate('members');  return showMembers(); }
   if (name === 'poster')    { activate('poster');   return showPoster(arg); }
   if (name === 'read')      { activate('read');     return showReader(arg); }
@@ -3311,6 +3323,7 @@ function showHome() {
       const badge = $('#members-count');
       badge.textContent = String(snap.size);
       badge.hidden = snap.size === 0;
+      $('#admin-count').textContent = String(snap.size); $('#admin-count').hidden = snap.size === 0;
     }, () => {}));
   }
 }
@@ -6485,6 +6498,9 @@ function showDocuments() {
       root.appendChild(box);
     }
     root.appendChild(h('p', { class: 'intro' }, 'Choose a section.'));
+    // The SOPs come first: Highway and Railway can be needed in a hurry.
+    root.appendChild(h('nav', { class: 'tiles', 'aria-label': 'SOPs', style: 'margin-bottom:18px' }, h('button', { class: 'tile home-wide sop-tile', type: 'button', 'data-go': 'sops' },
+      h('span', { class: 'art icon emoji', 'aria-hidden': 'true' }, '📑'), h('span', { class: 'tile-name' }, 'Lost Dogs Ayrshire SOPs'))));
     const approved = all.filter(d => d.status === 'approved');
     root.appendChild(h('nav', { class: 'tiles', 'aria-label': 'Document sections' }, Object.entries(DOC_CATS).map(([k, c], i) => {
       const n = approved.filter(d => d.category === k).length;
@@ -7879,10 +7895,10 @@ async function facebookDraftForDog(dogId) {
 // ============================================================
 //  Daily round-up for Facebook (admins)
 //  One picture of every dog we're still looking for (Missing and Loose dogs), with a second row for dogs
-//  that are safe and whose owner we want (Found, and Closed – safe for up to 7 days, shown in amber on the
+//  that are safe and whose owner we want (Found, and Closed – safe for up to 2 days, shown in amber on the
 //  website). The admin sees the picture and text first, can leave a dog or its photo out, then posts.
 // ============================================================
-const RD_MAX = 12, RD_HELD_DAYS = 7;
+const RD_MAX = 12, RD_HELD_DAYS = 2;
 const rdTags = d => d.status === 'missing' ? ['MISSING'] : d.status === 'loose' ? ['LOOSE DOG']
   : [d.status === 'closed-safe' ? 'OWNER WANTED' : 'FOUND'].concat(d.foundWhere ? [d.foundWhere.toUpperCase()] : []);
 function rdLoad(src) { return new Promise(res => { if (!src) return res(null); const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; }); }
@@ -8161,7 +8177,7 @@ async function openPosterForDog(id) {
     const nb = $('#poster-nophoto'); nb.setAttribute('aria-pressed', 'false'); nb.classList.add('ghost'); nb.textContent = 'No photo available'; $('#poster-nophoto-note').textContent = '';
     refreshPoster();
   }
-  if (!id) { posterDog = null; $('#poster-title').textContent = 'Create Lost Dog Poster'; $('#poster-intro').textContent = 'Fill in the details and the poster is made for you.'; $('#poster-back').setAttribute('data-go', 'home'); $('#poster-back').innerHTML = '&larr; Home'; return; }
+  if (!id) { posterDog = null; $('#poster-title').textContent = 'Create Lost Dog Poster'; $('#poster-intro').textContent = 'Fill in the details and the poster is made for you.'; $('#poster-back').setAttribute('data-go', 'posters'); $('#poster-back').innerHTML = '&larr; Posters'; return; }
   if (posterDog && posterDog.id === id && posterDog.keep) { posterDog.keep = false; return; }   // coming back to the same dog: leave the work as it is
   $('#poster-msg').textContent = 'Loading the dog\u2026';
   $('#poster-back').setAttribute('data-go', 'dog/' + id); $('#poster-back').innerHTML = '&larr; Back to the dog';
