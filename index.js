@@ -187,6 +187,26 @@ async function quietLooseDogs() {
     }
   }
 }
+// The No Further Sightings poster: the copy that travels with the server first, the website's copy as a back-up.
+async function nfsPoster() {
+  try { return require('fs').readFileSync(require('path').join(__dirname, 'no-further-sightings.jpg')).toString('base64'); } catch (e) {}
+  try { const res = await fetch(NFS_POSTER); if (res.ok) return Buffer.from(await res.arrayBuffer()).toString('base64'); } catch (e) {}
+  return '';
+}
+// The dog's photo as it was posted. 1) the copy kept when the app posted it; 2) the photo straight from the Facebook post
+// itself (its second picture, after the poster); 3) the dog's photo in the app. Empty if none of these exist.
+async function postedDogPhoto(ref, postId, token) {
+  try { const ph = await ref.collection('images').doc('fbphoto').get(); if (ph.exists && ph.data().data) return String(ph.data().data).split(',')[1]; } catch (e) {}
+  try {
+    const att = await graph('GET', postId, { fields: 'attachments{media,subattachments{media}}', access_token: token });
+    const a = att.attachments && att.attachments.data && att.attachments.data[0];
+    const subs = (a && a.subattachments && a.subattachments.data) || [];
+    const src = subs[1] && subs[1].media && subs[1].media.image && subs[1].media.image.src;
+    if (src) { const res = await fetch(src); if (res.ok) return Buffer.from(await res.arrayBuffer()).toString('base64'); }
+  } catch (e) { console.warn('Could not fetch the photo from the Facebook post:', e.message); }
+  try { const m = await ref.collection('images').doc('main').get(); if (m.exists && m.data().data) return String(m.data().data).split(',')[1]; } catch (e) {}
+  return '';
+}
 async function quietOne(ref, d) {
   const db = admin.firestore(), FV = admin.firestore.FieldValue;
   await ref.update({ status: 'no-further-sightings', statusBy: 'Automatic (24 hours with no activity)', statusByUid: '', statusAt: FV.serverTimestamp(), updatedAt: FV.serverTimestamp() });
@@ -200,21 +220,21 @@ async function quietOne(ref, d) {
       try { current = String((await graph('GET', d.fbPostId, { fields: 'message', access_token: token })).message || ''); } catch (e) { current = String(d.fbMessage || ''); }
       const original = current.includes(FB_SPLIT) ? current.slice(current.indexOf(FB_SPLIT) + FB_SPLIT.length) : current;
       const message = original ? NFS_TEXT + FB_SPLIT + original : NFS_TEXT;
-      // The poster from the website, and the dog's photo as it was posted (with its watermark).
-      let pictures = null;
+      // The No Further Sightings poster and the dog's photo. Each has back-ups, so one missing piece never stops the pictures changing.
+      let pictures = null, why = '';
       try {
-        const res = await fetch(NFS_POSTER);
-        const posterB64 = res.ok ? Buffer.from(await res.arrayBuffer()).toString('base64') : '';
-        const ph = await ref.collection('images').doc('fbphoto').get();
-        const photoB64 = ph.exists && ph.data().data ? String(ph.data().data).split(',')[1] : '';
-        if (posterB64 && photoB64) pictures = await fbSwapPictures(d.fbPostId, secret.data().pageId, token, message, [posterB64, photoB64]);
-      } catch (e) { console.warn('No further sightings: pictures not changed:', e.message); }
+        const posterB64 = await nfsPoster();
+        const photoB64 = await postedDogPhoto(ref, d.fbPostId, token);
+        if (!posterB64) why = 'the No Further Sightings poster could not be found';
+        else pictures = await fbSwapPictures(d.fbPostId, secret.data().pageId, token, message, photoB64 ? [posterB64, photoB64] : [posterB64]);
+        if (pictures && !pictures.changed) why = pictures.reason || 'Facebook refused the pictures';
+      } catch (e) { why = e.message; console.warn('No further sightings: pictures not changed:', e.message); }
       if (!pictures || !pictures.changed) await graph('POST', d.fbPostId, new URLSearchParams({ message, access_token: token }));
       await ref.update({ fbUpdateStatus: 'no-further-sightings', fbUpdatedAt: FV.serverTimestamp(), fbUpdatedBy: 'Automatic',
         ...(pictures && pictures.changed ? { fbPosterAt: FV.serverTimestamp() } : {}) });
       fbNote = pictures && pictures.changed ? ' The Facebook post was updated with the No Further Sightings poster.'
         : pictures && pictures.noPictures ? ' The Facebook post was updated, but Facebook didn\u2019t accept the new pictures and the post now has no pictures.'
-        : ' The Facebook post was updated (text only; its pictures were not changed).';
+        : ' The Facebook post was updated (text only; its pictures were not changed' + (why ? ': ' + String(why).slice(0, 120) : '') + ').';
     } catch (err) { fbNote = ' The Facebook post could not be updated: ' + String((err.fb && err.fb.message) || err.message || '').slice(0, 120); }
   }
   await ref.collection('updates').add({ kind: 'status', from: 'loose', to: 'no-further-sightings',
