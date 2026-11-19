@@ -302,6 +302,77 @@
     box-shadow: 0 6px 0 rgba(0, 0, 0, .3);
   }
   a.save { text-align: center; text-decoration: none; }
+  /* Add a dog: the first step, what kind of dog */
+  .type-pick { display: grid; gap: 14px; }
+  /* Dog page: volunteers at a glance, and the Admin button (V7) */
+  .vol-card { background: #fff; color: #1c1530; border-radius: 16px; padding: 14px 14px 10px; margin: 16px 0 14px; box-shadow: 0 6px 0 rgba(0, 0, 0, .3); }
+  .vol-card h3 { margin: 0 0 10px; color: var(--purple); font-size: 1rem; letter-spacing: .06em; text-transform: uppercase; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 10px; }
+  .vol-card h3 small { font-size: .8rem; letter-spacing: 0; text-transform: none; color: #5b4f80; font-weight: 700; }
+  .vol-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .vol-n { border-radius: 12px; padding: 10px 4px; text-align: center; font-weight: 800; font-size: .82rem; line-height: 1.2; }
+  .vol-n b { display: block; font-size: 2rem; font-weight: 900; line-height: 1.05; }
+  .vol-n.now { background: #1d8a3a; color: #fff; } .vol-n.later { background: #f2a516; color: #2a1a00; } .vol-n.no { background: #e7e2f5; color: #4a3f6b; }
+  .vol-names { margin: 10px 0 0; font-size: .95rem; font-weight: 600; } .vol-names .now { color: #1d8a3a; font-weight: 800; }
+  .vol-card .vol-more { display: block; margin: 8px 0 0 auto; color: var(--purple); font-weight: 900; }
+  .admin-big { position: relative; display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; margin: 32px 0 26px; padding: 16px;
+    background: var(--purple-deep); color: var(--yellow); border: 4px solid var(--yellow); border-radius: 16px; font: inherit; font-size: 1.3rem; font-weight: 900;
+    text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 0 rgba(0, 0, 0, .3); text-align: center; }
+  .admin-big small { display: block; font-size: .8rem; font-weight: 700; color: #fff; text-transform: none; }
+  .admin-big.waiting small { color: #ffd27a; }
+  .admin-big .admin-dot { position: absolute; top: -12px; right: -10px; min-width: 34px; height: 34px; padding: 0 6px; display: grid; place-items: center;
+    background: #e0242b; color: #fff; border: 3px solid #fff; border-radius: 999px; font-size: 1rem; }
+  .dog-mini { display: flex; align-items: center; gap: 12px; margin: 4px 0 16px; }
+  .dog-mini img, .dog-mini .art { width: 64px; height: 64px; object-fit: cover; border-radius: 12px; border: 3px solid var(--yellow); flex: none; }
+  .dog-mini strong { display: block; font-size: 1.25rem; } .dog-mini span { color: var(--yellow); font-weight: 800; }
+  .feed li.removed .feed-text { text-decoration: line-through; opacity: .6; }
+  .admin-box.update-form { border: 0; padding: 0; margin: 0 0 18px; }   /* no dotted line round the update box */
+  .admin-box.update-editing { margin: 18px 0 22px; }
+  .admin-box.update-editing label { color: var(--yellow); margin-top: 0; }
+  .feed .feed-actions { display: flex; gap: 18px; justify-content: flex-end; }
+  .feed .feed-actions:empty { display: none; }
+  .feed li.editing textarea { width: 100%; }
+  .feed .feed-earlier summary { cursor: pointer; font-size: .85rem; font-weight: 800; opacity: .8; }
+  .feed .feed-earlier p { margin: 6px 0 0; font-size: .92rem; opacity: .85; }
+  .feed .feed-removed { display: block; font-size: .82rem; font-weight: 700; opacity: .8; }
+  /* Case log on reports and drone requests: every step, oldest first */
+  .case-log { margin: 18px 0; padding: 14px 16px; background: #fff; color: #1c1530; border-radius: 16px; }
+  .case-log h3 { margin: 0 0 8px; color: var(--purple); font-size: 1.05rem; text-transform: uppercase; }
+  .case-log ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 0; }
+  .case-log li { display: grid; gap: 2px; padding: 9px 0 9px 16px; border-left: 3px solid var(--purple); position: relative; }
+  .case-log li::before { content: ""; position: absolute; left: -7px; top: 14px; width: 11px; height: 11px; border-radius: 50%; background: var(--purple); }
+  .case-log li.first::before { background: var(--yellow); border: 2px solid var(--purple); width: 7px; height: 7px; }
+  .case-log .log-when { font-size: .82rem; color: #5b4f80; font-weight: 700; }
+  .case-log .log-what { font-size: 1rem; overflow-wrap: anywhere; }
+  /* Start-typing picker (Breed), the same as the website's report form */
+  .pick-list { display: flex; flex-direction: column; margin-top: 6px; border-radius: 12px; overflow: hidden; background: #fff; border: 3px solid var(--yellow); }
+  .pick-list[hidden] { display: none; }
+  .pick-list button { display: flex; justify-content: space-between; gap: 10px; padding: 12px 14px; border: 0; border-top: 1px solid #e3dcf7; background: #fff; color: #1c1530; font: inherit; font-size: 1rem; font-weight: 800; text-align: left; cursor: pointer; }
+  .pick-list button:first-child { border-top: 0; }
+  .pick-list button small { color: #5b4f80; font-weight: 600; white-space: nowrap; }
+  .pick-list button:active, .pick-list button:focus { background: #f3efff; }
+  .pick-list .pick-none { padding: 10px 14px; color: #4a3f6b; font-size: .92rem; font-weight: 600; }
+  .poster-now { margin-top: 22px; padding: 16px; border: 3px solid var(--yellow); border-radius: 16px; }
+  .poster-now h3 { margin: 0 0 6px; color: var(--yellow); }
+  .poster-now .lp-img { display: block; width: 100%; margin-top: 10px; border-radius: 10px; }
+  .type-btn { width: 100%; padding: 20px 16px; background: var(--yellow); color: var(--purple); border: 0; border-radius: 16px; font: inherit;
+    font-size: 1.5rem; font-weight: 900; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 0 rgba(0, 0, 0, .3); }
+  .type-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0, 0, 0, .3); }
+  .type-btn.lda { background: var(--white); border: 4px solid var(--yellow); }
+  .type-btn small { display: block; margin-top: 4px; font-size: .9rem; font-weight: 700; text-transform: none; }
+  .type-chosen { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 6px;
+    background: rgba(255, 255, 255, .12); border-radius: 12px; font-size: 1.05rem; }
+  .type-chosen[hidden] { display: none; }
+  /* Home: the big Add a dog button above the tiles */
+  .add-dog-big { width: 100%; margin: 0 0 22px; padding: 16px 18px; display: none; align-items: center; justify-content: center; gap: 16px;
+    background: #1d8a3a; color: var(--white); border: 4px solid var(--yellow); border-radius: 18px; font: inherit; cursor: pointer;
+    box-shadow: 0 6px 0 rgba(0, 0, 0, .3); transition: transform .08s ease, box-shadow .08s ease; }
+  body.is-coord .add-dog-big.coord-only { display: flex !important; }
+  .add-dog-big:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0, 0, 0, .3); }
+  .add-dog-plus { flex: none; width: 54px; height: 54px; border-radius: 50%; background: var(--white); color: #1d8a3a;
+    display: grid; place-items: center; font-size: 2.4rem; font-weight: 900; line-height: 1; padding-bottom: 4px; }
+  .add-dog-words { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
+  .add-dog-words strong { font-size: 1.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: .02em; line-height: 1.05; }
+  .add-dog-words small { font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; }
   .save.outline {
     background: none;
     color: var(--yellow);
@@ -503,6 +574,11 @@
   .tile .art.icon svg, .tile .art.nophoto svg { width: 52%; fill: var(--yellow); }
   .tile .art.icon.alert { background: var(--yellow); }
   .tile .art.icon.alert svg { fill: var(--purple); }
+  .tile .art.icon.paws svg { width: 66%; }
+  /* Public Reports: flashes red and purple while a report is waiting for someone to deal with it */
+  @keyframes report-flash { 0%, 45% { background: var(--purple-deep); } 55%, 100% { background: #d81e1e; } }
+  .tile .art.flash { animation: report-flash .8s ease-in-out infinite alternate; }
+  @media (prefers-reduced-motion: reduce) { .tile .art.flash { animation: none; background: #d81e1e; } }
 
   .badge {
     display: inline-block;
@@ -1458,18 +1534,24 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 
   <p class="intro">Choose a section.</p>
 
+  <!-- Add a dog, straight from Home (coordinators and admins) -->
+  <button class="add-dog-big coord-only" type="button" data-go="dog-edit/new" id="home-add-dog">
+    <span class="add-dog-plus" aria-hidden="true">+</span>
+    <span class="add-dog-words"><strong>Add a dog</strong><small>Press here</small></span>
+  </button>
+
   <nav class="tiles" aria-label="Main menu">
 
     <!-- TILE: Missing Dogs (live) -->
     <button class="tile" data-go="dogs">
-      <span class="art icon emoji alert" aria-hidden="true">🐾</span>
+      <span class="art icon paws" aria-hidden="true"><svg viewBox="0 0 100 100"><use href="#paw-shape" transform="translate(4 6) rotate(-20 26 24) scale(0.8)"/><use href="#paw-shape" transform="translate(45 46) rotate(-20 26 24) scale(0.8)"/></svg></span>
       <span class="count" id="dogs-count" hidden>0</span>
       <span class="tile-name">Missing Dogs</span>
     </button>
 
     <!-- TILE: Public Reports (coordinators and admins): reports sent in from the public reporting page -->
     <button class="tile admin-only" data-go="reports">
-      <span class="art icon emoji" aria-hidden="true">💬</span>
+      <span class="art icon emoji" id="reports-art" aria-hidden="true">💬</span>
       <span class="count" id="reports-count" hidden>0</span>
       <span class="tile-name">Public Reports</span>
     </button>
@@ -1525,7 +1607,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <button class="link" id="push-toggle" type="button">Phone notifications: off</button>
   </div>
   <p class="field-help" id="push-note" role="status" style="text-align:center"></p>
-  <p class="version">Version 7.0 · 18 Nov 2026</p>
+  <p class="version">LDAv2 · 19 Nov 2026</p>
   <p class="credit">Built for Lost Dogs Ayrshire.<br>For any issues, please contact Lost Dogs Ayrshire.<br>&copy; 2026 Lost Dogs Ayrshire. All rights reserved.</p>
 </main>
 
@@ -1571,6 +1653,12 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <button class="tile" data-go="create-poster">
       <img alt="" id="poster-tile-img">
       <span class="tile-name">Create Lost Dog Poster</span>
+    </button>
+
+    <!-- TILE: Create Found Safe Poster (no dog needed on the app) -->
+    <button class="tile" data-go="create-found-poster">
+      <img alt="" id="found-poster-tile-img">
+      <span class="tile-name">Create Found Safe Poster</span>
     </button>
 
     <!-- TILE: Loose Dog -->
@@ -1910,7 +1998,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
   <button class="link center only-signin" type="button" data-auth-mode="reset">Forgotten your password?</button>
   <button class="link center only-other" type="button" data-auth-mode="signin">Back to sign in</button>
   <p class="hint">This app is for Lost Dogs Ayrshire team members. New accounts are approved by an admin.</p>
-  <p class="version">Version 7.0 · 18 Nov 2026</p>
+  <p class="version">LDAv2 · 19 Nov 2026</p>
   <p class="credit">Built for Lost Dogs Ayrshire.<br>For any issues, please contact Lost Dogs Ayrshire.<br>&copy; 2026 Lost Dogs Ayrshire. All rights reserved.</p>
 </section>
 
@@ -1937,7 +2025,6 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 <section class="screen" id="dogs">
   <button class="back" data-go="home">&larr; Home</button>
   <h2 class="page-title">Missing Dogs</h2>
-  <button class="btn wide coord-only" data-go="dog-edit/new" style="margin:0 0 18px">Add a dog</button>
   <div class="admin-only"><button class="save fb-blue fb-only" type="button" data-go="roundup" id="roundup-go" style="margin:0 0 18px">Post today&rsquo;s round-up to Facebook</button></div>
   <div class="tabs">
     <button class="btn" data-dog-filter="active">Active</button>
@@ -1955,9 +2042,19 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
 <section class="screen" id="dog-edit">
   <button class="back" id="dog-edit-back" data-go="dogs">&larr; Cancel</button>
   <h2 class="page-title" id="dog-edit-title">Add a dog</h2>
+  <!-- Adding a dog: first choose what kind of dog it is -->
+  <div id="dog-type-pick" hidden>
+    <p class="intro">What kind of dog are you adding?</p>
+    <div class="type-pick">
+      <button type="button" class="type-btn" data-type="missing" id="type-missing">Missing</button>
+      <button type="button" class="type-btn" data-type="loose" id="type-loose">Loose</button>
+      <button type="button" class="type-btn" data-type="found" id="type-found">Found</button>
+      <button type="button" class="type-btn lda" data-type="lda" id="type-lda">Safe with finder (LDA)<small>We&rsquo;re working with the finder</small></button>
+    </div>
+  </div>
   <form class="form" id="dog-form" novalidate>
-    <label for="dog-name">Dog&rsquo;s name</label>
-    <input id="dog-name" name="name" type="text" autocomplete="off" autocapitalize="words">
+    <div class="type-chosen" id="dog-type-chosen" hidden><span>Adding: <strong id="dog-type-name"></strong></span><button type="button" class="link" id="dog-type-change">Change</button></div>
+    <div id="dog-status-row">
     <label for="dog-status">Status</label>
     <select id="dog-status" name="status">
       <option value="missing">Missing</option>
@@ -1968,6 +2065,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
       <option value="no-further-sightings">No further sightings</option>
       <option value="paws-down">Paws down</option>
     </select>
+    </div>
     <div id="dog-found-box" hidden>
       <label for="dog-found-where">Where is the dog now?</label>
       <select id="dog-found-where" name="foundWhere"></select>
@@ -1976,18 +2074,16 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
         <input id="dog-kennels" name="careName" type="text" autocomplete="off" autocapitalize="words" placeholder="e.g. Ayrshire Dog Kennels">
       </div>
     </div>
+    <label for="dog-name">Dog&rsquo;s name</label>
+    <input id="dog-name" name="name" type="text" autocomplete="off" autocapitalize="words">
     <label for="dog-photo-btn">Photo</label>
     <button class="btn ghost" id="dog-photo-btn" type="button" onclick="document.getElementById('dog-photo').click()">Choose a photo</button>
     <input id="dog-photo" type="file" accept="image/*" hidden>
     <img id="dog-photo-preview" alt="Chosen photo" hidden>
     <button class="btn ghost" id="dog-photo-edit" type="button" hidden>Blur names or crop</button>
-    <div id="dog-poster-box" hidden>
-      <button class="btn wide" id="dog-make-poster" type="button" style="margin-top:10px">Make a Lost Dog poster</button>
-      <p class="field-help">Saves the dog, then opens the poster maker. The poster is kept with this dog, and you can edit it (or make an A4 copy) any time.</p>
-    </div>
     <label for="dog-breed">Breed</label>
-    <input id="dog-breed" name="breed" type="text" autocomplete="off" autocapitalize="words" list="breed-list" placeholder="Start typing, e.g. Lab… (the public sees this, not the name)">
-    <datalist id="breed-list"></datalist>
+    <input id="dog-breed" name="breed" type="text" autocomplete="off" autocapitalize="words" maxlength="60" placeholder="Start typing, e.g. Lab… (the public sees this, not the name)" role="combobox" aria-autocomplete="list" aria-controls="dog-breed-list" aria-expanded="false">
+    <div class="pick-list" id="dog-breed-list" role="listbox" hidden></div>
     <label for="dog-colour">Colour and markings</label>
     <input id="dog-colour" name="colour" type="text" autocomplete="off">
     <label for="dog-sex">Sex</label>
@@ -2021,6 +2117,23 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     </div>
     <label for="dog-notes">Important instructions</label>
     <textarea id="dog-notes" name="notes" rows="2" placeholder="e.g. Do not approach, call or pursue. Report sightings only."></textarea>
+    <!-- Missing and Safe with finder (LDA): the dog's own poster, made from the details above and saved with the dog -->
+    <div class="poster-now" id="dog-poster-box" hidden>
+      <h3 id="dog-poster-title">Lost Dog poster</h3>
+      <label class="check"><input type="checkbox" id="dog-poster-now" checked> Make the poster now</label>
+      <div id="dog-poster-body">
+        <p class="field-help">Made from the details above, and kept with the dog. You can edit it later from the dog&rsquo;s page.</p>
+        <img id="dog-poster-preview" class="lp-img" alt="Preview of the poster">
+        <div id="dog-poster-tools" hidden>
+          <label for="dp-zoom">Photo zoom</label>
+          <input id="dp-zoom" type="range" min="100" max="300" value="100">
+          <label for="dp-x">Move photo left / right</label>
+          <input id="dp-x" type="range" min="0" max="100" value="50">
+          <label for="dp-y">Move photo up / down</label>
+          <input id="dp-y" type="range" min="0" max="100" value="50">
+        </div>
+      </div>
+    </div>
     <button class="save" id="dog-save" type="submit">Save</button>
     <div class="fb-box fb-only fb-new-only" hidden>
       <button class="btn wide fb-btn" id="dog-save-fb" type="button">Save and post to Facebook</button>
@@ -2202,6 +2315,7 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
     <label class="check" id="poster-ink-row" hidden><input type="checkbox" id="poster-ink"> Save ink (white background)</label>
     <label>Your poster</label>
     <canvas id="poster-canvas" width="1880" height="1880" role="img" aria-label="Preview of the lost dog poster"></canvas>
+    <div id="poster-desc-fields">
     <label for="poster-colour">Colour</label>
     <input id="poster-colour" type="text" autocomplete="off" placeholder="e.g. Black &amp; white" maxlength="40">
     <label for="poster-sex">Sex</label>
@@ -2210,7 +2324,8 @@ details.avail-fold[open] > summary::after { transform: rotate(-135deg); margin-t
       <option>Male</option>
       <option value="">Not known (leave off the poster)</option>
     </select>
-    <label for="poster-date">Date missing</label>
+    </div>
+    <label for="poster-date" id="poster-date-label">Date missing</label>
     <input id="poster-date" type="date">
     <label for="poster-area">Area</label>
     <input id="poster-area" type="text" autocomplete="off" placeholder="e.g. Newmilns" maxlength="40">
@@ -2567,7 +2682,7 @@ const STATUSES = {
 const keepsWhere = s => s === 'found' || s === 'closed-safe';   // statuses that keep the "where is the dog now" tag
 
 // When a dog is Found, where it is now. Kept as a second step so the status list stays short.
-const FOUND_WHERE = ['Safe with finder', 'On route to vets', 'Safe with vet', 'On route to police station', 'Safe at police station', 'Safe with dog warden', 'Safe at kennels'];
+const FOUND_WHERE = ['Safe with finder', 'Safe with finder (LDA)', 'On route to vets', 'Safe with vet', 'On route to police station', 'Safe at police station', 'Safe with dog warden', 'Safe at kennels'];
 // Safe with vet / Safe at kennels: the place's name is kept with the dog, and each has its own poster and Facebook wording.
 const CARE = {
   'Safe with vet':   { key: 'found-vets',    field: 'vetsName',    ask: 'Which vets?',    ph: 'e.g. Ayr Vets',             fill: '[Vets Name]',    poster: 'safe-at-vets',    what: 'vets' },
@@ -2577,8 +2692,8 @@ const CARE = {
 const careOf = d => (d && keepsWhere(d.status) && CARE[d.foundWhere]) || null;     // the vets or kennels details, if any
 const careName = d => { const c = careOf(d); return c ? String(d[c.field] || '') : ''; };
 const careFill = (text, d) => { const c = careOf(d); return String(text || '').replace(/\{(kennels|vets|station)\}/g, (c && careName(d)) || (c ? c.fill : '')); };
-const updateKey = d => careOf(d) ? careOf(d).key : (d && d.status) || '';       // which Facebook update applies
-const updateLabel = k => { const w = Object.keys(CARE).find(x => CARE[x].key === k); return w || ((STATUSES[k] || {}).label || k); };
+const updateKey = d => careOf(d) ? careOf(d).key : d && d.status === 'found' && d.foundWhere === FINDER ? 'found-finder' : (d && d.status) || '';       // which Facebook update applies
+const updateLabel = k => { const w = Object.keys(CARE).find(x => CARE[x].key === k); return w || (k === 'found-finder' ? FINDER : (STATUSES[k] || {}).label || k); };
 const whereText = d => d.foundWhere + (careName(d) ? ' (' + careName(d) + ')' : '');
 // What an admin can ask volunteers for (V6). "kit" is the equipment a volunteer needs in their profile.
 const NEEDS = {
@@ -2738,11 +2853,11 @@ function render() {
   if (!isMember())    return showPending();
 
   const route = location.hash.slice(1) || 'home';
-  const [name, arg] = route.split('/');
+  const [name, arg, sub] = route.split('/');
   state.route = route;
 
   if (name === 'dogs')      { activate('dogs');     return showDogs(); }
-  if (name === 'dog')       { activate('dog');      return showDog(arg); }
+  if (name === 'dog')       { activate('dog');      return showDog(arg, sub); }
   if (name === 'dog-edit')  { if (!isCoord()) return go('dogs'); activate('dog-edit'); return showDogEdit(arg); }
   if (name === 'admin')     { if (!isAdmin()) return go('home'); return activate('admin'); }
   if (name === 'members')   { if (!isAdmin()) return go('home'); activate('members');  return showMembers(); }
@@ -2753,6 +2868,7 @@ function render() {
   if (name === 'whatsapp')  { activate('whatsapp'); return showWhatsApp(); }
   if (name === 'create-poster' && arg) { if (!isCoord()) return go('home'); activate('create-poster'); return openPosterForDog(arg); }
   if (name === 'create-poster') { activate('create-poster'); return openPosterForDog(''); }
+  if (name === 'create-found-poster') { activate('create-poster'); return openPosterForDog('', 'found-safe'); }
   if (name === 'roundup')   { if (!isAdmin()) return go('home'); activate('roundup'); return showRoundup(); }
   if (name === 'fbpost')    { if (!isCoord()) return go('home'); activate('fbpost'); return showFacebookPost(arg); }
   if (name === 'fbupdate')  { if (!isCoord()) return go('home'); activate('fbupdate'); return showFacebookUpdate(arg); }
@@ -3308,7 +3424,8 @@ function showHome() {
   // Whoever handles public reports sees how many nobody has dealt with yet.
   if (canSeeReports()) state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'reports'), fb.where('status', '==', 'new')), snap => {
     $('#reports-count').textContent = String(snap.size); $('#reports-count').hidden = snap.size === 0;
-  }, () => { $('#reports-count').hidden = true; }));
+    $('#reports-art').classList.toggle('flash', snap.docs.some(x => !x.data().lookingBy));   // flashes until someone says they're dealing with it
+  }, () => { $('#reports-count').hidden = true; $('#reports-art').classList.remove('flash'); }));
   // The DSRA team (and admins) see how many drone search requests nobody has dealt with yet.
   if (canSeeDrones()) state.subs.push(fb.onSnapshot(fb.query(fb.collection(fb.db, 'droneRequests'), fb.where('status', '==', 'new')), snap => {
     $('#drone-count').textContent = String(snap.size); $('#drone-count').hidden = snap.size === 0;
@@ -3412,8 +3529,13 @@ const OWNER_PERM = {
 const ownerPerm = r => r.reportedFor !== 'owner' ? '' : r.ownerConsent ? 'given' : r.ownerRefused ? 'refused' : 'waiting';
 const noSearchYet = d => d.ownerPermission === 'waiting' || d.ownerPermission === 'refused';
 
-function showDog(id) {
+function showDog(id, page) {
   const fb = state.fb, root = $('#dog-body');
+  // The dog's page has two extra pages for the team: Admin (status, Facebook, poster, edit, delete)
+  // and Who's available (admins). Everything else stays on the dog's own page.
+  const view = page === 'admin' && isCoord() ? 'admin' : page === 'available' && isAdmin() ? 'avail' : 'main';
+  $('#dog > .back').setAttribute('data-go', view === 'main' ? 'dogs' : 'dog/' + id);
+  $('#dog > .back').innerHTML = view === 'main' ? '&larr; Missing Dogs' : '&larr; Back to the dog';
   const dogRef = fb.doc(fb.db, 'dogs', id);
   const live = { dog: null, images: [], updates: [], sightings: [], map: null, adding: null,
     mine: null, mineLoaded: false, replies: [], members: [], profiles: new Map(), teams: [], pickTime: false, timeDraft: '',
@@ -3432,7 +3554,7 @@ function showDog(id) {
     markDogSeen(id, live.dog.updateCount);     // opening the dog clears its red number
     draw();
   }, err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, friendlyError(err))); }));
-  state.subs.push(sub('images', 'asc'), sub('updates', 'desc'), sub('sightings', 'desc'));
+  state.subs.push(sub('images', 'asc'), sub('updates', 'desc'), sub('sightings', 'desc'));   // updates newest first
 
   // Availability: everyone sees their own answer; only admins see everyone's.
   const myReply = fb.doc(fb.db, 'dogs', id, 'availability', state.user.uid);
@@ -3552,18 +3674,25 @@ function showDog(id) {
     const posters = live.images.filter(i => i.kind === 'poster');
     root.textContent = '';
 
+    if (view !== 'main') {
+      $('#dog > .back').innerHTML = '&larr; Back to ' + (d.name && !/^unknown$/i.test(d.name) ? d.name : 'the dog');
+      root.appendChild(h('h2', { class: 'page-title' }, view === 'admin' ? (isAdmin() ? 'Admin' : 'Coordinator') : 'Who\u2019s available'));
+      root.appendChild(h('div', { class: 'dog-mini' }, d.thumb ? h('img', { src: d.thumb, alt: '' }) : h('span', { class: 'art nophoto' }, pawIcon()),
+        h('div', null, h('strong', null, d.name || 'Unnamed dog'), h('span', null, statusText(d) + (d.lastSeenPlace ? ' \u00b7 ' + d.lastSeenPlace : '')))));
+    } else
     root.appendChild(h('h2', { class: 'page-title' }, h('span', { class: 'name-label' }, 'Name: '), d.name || 'Unnamed dog'));
     const onStandby = d.askAvailability && live.mine && (live.mine.status === 'now' || live.mine.status === 'later');
-    root.appendChild(h('p', { class: 'status-line' }, statusBadge(d.status), keepsWhere(d.status) && d.foundWhere ? h('span', { class: 'found-where' }, whereText(d)) : null,
+    if (view === 'main') root.appendChild(h('p', { class: 'status-line' }, statusBadge(d.status), keepsWhere(d.status) && d.foundWhere ? h('span', { class: 'found-where' }, whereText(d)) : null,
       onStandby ? h('span', { class: 'standby-tag' }, 'On standby') : null,
       d.askAvailability && !onStandby && awayNow(live.myHolidays, live.myBusy) ? h('span', { class: 'standby-tag holiday' }, awayNow(live.myHolidays, live.myBusy).short) : null));
-    if (d.statusBy) root.appendChild(h('p', { class: 'status-by' },
+    if (d.statusBy && view === 'main') root.appendChild(h('p', { class: 'status-by' },
       (st.active === false ? 'Closed by ' : 'Status set by ') + d.statusBy + (d.statusAt ? ', ' + when(d.statusAt) : '')));
 
     // Reported on the owner's behalf: what the owner has said about a search, for everyone to see.
-    if (d.ownerPermission) root.appendChild(permBanner(d));
+    if (d.ownerPermission && view !== 'avail') root.appendChild(permBanner(d));
 
-    if (photo) root.appendChild(h('img', { class: 'full-image', alt: 'Photo of ' + (d.name || 'the dog'), src: photo.data }));
+    if (view !== 'main') {}
+    else if (photo) root.appendChild(h('img', { class: 'full-image', alt: 'Photo of ' + (d.name || 'the dog'), src: photo.data }));
     else if (d.thumb) root.appendChild(h('img', { class: 'full-image', alt: 'Photo of ' + (d.name || 'the dog'), src: d.thumb }));
 
     // --- Availability return
@@ -3634,9 +3763,25 @@ function showDog(id) {
       else panel.appendChild(h('p', { class: 'avail-note' }, picked
         ? 'Thank you. Your answer has gone to the search coordinator. You can change it at any time.'
         : 'Tap one so the search coordinator knows. Please wait to be directed before attending.'));
-      root.appendChild(panel);
+      if (view === 'main') root.appendChild(panel);
 
-      if (isAdmin()) {
+      // On the dog's page: the volunteers at a glance (admins), with the full lists on their own page.
+      if (isAdmin() && view === 'main') {
+        const byStatus = k => live.replies.filter(r => r.status === k);
+        const now = byStatus('now'), later = byStatus('later'), no = byStatus('no').length + live.members.filter(m => !live.replies.some(r => r.id === m.id) && live.holidays.has(m.id)).length;
+        const names = (list, f) => list.map(r => (r.name || 'No name') + (f ? f(r) : '')).join(', ');
+        root.appendChild(h('div', { class: 'vol-card', id: 'vol-card' },
+          h('h3', null, 'Volunteers', needs.length ? h('small', null, 'asked for: ' + needsText(needs)) : null),
+          h('div', { class: 'vol-nums' },
+            h('div', { class: 'vol-n now' }, h('b', null, String(now.length)), 'Available now'),
+            h('div', { class: 'vol-n later' }, h('b', null, String(later.length)), 'Later'),
+            h('div', { class: 'vol-n no' }, h('b', null, String(no)), 'Not available')),
+          now.length || later.length ? h('p', { class: 'vol-names' }, now.length ? [h('b', null, 'Now: '), h('span', { class: 'now' }, names(now))] : null,
+            now.length && later.length ? ' \u00b7 ' : null, later.length ? [h('b', null, 'Later: '), names(later, r => r.from ? ' (from ' + r.from + ')' : '')] : null)
+            : h('p', { class: 'vol-names' }, 'No one has said they\u2019re available yet.'),
+          h('button', { class: 'link vol-more', type: 'button', 'data-go': 'dog/' + id + '/available' }, 'See who\u2019s available \u203a')));
+      }
+      if (isAdmin() && view === 'avail') {
         const replied = new Set(live.replies.map(r => r.id));
         const far = uid => { const pr = live.profiles.get(uid); return hasSpot(pr) && hasSpot(d) ? milesText(milesBetween([pr.lat, pr.lng], [d.lat, d.lng])) + ' away' : ''; };
         const byName = (x, y) => String(x.name || '').localeCompare(String(y.name || ''));
@@ -3678,7 +3823,7 @@ function showDog(id) {
     }
 
     // --- Nearest volunteers (admins only), when the dog has a map pin
-    if (isAdmin() && hasSpot(d)) {
+    if (isAdmin() && hasSpot(d) && view === 'avail') {
       const units = teamUnits(live.members.map(m => ({ ...m, profile: live.profiles.get(m.id) || null })), teamsByUid(live.teams));
       const near = units.map(u => ({ m: u, pr: u.profile })).filter(x => hasSpot(x.pr))
         .map(x => ({ ...x, miles: milesBetween([x.pr.lat, x.pr.lng], [d.lat, d.lng]) })).sort((x, y) => x.miles - y.miles);
@@ -3721,9 +3866,22 @@ function showDog(id) {
       root.appendChild(box);
     }
 
+    // --- The Admin (or Coordinator) button: everything to manage the dog is on its own page
+    let adminBtnEl = null;   // placed under the details (photo, details, then Admin)
+    if (view === 'main' && isCoord()) {
+      const waiting = [d.removalByUid ? 'Removal requested' : '', d.fbCleanup && isAdmin() ? 'Duplicate Facebook post to remove' : '',
+        canUpdateFacebook(d) && FB_UPDATE_STATUSES.includes(d.status) && (d.fbUpdateStatus || d.fbPostedKey) !== updateKey(d) ? 'Update the Facebook post' : '',
+        canPostFacebook() && posterNewerThanPost(d) ? 'New poster for Facebook' : ''].filter(Boolean);
+      adminBtnEl = (h('button', { class: 'admin-big' + (waiting.length ? ' waiting' : ''), type: 'button', id: 'dog-admin-btn', 'data-go': 'dog/' + id + '/admin' },
+        h('span', { class: 'admin-gear', 'aria-hidden': 'true' }, '\u2699\ufe0f'),
+        h('span', null, isAdmin() ? 'Admin' : 'Coordinator', h('small', null, waiting.length ? waiting.join(' \u00b7 ') : 'Status, Facebook, poster, edit' + (isAdmin() ? ', delete' : ''))),
+        waiting.length ? h('span', { class: 'admin-dot' }, String(waiting.length)) : null));
+    }
+    if (view === 'avail') return;
+
     // --- Removal request: a coordinator asks, an admin decides
     const clearRequest = () => fb.updateDoc(dogRef, { removalByUid: '', removalBy: '', removalReason: '' }).catch(err => alert(friendlyError(err)));
-    if (d.removalByUid && isCoord()) {
+    if (d.removalByUid && isCoord() && view === 'admin') {
       root.appendChild(h('div', { class: 'admin-box request' },
         h('h3', null, 'Removal requested'),
         h('p', null, (d.removalBy || 'A coordinator') + ' has asked for this post to be removed' + (d.removalAt ? ' (' + when(d.removalAt) + ')' : '') + '.'),
@@ -3737,7 +3895,7 @@ function showDog(id) {
     }
 
     // --- Coordinator and admin controls
-    if (isCoord()) {
+    if (isCoord() && view === 'admin') {
       const setStatus = async (to, where, placeName) => {
         const c = to === 'found' ? CARE[where] : null, from = updateKey(d), next = c ? c.key : to;
         live.askFound = false; live.askCare = '';
@@ -3763,8 +3921,10 @@ function showDog(id) {
           if (live.askFound) return setStatus('found', w);
           if (d.foundWhere === w) return;
           try {
+            const from = updateKey(d);
             await fb.updateDoc(dogRef, { foundWhere: w, foundWhereAt: fb.serverTimestamp(), updatedAt: fb.serverTimestamp() });
             fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'), { kind: 'status', from: 'found', to: 'found', text: 'Found dog now: ' + w + '.', byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() }).catch(() => {});
+            offerFacebookUpdate(id, from, updateKey({ ...d, foundWhere: w }), d);
           } catch (err) { alert(friendlyError(err)); }
         } }, w))),
         live.askCare ? (() => {
@@ -3820,7 +3980,7 @@ function showDog(id) {
     }
 
     // --- Reminder after a merge: the duplicate's Facebook post still needs removing (admins)
-    if (d.fbCleanup && isAdmin()) root.appendChild(h('div', { class: 'fbtidy-box', id: 'fbtidy-box' },
+    if (d.fbCleanup && isAdmin() && view === 'admin') root.appendChild(h('div', { class: 'fbtidy-box', id: 'fbtidy-box' },
       h('strong', null, 'Facebook: remove the duplicate post'),
       h('span', null, 'A duplicate' + (d.fbCleanup.name ? ' (' + d.fbCleanup.name + ')' : '') + ' was merged into this dog' + (d.fbCleanup.by ? ' by ' + d.fbCleanup.by : '') + '. Please check Facebook and delete its post, after checking its comments for sightings.'),
       d.fbCleanup.link ? h('a', { class: 'btn wide ghost', href: d.fbCleanup.link, target: '_blank', rel: 'noopener' }, 'Open the duplicate post') : null,
@@ -3830,22 +3990,22 @@ function showDog(id) {
       } }, 'Done, it\u2019s removed')));
 
     // --- Facebook: posted already, and a button to post (coordinators and admins, once a Page is linked)
-    if (d.fbPostId && isCoord()) {
+    if (d.fbPostId && isCoord() && view === 'admin') {
       root.appendChild(h('div', { class: 'fb-posted' },
         h('span', { class: 'ok' }, tickIcon('#ffffff', 24)),
         h('div', null, h('strong', null, 'Posted to Facebook'), h('br'),
           [when(d.fbPostedAt), d.fbPostedBy ? 'by ' + d.fbPostedBy : ''].filter(Boolean).join(' '), h('br'),
           d.fbLink ? h('a', { href: d.fbLink, target: '_blank', rel: 'noopener' }, 'Open the post on Facebook') : null)));
     }
-    if (d.fbPostId && d.fbUpdateStatus && isCoord()) root.appendChild(h('p', { class: 'fb-note', style: 'margin:-4px 0 8px' },
+    if (d.fbPostId && d.fbUpdateStatus && isCoord() && view === 'admin') root.appendChild(h('p', { class: 'fb-note', style: 'margin:-4px 0 8px' },
       'Facebook post updated to ' + updateLabel(d.fbUpdateStatus) + (d.fbUpdatedBy ? ' by ' + d.fbUpdatedBy : '') + (d.fbUpdatedAt ? ', ' + when(d.fbUpdatedAt) : '') + '.'));
-    if (canUpdateFacebook(d) && FB_UPDATE_STATUSES.includes(d.status) && d.fbUpdateStatus !== updateKey(d)) root.appendChild(h('button', { class: 'btn wide fb-btn', type: 'button', style: 'margin:12px 0 0', 'data-go': 'fbupdate/' + id }, 'Update the Facebook post'));
-    if (canPostFacebook() && posterNewerThanPost(d)) root.appendChild(h('button', { class: 'btn wide fb-btn', type: 'button', id: 'fb-newposter', style: 'margin:12px 0 0', onclick: () => { fbUpdatePoster = id; go('fbupdate/' + id); } },
-      d.status === 'missing' ? 'Update Facebook with the new poster' : 'Update Facebook with the new photo'));
-    if (d.status === 'missing' && isCoord()) root.appendChild(lostPosterCard(id, d));
+    if (view === 'admin' && canUpdateFacebook(d) && FB_UPDATE_STATUSES.includes(d.status) && (d.fbUpdateStatus || d.fbPostedKey) !== updateKey(d)) root.appendChild(h('button', { class: 'btn wide fb-btn', type: 'button', style: 'margin:12px 0 0', 'data-go': 'fbupdate/' + id }, 'Update the Facebook post'));
+    if (view === 'admin' && canPostFacebook() && posterNewerThanPost(d)) root.appendChild(h('button', { class: 'btn wide fb-btn', type: 'button', id: 'fb-newposter', style: 'margin:12px 0 0', onclick: () => { fbUpdatePoster = id; go('fbupdate/' + id); } },
+      ownPosterKind(d) ? 'Update Facebook with the new poster' : 'Update Facebook with the new photo'));
+    if (ownPosterKind(d) && isCoord() && view === 'admin') root.appendChild(lostPosterCard(id, d));
     // Loose dogs become No further sightings by themselves after 24 hours with no activity (the server checks
     // hourly, and alerts coordinators about 2 hours before). Keep open restarts the 24 hours.
-    if (d.status === 'loose' && isCoord()) {
+    if (d.status === 'loose' && isCoord() && view === 'main') {
       const ms = t => (t ? millis(t) : 0);   // millis() treats a missing time as now
       const soon = !!d.quietWarnedAt && ms(d.quietWarnedAt) > Math.max(ms(d.keepOpenAt), ms(d.updatedAt));
       const kmsg = h('p', { class: 'form-msg', role: 'status' });
@@ -3860,7 +4020,11 @@ function showDog(id) {
           } catch (err) { e.target.disabled = false; kmsg.textContent = friendlyError(err); }
         } }, 'Keep open for another 24 hours'), kmsg));
     }
-    if (canPostFacebook()) root.appendChild(h('button', { class: 'btn wide fb-btn', type: 'button', style: 'margin:12px 0', 'data-go': 'fbpost/' + id }, d.fbPostId ? 'Post to Facebook again' : 'Post to Facebook'));
+    if (canPostFacebook() && view === 'admin') root.appendChild(h('button', { class: 'btn wide fb-btn', type: 'button', style: 'margin:12px 0', 'data-go': 'fbpost/' + id }, d.fbPostId ? 'Post to Facebook again' : 'Post to Facebook'));
+    if (view === 'admin') {
+      if (isAdmin()) root.appendChild(h('button', { class: 'link center', type: 'button', id: 'merge-open', 'data-go': 'merge/' + id }, 'Duplicate? Merge into another dog'));
+      return;
+    }
 
     // --- Details
     const rows = [
@@ -3869,6 +4033,7 @@ function showDog(id) {
       ['Description', d.description], ['Important', d.notes]
     ].filter(r => r[1]);
     if (rows.length) root.appendChild(h('dl', { class: 'card details' }, rows.map(r => [h('dt', null, r[0]), h('dd', null, r[1])])));
+    if (adminBtnEl) root.appendChild(adminBtnEl);
 
     // --- Map
     const points = [];
@@ -3934,14 +4099,17 @@ function showDog(id) {
     }
 
     // --- Posters
-    if (posters.length || st.poster) root.appendChild(h('h3', { class: 'section' }, 'Posters'));
-    posters.forEach((p, i) => {
-      const imgId = 'dogposter-' + p.id;
+    // The dog's own poster (Lost Dog or Found Safe) shows here once it's made; the standard posters now go out
+    // through Facebook, so they are no longer listed. A Lost Dog poster is not shown once the dog is found.
+    const shown = posters.filter(p => p.id !== 'poster' || ((p.settings && p.settings.kind) || 'lost') === ownPosterKind(d));
+    if (shown.length) root.appendChild(h('h3', { class: 'section' }, 'Posters'));
+    shown.forEach((p, i) => {
+      const imgId = 'dogposter-' + p.id, own = p.id === 'poster';
       root.appendChild(h('img', { class: 'full-image', id: imgId, alt: 'Poster for ' + (d.name || 'the dog'), src: p.data }));
       root.appendChild(h('button', { class: 'save', 'data-save': imgId, 'data-filename': (d.name || 'dog').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-poster-' + (i + 1) + '.jpg' }, 'Save to device'));
-      if (isAdmin()) root.appendChild(h('button', { class: 'link danger center', onclick: () => { if (confirm('Remove this poster?')) fb.deleteDoc(fb.doc(fb.db, 'dogs', id, 'images', p.id)); } }, 'Remove this poster'));
+      if (own && isCoord()) root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'create-poster/' + id }, 'Edit poster'));
+      else if (!own && isAdmin()) root.appendChild(h('button', { class: 'link danger center', onclick: () => { if (confirm('Remove this poster?')) fb.deleteDoc(fb.doc(fb.db, 'dogs', id, 'images', p.id)); } }, 'Remove this poster'));
     });
-    if (st.poster) root.appendChild(h('button', { class: 'btn wide ghost', 'data-go': st.poster + '/' + id }, 'Open the standard "' + st.label + '" poster and post text'));
     // (Adding a poster here was removed in 5.3: posters now go out through Post to Facebook.)
 
     // --- Updates
@@ -3953,7 +4121,7 @@ function showDog(id) {
       const tell = h('input', { type: 'checkbox', id: 'update-notify' });
       tell.checked = live.notifyUpdates !== false;                  // ticked unless the admin unticked it
       tell.addEventListener('change', () => { live.notifyUpdates = tell.checked; });
-      root.appendChild(h('div', { class: 'admin-box form' }, ta,
+      root.appendChild(h('div', { class: 'admin-box form update-form' }, ta,
         h('label', { class: 'check' }, tell, " Notify members' phones"), msg,
         h('button', { class: 'btn', onclick: async () => {
           const text = ta.value.trim();
@@ -3962,7 +4130,7 @@ function showDog(id) {
           ta.value = '';
           try {
             const ref = await fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'),
-              { text, byName: state.profile.name || '', createdAt: fb.serverTimestamp() });
+              { text, byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() });
             if ($('#update-text')) $('#update-text').value = '';
             fb.updateDoc(dogRef, { updateCount: fb.increment(1), lastUpdateAt: fb.serverTimestamp() })
               .catch(err => console.warn('Update count not saved:', err && err.message));
@@ -3971,17 +4139,58 @@ function showDog(id) {
         } }, 'Post update')));
     }
     if (live.updates.length) {
-      root.appendChild(h('ul', { class: 'card feed' }, live.updates.map(u => h('li', null,
-        h('span', { class: 'feed-when' }, when(u.createdAt) + (u.byName ? ' · ' + u.byName : '')),
-        h('span', { class: 'feed-text' }, u.text),
-        isCoord() && u.kind !== 'status' && h('button', { class: 'link danger', onclick: () => fb.deleteDoc(fb.doc(fb.db, 'dogs', id, 'updates', u.id)) }, 'Remove')))));
+      // Nothing is ever deleted from a dog's log: "Remove" crosses an update out and records who did it.
+      // Whoever wrote an update can edit it; the earlier wording is kept underneath, so nothing is lost.
+      const mineToEdit = u => u.byUid && u.byUid === state.user.uid && !u.removedAt && (!u.kind || u.kind === 'note');
+      // Editing your own update: the box opens on the purple page, between the white cards, the same size as
+      // "Write an update", with Save and Cancel underneath.
+      const editPanel = u => {
+        const box = h('textarea', { id: 'update-edit-text', rows: '4' }); box.value = live.editDraft != null ? live.editDraft : u.text;
+        box.addEventListener('input', () => { live.editDraft = box.value; });
+        const emsg = h('p', { class: 'form-msg' });
+        return h('div', { class: 'admin-box form update-form update-editing' }, h('label', { for: 'update-edit-text' }, 'Edit your update'), box, emsg,
+          h('div', { class: 'row' },
+            h('button', { class: 'btn', type: 'button', id: 'update-edit-save', onclick: async () => {
+              const text = box.value.trim();
+              if (!text) { emsg.textContent = 'The update can\u2019t be empty.'; return; }
+              if (text === u.text) { live.editingUpdate = null; live.editDraft = null; draw(); return; }
+              try {
+                await fb.updateDoc(fb.doc(fb.db, 'dogs', id, 'updates', u.id), { text, editedAt: fb.serverTimestamp(), edits: fb.arrayUnion({ text: u.text, at: Date.now() }) });
+                live.editingUpdate = null; live.editDraft = null; draw();
+              } catch (err) { emsg.textContent = friendlyError(err); }
+            } }, 'Save'),
+            h('button', { class: 'btn ghost', type: 'button', onclick: () => { live.editingUpdate = null; live.editDraft = null; draw(); } }, 'Cancel')));
+      };
+      const itemOf = u => {
+        const earlier = Array.isArray(u.edits) ? u.edits.slice().sort((a, b) => (b.at || 0) - (a.at || 0)) : [];
+        return h('li', { class: u.removedAt ? 'removed' : '' },
+          h('span', { class: 'feed-when' }, when(u.createdAt) + (u.byName ? ' · ' + u.byName : '') + (u.editedAt ? ' · edited ' + when(u.editedAt) : '')),
+          h('span', { class: 'feed-text' }, u.text),
+          earlier.length ? h('details', { class: 'feed-earlier' }, h('summary', null, 'Earlier wording (' + earlier.length + ')'),
+            earlier.map(e => h('p', null, h('small', null, 'Before ' + when(e.at) + ': '), e.text))) : null,
+          u.removedAt ? h('span', { class: 'feed-removed' }, 'Crossed out by ' + (u.removedBy || 'someone') + ', ' + when(u.removedAt)) : null,
+          h('span', { class: 'feed-actions' },
+            mineToEdit(u) ? h('button', { class: 'link', type: 'button', onclick: () => { live.editingUpdate = u.id; live.editDraft = null; draw(); } }, 'Edit') : null,
+            isCoord() && u.kind !== 'status' && u.kind !== 'edit' && !u.removedAt ? h('button', { class: 'link danger', type: 'button', onclick: () => {
+              if (!confirm('Cross out this update? It stays in the log, crossed out, with your name.')) return;
+              fb.updateDoc(fb.doc(fb.db, 'dogs', id, 'updates', u.id), { removedAt: fb.serverTimestamp(), removedBy: state.profile.name || '', removedByUid: state.user.uid }).catch(err => alert(friendlyError(err)));
+            } }, 'Cross out') : null));
+      };
+      const at = live.updates.findIndex(u => u.id === live.editingUpdate && mineToEdit(u));
+      const card = list => list.length ? h('ul', { class: 'card feed' }, list.map(itemOf)) : null;
+      if (at < 0) root.appendChild(card(live.updates));
+      else {
+        const before = card(live.updates.slice(0, at)), after = card(live.updates.slice(at + 1));
+        if (before) root.appendChild(before);
+        root.appendChild(editPanel(live.updates[at]));
+        if (after) root.appendChild(after);
+      }
     } else {
       root.appendChild(h('p', { class: 'empty' }, 'No updates yet.'));
     }
     // --- WhatsApp: start a message in the LDA chat about this dog
     root.appendChild(waDogButton(d));
     root.appendChild(h('p', { class: 'hint' }, 'Added ' + when(d.createdAt) + (d.createdBy ? ' by ' + d.createdBy : '')));
-    if (isAdmin()) root.appendChild(h('button', { class: 'link center', type: 'button', id: 'merge-open', 'data-go': 'merge/' + id }, 'Duplicate? Merge into another dog'));
     if (st.active === false) {
       const ms = ts => ts ? millis(ts) : 0;   // millis() treats a missing time as "now"; here a missing one must be skipped
       const closedAt = ms(d.statusAt) || ms(d.updatedAt) || ms(d.createdAt);
@@ -4062,12 +4271,49 @@ async function deleteDog(id, name) {
   } catch (err) { alert(friendlyError(err)); render(); }
 }
 
-// Breeds for the Add a dog screen: the same list as the public report form (breeds.txt), offered as you type.
+// Breeds for the Add a dog screen: the same list and the same start-typing picker as the website's report form.
+// Other names people use ("Lab", "Staffie", "Alsatian") find the breed too. Anything not listed can be typed in full.
 const BREED_LIST = [["Affenpinscher", []], ["Afghan Hound", []], ["Airedale Terrier", []], ["Akita", ["Japanese Akita", "American Akita"]], ["Alaskan Malamute", ["Malamute"]], ["American Bulldog", []], ["American Bully", ["Bully"]], ["American Staffordshire Terrier", ["Amstaff"]], ["Anatolian Shepherd Dog", ["Kangal"]], ["Australian Cattle Dog", ["Blue Heeler", "Red Heeler"]], ["Australian Shepherd", ["Aussie"]], ["Australian Silky Terrier", ["Silky Terrier"]], ["Australian Terrier", []], ["Azawakh", []], ["Basenji", []], ["Basset Fauve de Bretagne", []], ["Basset Griffon Vendeen", ["Basset Griffon Vendeen (Grand)", "GBGV", "Basset Griffon Vendeen (Petit)", "PBGV"]], ["Basset Hound", []], ["Bavarian Mountain Hound", []], ["Beagle", []], ["Bearded Collie", ["Beardie"]], ["Beauceron", []], ["Bedlington Terrier", []], ["Belgian Shepherd", ["Belgian Shepherd (Groenendael)", "Belgian Shepherd (Laekenois)", "Belgian Shepherd (Malinois)", "Malinois", "Belgian Shepherd (Tervueren)"]], ["Bernese Mountain Dog", ["Berner"]], ["Bichon Frise", ["Bichon"]], ["Bloodhound", []], ["Boerboel", []], ["Bolognese", []], ["Border Collie", ["Collie"]], ["Border Terrier", []], ["Borzoi", []], ["Boston Terrier", []], ["Boxer", []], ["Bracco Italiano", []], ["Briard", []], ["Brittany", []], ["Bull Terrier", ["Miniature Bull Terrier"]], ["Bulldog", ["English Bulldog", "British Bulldog"]], ["Bullmastiff", []], ["Cairn Terrier", []], ["Canaan Dog", []], ["Cane Corso", ["Italian Mastiff"]], ["Cavalier King Charles Spaniel", ["Cavalier", "King Charles", "King Charles Spaniel"]], ["Cesky Terrier", []], ["Chesapeake Bay Retriever", []], ["Chihuahua", ["Chihuahua (Long Coat)", "Chihuahua (Smooth Coat)", "Chi"]], ["Chinese Crested", []], ["Chow Chow", []], ["Cirneco dell'Etna", []], ["Clumber Spaniel", []], ["Cocker Spaniel", ["American Cocker Spaniel", "Cocker", "Working Cocker", "Show Cocker"]], ["Collie (Rough or Smooth)", ["Rough Collie", "Lassie", "Smooth Collie", "Collie"]], ["Corgi", ["Welsh Corgi (Cardigan)", "Welsh Corgi (Pembroke)"]], ["Coton de Tulear", []], ["Curly Coated Retriever", []], ["Czechoslovakian Wolfdog", []], ["Dachshund", ["Dachshund (Long Haired)", "Sausage dog", "Dachshund (Miniature Long Haired)", "Mini Dachshund", "Dachshund (Miniature Smooth Haired)", "Dachshund (Miniature Wire Haired)", "Dachshund (Smooth Haired)", "Dachshund (Wire Haired)", "Miniature Dachshund"]], ["Dalmatian", ["Dally"]], ["Dandie Dinmont Terrier", []], ["Deerhound", ["Scottish Deerhound"]], ["Dobermann", ["Doberman", "Dobie"]], ["Dogue de Bordeaux", ["French Mastiff"]], ["Dutch Shepherd", []], ["English Setter", []], ["English Toy Terrier", []], ["Estrela Mountain Dog", []], ["Eurasier", []], ["Field Spaniel", []], ["Finnish Lapphund", []], ["Finnish Spitz", []], ["Flat Coated Retriever", ["Flatcoat"]], ["Fox Terrier", ["Fox Terrier (Smooth)", "Fox Terrier (Wire)"]], ["Foxhound", []], ["French Bulldog", ["Frenchie"]], ["German Pointer", ["German Longhaired Pointer", "German Shorthaired Pointer", "GSP", "German Wirehaired Pointer", "GWP", "Pointer"]], ["German Shepherd", ["Alsatian", "GSD"]], ["German Spitz", []], ["Glen of Imaal Terrier", []], ["Golden Retriever", ["Goldie"]], ["Gordon Setter", []], ["Grand Bleu de Gascogne", []], ["Great Dane", []], ["Greater Swiss Mountain Dog", []], ["Greyhound", []], ["Griffon Bruxellois", ["Brussels Griffon"]], ["Hamiltonstovare", []], ["Havanese", []], ["Hovawart", []], ["Hungarian Puli", ["Puli"]], ["Ibizan Hound", []], ["Irish Setter", ["Irish Red and White Setter", "Red Setter"]], ["Irish Terrier", []], ["Irish Water Spaniel", []], ["Irish Wolfhound", ["Wolfhound"]], ["Italian Greyhound", ["Iggy"]], ["Italian Spinone", ["Spinone"]], ["Jack Russell Terrier", ["Jack Russell", "JRT", "Parson Russell Terrier"]], ["Japanese Chin", []], ["Japanese Shiba Inu", ["Shiba Inu", "Shiba"]], ["Japanese Spitz", []], ["Keeshond", []], ["Kerry Blue Terrier", []], ["Komondor", []], ["Kooikerhondje", []], ["Korean Jindo", []], ["Labrador Retriever", ["Labrador", "Lab"]], ["Lagotto Romagnolo", []], ["Lakeland Terrier", []], ["Lancashire Heeler", []], ["Large Munsterlander", []], ["Leonberger", []], ["Lhasa Apso", ["Lhasa"]], ["Lowchen", []], ["Lurcher", []], ["Maltese", []], ["Manchester Terrier", []], ["Maremma Sheepdog", []], ["Mastiff", ["English Mastiff"]], ["Mexican Hairless", []], ["Miniature Pinscher", ["Min Pin"]], ["Neapolitan Mastiff", []], ["Newfoundland", ["Newfie"]], ["Norfolk Terrier", []], ["Northern Inuit", []], ["Norwegian Buhund", []], ["Norwegian Elkhound", []], ["Norwich Terrier", []], ["Nova Scotia Duck Tolling Retriever", ["Toller"]], ["Old English Sheepdog", ["Dulux dog"]], ["Otterhound", []], ["Papillon", []], ["Patterdale Terrier", ["Patterdale"]], ["Pekingese", ["Peke"]], ["Pharaoh Hound", []], ["Pointer", ["English Pointer"]], ["Polish Lowland Sheepdog", []], ["Pomeranian", ["Pom"]], ["Poodle", ["Poodle (Miniature)", "Poodle (Standard)", "Poodle (Toy)", "Toy Poodle", "Miniature Poodle", "Standard Poodle"]], ["Portuguese Podengo", []], ["Portuguese Water Dog", []], ["Presa Canario", []], ["Pug", []], ["Pyrenean Mastiff", []], ["Pyrenean Mountain Dog", ["Great Pyrenees"]], ["Rhodesian Ridgeback", ["Ridgeback"]], ["Rottweiler", ["Rottie"]], ["Russian Black Terrier", []], ["Russian Toy", []], ["Saluki", []], ["Samoyed", ["Sammy"]], ["Schnauzer", ["Giant Schnauzer", "Miniature Schnauzer", "Schnauzer (Standard)", "Mini Schnauzer"]], ["Scottish Terrier", ["Scottie"]], ["Sealyham Terrier", []], ["Shar Pei", []], ["Shetland Sheepdog", ["Sheltie"]], ["Shih Tzu", []], ["Siberian Husky", ["Husky"]], ["Skye Terrier", []], ["Sloughi", []], ["Soft Coated Wheaten Terrier", ["Wheaten"]], ["Spanish Water Dog", []], ["Springer Spaniel", ["English Springer Spaniel", "Springer", "Welsh Springer Spaniel"]], ["St Bernard", ["Saint Bernard"]], ["Staffordshire Bull Terrier", ["Staffie", "Staffy", "Staff"]], ["Sussex Spaniel", []], ["Swedish Vallhund", []], ["Tibetan Mastiff", []], ["Tibetan Spaniel", []], ["Tibetan Terrier", []], ["Utonagan", []], ["Vizsla", ["Hungarian Vizsla", "Hungarian Wirehaired Vizsla", "Wirehaired Vizsla"]], ["Weimaraner", []], ["Welsh Terrier", []], ["West Highland White Terrier", ["Westie"]], ["Whippet", []], ["White Swiss Shepherd Dog", ["White Shepherd"]], ["XL Bully", ["American Bully XL", "Bully"]], ["Yorkshire Terrier", ["Yorkie"]], ["Bernedoodle", []], ["Cavachon", []], ["Cavapoo", []], ["Chorkie", []], ["Cockapoo", ["Cockerpoo"]], ["Collie cross", ["Collie x"]], ["German Shepherd cross", ["GSD cross", "Alsatian cross"]], ["Goldendoodle", []], ["Husky cross", []], ["Jack Russell cross", ["JRT cross"]], ["Jackahuahua", ["Jack Chi"]], ["Jackapoo", ["Jack-a-poo"]], ["Labradoodle", ["Doodle"]], ["Labrador cross", ["Lab cross", "Lab x"]], ["Maltipoo", []], ["Pocket Bully", ["Bully"]], ["Pomchi", []], ["Pomsky", []], ["Puggle", []], ["Shih-poo", ["Shihpoo"]], ["Spaniel cross", []], ["Springador", []], ["Sprocker", ["Sprocker Spaniel"]], ["Sproodle", []], ["Staffie cross", ["Staffy cross", "Staff cross"]], ["Terrier cross", []], ["Yorkipoo", []]];
-(function fillBreedList() {
-  const dl = document.getElementById('breed-list');
-  if (!dl || dl.childElementCount) return;
-  ['Crossbreed / mixed'].concat(BREED_LIST.map(b => b[0])).forEach(n => { const o = document.createElement('option'); o.value = n; dl.appendChild(o); });
+const BREED_FIRST = ['Not sure', 'Crossbreed / mixed'];
+function breedMatches(q) {
+  q = q.trim().toLowerCase(); if (!q) return BREED_FIRST.map(b => [b, '']);
+  const starts = [], words = [], seen = new Set();
+  const add = (list, b, also) => { if (!seen.has(b[0])) { seen.add(b[0]); list.push([b[0], also || '']); } };
+  BREED_FIRST.forEach(b => { if (b.toLowerCase().startsWith(q)) add(starts, [b]); });
+  BREED_LIST.forEach(b => {
+    const n = b[0].toLowerCase();
+    if (n.startsWith(q)) add(starts, b);
+    else if (n.split(/[\s(\/-]+/).some(w => w.startsWith(q))) add(words, b);
+    else { const a = (b[1] || []).find(x => { x = x.toLowerCase(); return x.startsWith(q) || x.split(/[\s(\/-]+/).some(w => w.startsWith(q)); }); if (a) add(words, b, a); }
+  });
+  return starts.concat(words).slice(0, 8);
+}
+(function breedPicker() {
+  const input = document.getElementById('dog-breed'), box = document.getElementById('dog-breed-list');
+  if (!input || !box) return;
+  const close = () => { box.hidden = true; input.setAttribute('aria-expanded', 'false'); };
+  const draw = () => {
+    const q = input.value, found = breedMatches(q);
+    box.textContent = '';
+    if (found.length === 1 && found[0][0].toLowerCase() === q.trim().toLowerCase()) { close(); return; }
+    found.forEach(([name, also]) => {
+      const b = h('button', { type: 'button', role: 'option' }, h('span', null, name), also ? h('small', null, also) : null);
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { input.value = name; close(); input.dispatchEvent(new Event('change', { bubbles: true })); });
+      box.appendChild(b);
+    });
+    if (!found.length) box.appendChild(h('div', { class: 'pick-none' }, 'Not on our list? That\u2019s fine, just type it in full.'));
+    box.hidden = false; input.setAttribute('aria-expanded', 'true');
+  };
+  input.addEventListener('input', draw);
+  input.addEventListener('focus', draw);
+  input.addEventListener('blur', () => setTimeout(close, 150));
+  input.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const first = box.querySelector('button');
+    if (first && !box.hidden && input.value.trim()) first.click();
+  });
 })();
 
 // ============================================================
@@ -4231,7 +4477,7 @@ function showDogEdit(id) {
   const edit = { photo: null, thumb: null, spot: null, marker: null, map: null, existingThumb: null };
   fbNewDog = isNew; fbAfterSave = false; drawFacebookButtons();
   $('#dog-edit-title').textContent = isNew ? 'Add a dog' : 'Edit details';
-  $('#dog-edit-back').setAttribute('data-go', isNew ? 'dogs' : 'dog/' + id);
+  $('#dog-edit-back').setAttribute('data-go', isNew ? 'home' : 'dog/' + id);
   form.reset();
   // Asking for availability: the "what is needed" boxes show only while the tick is on.
   $('#dog-needs').hidden = true;
@@ -4244,11 +4490,38 @@ function showDogEdit(id) {
   const whereSel = $('#dog-found-where');
   whereSel.textContent = '';
   whereSel.appendChild(h('option', { value: '' }, 'Choose\u2026'));
-  FOUND_WHERE.forEach(w => whereSel.appendChild(h('option', { value: w }, w)));
-  const showWhere = () => { $('#dog-found-box').hidden = !keepsWhere(statusBox.value); const c = keepsWhere(statusBox.value) && CARE[whereSel.value]; $('#dog-kennels-box').hidden = !c; if (c) { $('#dog-kennels-label').textContent = c.ask; $('#dog-kennels').placeholder = c.ph; } };
-  const showPosterBtn = () => { $('#dog-poster-box').hidden = !(isNew && statusBox.value === 'missing'); };
-  statusBox.onchange = () => { showWhere(); showPosterBtn(); }; whereSel.onchange = showWhere; showWhere(); showPosterBtn();
-  $('#dog-make-poster').onclick = () => { posterAfterSave = true; form.dispatchEvent(new Event('submit', { cancelable: true })); };
+  FOUND_WHERE.filter(w => !isNew || w !== FINDER).forEach(w => whereSel.appendChild(h('option', { value: w }, w)));
+  if (isNew) whereSel.appendChild(h('option', { value: FINDER, hidden: true }, FINDER));   // set by the Safe with finder (LDA) button
+  const showWhere = () => { $('#dog-found-box').hidden = !keepsWhere(statusBox.value) || (isNew && whereSel.value === FINDER); const c = keepsWhere(statusBox.value) && CARE[whereSel.value]; $('#dog-kennels-box').hidden = !c; if (c) { $('#dog-kennels-label').textContent = c.ask; $('#dog-kennels').placeholder = c.ph; } };
+  // The poster at the bottom of the form (new Missing and Safe with finder (LDA) dogs): drawn from the details as they're typed.
+  edit.posterImg = null;
+  const posterFormValues = () => {
+    const el = form.elements, when = /^(\d{4})-(\d{2})-(\d{2})/.exec(el.lastSeenAt.value || '');
+    return { colour: el.colour.value.trim(), sex: el.sex.value, area: el.lastSeenPlace.value.trim(), contact: $('#poster-contact').defaultValue || '07715 950588',
+      date: when ? when[3] + '/' + when[2] + '/' + when[1] : '', iso: when ? when[0] : '' };
+  };
+  const posterPos = () => ({ z: +$('#dp-zoom').value, x: +$('#dp-x').value, y: +$('#dp-y').value });
+  let posterTimer = null;
+  const drawFormPoster = () => {
+    clearTimeout(posterTimer);
+    posterTimer = setTimeout(() => {
+      const kind = ownPosterKind({ status: statusBox.value, foundWhere: whereSel.value });
+      if (!kind || $('#dog-poster-box').hidden || !$('#dog-poster-now').checked) return;
+      $('#dog-poster-tools').hidden = !edit.posterImg;
+      $('#dog-poster-preview').src = lostDogPoster(posterFormValues(), edit.posterImg, 760, posterPos(), kind);
+    }, 120);
+  };
+  const showPosterBtn = () => {
+    const kind = ownPosterKind({ status: statusBox.value, foundWhere: whereSel.value });
+    $('#dog-poster-box').hidden = !(isNew && kind);
+    if (kind) { $('#dog-poster-title').textContent = OWN_POSTER[kind].name; drawFormPoster(); }
+  };
+  $('#dog-poster-now').checked = true; $('#dog-poster-body').hidden = false;
+  $('#dog-poster-now').onchange = () => { $('#dog-poster-body').hidden = !$('#dog-poster-now').checked; drawFormPoster(); };
+  ['dp-zoom', 'dp-x', 'dp-y'].forEach(k => { $('#' + k).value = k === 'dp-zoom' ? 100 : 50; $('#' + k).oninput = drawFormPoster; });
+  ['colour', 'sex', 'lastSeenPlace', 'lastSeenAt'].forEach(k => { form.elements[k].addEventListener('input', drawFormPoster); form.elements[k].addEventListener('change', drawFormPoster); });
+  $('#dog-photo-preview').onload = () => { const src = edit.photo || $('#dog-photo-preview').src; loadImage(src).then(img => { edit.posterImg = img; drawFormPoster(); }).catch(() => {}); };
+  statusBox.onchange = () => { showWhere(); showPosterBtn(); }; whereSel.onchange = () => { showWhere(); showPosterBtn(); }; showWhere(); showPosterBtn();
   msg.textContent = '';
   $('#dog-photo-preview').hidden = true; $('#dog-photo-edit').hidden = true;
   state.subs.push(() => { if (edit.map) { edit.map.remove(); edit.map = null; } });
@@ -4297,6 +4570,21 @@ function showDogEdit(id) {
     msg.textContent = 'Filled in from a public report. Check everything, then save.';
     $('#dog-edit-back').setAttribute('data-go', 'report/' + r.id);
   }
+
+  // A new dog (not from a report): first choose Missing, Loose, Found or Safe with finder (LDA).
+  const TYPES = { missing: ['missing', '', 'Missing'], loose: ['loose', '', 'Loose dog'], found: ['found', '', 'Found'], lda: ['found', FINDER, FINDER] };
+  const choosing = isNew && !edit.report;
+  $('#dog-status-row').hidden = choosing;
+  $('#dog-type-chosen').hidden = true;
+  form.hidden = choosing; $('#dog-type-pick').hidden = !choosing;
+  $$('#dog-type-pick [data-type]').forEach(b => { b.onclick = () => {
+    const t = TYPES[b.getAttribute('data-type')];
+    statusBox.value = t[0]; whereSel.value = t[1]; showWhere(); showPosterBtn();
+    $('#dog-type-name').textContent = t[2]; $('#dog-type-chosen').hidden = false;
+    $('#dog-type-pick').hidden = true; form.hidden = false; window.scrollTo(0, 0);
+    setTimeout(() => form.elements.name.focus(), 50);
+  }; });
+  $('#dog-type-change').onclick = () => { form.hidden = true; $('#dog-type-pick').hidden = false; window.scrollTo(0, 0); };
 
   // The owner of a listed loose dog has come forward: turn it into a Missing dog with their details.
   function fillFromOwner(r, d) {
@@ -4454,8 +4742,8 @@ function showDogEdit(id) {
     if (edit.thumb) { data.thumb = edit.thumb; data.photoHash = edit.hash || await photoHash(edit.thumb); }   // fingerprint for spotting duplicates
     // A new photo, or (for a missing dog) details printed on its Lost Dog poster: the poster has changed.
     const o = edit.orig || {};
-    const posterChanged = !isNew && (!!edit.thumb || (data.status === 'missing' && ['colour', 'sex', 'lastSeenPlace', 'lastSeenAt'].some(k => String(data[k] || '') !== String(o[k] || ''))));
-    if (posterChanged && NEW_POSTER_STATUSES.includes(data.status)) data.posterAt = fb.serverTimestamp();
+    const posterChanged = !isNew && (!!edit.thumb || (ownPosterKind(data) && ['colour', 'sex', 'lastSeenPlace', 'lastSeenAt'].some(k => String(data[k] || '') !== String(o[k] || ''))));
+    if (posterChanged && newPosterDog(data)) data.posterAt = fb.serverTimestamp();
     const btn = $('#dog-save');
     btn.disabled = true;
     msg.textContent = 'Saving…';
@@ -4471,28 +4759,47 @@ function showDogEdit(id) {
           { ...data, ...extra, thumb: edit.thumb || null, createdAt: fb.serverTimestamp(), createdBy: state.profile.name || '', createdByUid: state.user.uid });
         dogId = ref.id;
         if (edit.report) await fb.updateDoc(fb.doc(fb.db, 'reports', edit.report.id),
-          { status: 'accepted', outcomeDogId: dogId, outcomeDogName: data.name, ...reportStamp() }).catch(err => console.warn('Report not marked:', err && err.message));
+          withLog({ status: 'accepted', outcomeDogId: dogId, outcomeDogName: data.name, ...reportStamp() }, 'Accepted: added to the app as ' + data.name + ' (' + statusText(data) + ')')).catch(err => console.warn('Report not marked:', err && err.message));
       } else {
         const changed = edit.oldStatus && data.status !== edit.oldStatus;
         await fb.updateDoc(fb.doc(fb.db, 'dogs', id), changed ? { ...data, ...statusStamp() } : data);
         if (changed) logStatusChange(id, edit.oldStatus, data.status, data.foundWhere);
+        // Every change to the details goes in the dog's log, with what it was before: nothing is quietly replaced.
+        const LABELS = { name: 'Name', breed: 'Breed', colour: 'Colour', sex: 'Sex', age: 'Age', lastSeenPlace: 'Last seen (place)', lastSeenAt: 'Last seen (date and time)', description: 'Description', notes: 'Important instructions', kennelsName: 'Kennels', vetsName: 'Vets', policeStation: 'Police station' };
+        const o0 = edit.orig || {}, show = (k, v) => k === 'lastSeenAt' && v ? String(v).replace('T', ' ') : String(v || '').trim() || '(blank)';
+        const diffs = Object.keys(LABELS).filter(k => k in data && String(data[k] || '').trim() !== String(o0[k] || '').trim()).map(k => LABELS[k] + ': ' + show(k, o0[k]) + ' \u2192 ' + show(k, data[k]));
+        if (edit.thumb) diffs.push('Photo changed');
+        if (!!o0.askAvailability !== !!data.askAvailability) diffs.push(data.askAvailability ? 'Asked volunteers for their availability' : 'Stopped asking volunteers for their availability');
+        if (diffs.length) fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'), { kind: 'edit', text: 'Details changed. ' + diffs.join('; ') + '.', byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() }).catch(() => {});
         if (edit.report) await fb.updateDoc(fb.doc(fb.db, 'reports', edit.report.id),
-          { status: 'accepted', outcomeDogId: id, outcomeDogName: data.name, ...reportStamp() }).catch(err => console.warn('Report not marked:', err && err.message));
+          withLog({ status: 'accepted', outcomeDogId: id, outcomeDogName: data.name, ...reportStamp() }, 'Accepted: added to ' + data.name + '\u2019s case (' + statusText(data) + ')')).catch(err => console.warn('Report not marked:', err && err.message));
         const newKey = updateKey(data);
         if (edit.oldKey && newKey !== edit.oldKey) edit.fbOffer = { from: edit.oldKey, to: newKey };   // includes Found -> Safe at kennels
       }
       // The full-size photo lives in its own record so the list stays quick to load.
       if (edit.photo) await fb.setDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'main'),
         { kind: 'photo', data: edit.photo, createdAt: fb.serverTimestamp() });
-      if (data.status === 'missing' && posterChanged && !isNew) {   // the dog has a poster already: remake it with the new photo or details (its own settings kept)
+      // A new Missing or Safe with finder (LDA) dog with "Make the poster now" ticked: its poster is saved with it.
+      const posterKind = isNew && !$('#dog-poster-box').hidden && $('#dog-poster-now').checked ? ownPosterKind(data) : '';
+      if (posterKind) {
+        msg.textContent = 'Saving the poster…';
+        try {
+          const v = posterFormValues(), pos = posterPos();
+          const set = { kind: posterKind, colour: v.colour, sex: v.sex, date: v.iso, area: v.area, contact: v.contact, zoom: pos.z, x: pos.x, y: pos.y, noPhoto: !edit.posterImg };
+          const pdata = lostDogPoster({ ...v, qr: dogReportUrl(dogId) }, edit.posterImg, 1080, pos, posterKind);
+          await fb.setDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'poster'), { kind: 'poster', data: pdata, settings: set, hasPhoto: !!edit.posterImg, madeAt: fb.serverTimestamp(), madeBy: state.profile.name || '' });
+          fb.addDoc(fb.collection(fb.db, 'dogs', dogId, 'updates'), { kind: 'note', text: OWN_POSTER[posterKind].name + ' made.', byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() }).catch(() => {});
+        } catch (err) { console.warn('Poster not saved:', err && err.message); }
+      }
+      if (ownPosterKind(data) && posterChanged && !isNew) {   // the dog has its poster already: remake it with the new photo or details (its own settings kept)
         const had = await fb.getDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'poster')).catch(() => null);
-        if (had && had.exists()) { msg.textContent = 'Updating the poster…'; await saveLostPoster(dogId, data).catch(err => console.warn('Poster not saved:', err && err.message)); }
+        if (had && had.exists() && ((had.data().settings && had.data().settings.kind) || 'lost') === ownPosterKind(data)) { msg.textContent = 'Updating the poster…'; await saveLostPoster(dogId, data).catch(err => console.warn('Poster not saved:', err && err.message)); }
       }
       if (isNew) sendPush({ type: 'dog', dogId });
       else if (data.askAvailability && !edit.wasAsking) sendPush({ type: 'availability', dogId });
       btn.disabled = false;
       // Posted already, and the photo or poster has changed: offer to update the Facebook post's pictures.
-      if (!thenFacebook && posterChanged && edit.fbPostId && NEW_POSTER_STATUSES.includes(data.status) && canPostFacebook()) { fbUpdatePoster = dogId; go('fbupdate/' + dogId); return; }
+      if (!thenFacebook && posterChanged && edit.fbPostId && newPosterDog(data) && canPostFacebook()) { fbUpdatePoster = dogId; go('fbupdate/' + dogId); return; }
       if (thenPoster) { go('create-poster/' + dogId); return; }
       if (thenFacebook) { fbDraft = { justSaved: dogId }; go('fbpost/' + dogId); return; }
       if (edit.fbOffer && edit.fbPostId && offerFacebookUpdate(dogId, edit.fbOffer.from, edit.fbOffer.to, { fbPostId: edit.fbPostId })) return;
@@ -4689,6 +4996,19 @@ function reportIcon() {
 }
 // Who did something with a report, and when.
 const reportStamp = () => ({ dealtBy: state.profile.name || '', dealtByUid: state.user.uid, dealtAt: state.fb.serverTimestamp() });
+// Every step on a public report (or drone request) adds a line to its case log. Lines are only ever added:
+// nothing in the log is replaced, trimmed or removed.
+const logEntry = what => ({ what, by: state.profile.name || '', byUid: state.user.uid, at: Date.now() });
+const withLog = (change, what) => ({ ...change, actions: state.fb.arrayUnion(logEntry(what)) });
+// The case log, oldest first: each new step goes underneath the one before.
+function caseLog(r, received) {
+  const acts = (Array.isArray(r.actions) ? r.actions : []).slice().sort((a, b) => (a.at || 0) - (b.at || 0));
+  const rows = [{ what: received, at: millis(r.createdAt), first: true }].concat(acts);
+  return h('div', { class: 'case-log', id: 'case-log' }, h('h3', null, 'Case log'),
+    h('ol', null, rows.map(a => h('li', { class: a.first ? 'first' : '' },
+      h('span', { class: 'log-when' }, a.at ? when(a.at) : ''),
+      h('span', { class: 'log-what' }, a.first ? a.what : [h('b', null, a.by || 'Someone'), ' \u2013 ' + a.what])))));
+}
 
 function showReports() {
   const fb = state.fb, list = $('#reports-list');
@@ -4807,7 +5127,7 @@ function showDroneRequest(id) {
   const mine = r => r.lookingByUid === state.user.uid;
   async function logAction(what, opts) {
     const r = live.r, me = state.profile.name || '', o = opts || {};
-    const change = { actions: (Array.isArray(r.actions) ? r.actions : []).concat([{ what, by: me, byUid: state.user.uid, at: Date.now() }]).slice(-50) };
+    const change = { actions: fb.arrayUnion({ what, by: me, byUid: state.user.uid, at: Date.now() }) };
     if (o.claim) Object.assign(change, { lookingBy: me, lookingByUid: state.user.uid, lookingAt: fb.serverTimestamp() });
     if (o.release) Object.assign(change, { lookingBy: '', lookingByUid: '', lookingAt: null });
     if (o.done) Object.assign(change, { status: 'done', outcome: o.done, dealtBy: me, dealtByUid: state.user.uid, dealtAt: fb.serverTimestamp() });
@@ -4835,8 +5155,6 @@ function showDroneRequest(id) {
         if (confirm('Take over this request from ' + r.lookingBy + '?')) logAction('Took over from ' + r.lookingBy, { claim: true });
       } }, 'Take over from ' + r.lookingBy));
     }
-    if (acts.length) box.appendChild(h('details', { class: 'handle-log' }, h('summary', null, 'What’s been done (' + acts.length + ')'),
-      h('ul', null, acts.slice().reverse().map(a => h('li', null, h('b', null, a.by || 'Someone'), ' ' + a.what.charAt(0).toLowerCase() + a.what.slice(1), h('small', null, when(a.at)))))));
     return box;
   }
 
@@ -4862,6 +5180,7 @@ function showDroneRequest(id) {
     }
     if (isNew) root.appendChild(handling(r));
     else root.appendChild(h('div', { class: 'fb-posted report-done' }, h('span', { class: 'ok' }, tickIcon('#ffffff', 24)), h('div', null, h('strong', null, droneOutcome(r)))));
+    root.appendChild(caseLog(r, 'Request received from the website'));
     const rows = [
       ['Search for', DRONE_WHAT[r.what]], ['Vulnerable (child, dementia, learning disability)', droneNeedsPolice(r) ? DRONE_VULN[r.vulnerable] : ''], ['Where', r.town], [r.what === 'other' ? 'When' : 'Last seen', reportSeen(r)], ['Water searched by Fire and Rescue or the Coastguard', DRONE_WATER[r.waterSearched] || ''],
       ['Details', r.details], ['Sent', when(r.createdAt)]
@@ -5098,7 +5417,7 @@ function showReport(id) {
   // they tap "I'll deal with this" (or a Call button), and others can take over.
   async function logAction(what, opts) {
     const r = live.r, me = state.profile.name || '', o = opts || {};
-    const change = { actions: (Array.isArray(r.actions) ? r.actions : []).concat([{ what, by: me, byUid: state.user.uid, at: Date.now() }]).slice(-50) };
+    const change = { actions: fb.arrayUnion({ what, by: me, byUid: state.user.uid, at: Date.now() }) };
     if (o.claim) Object.assign(change, { lookingBy: me, lookingByUid: state.user.uid, lookingAt: fb.serverTimestamp() });
     if (o.release) Object.assign(change, { lookingBy: '', lookingByUid: '', lookingAt: null });
     try { await fb.updateDoc(ref, change); } catch (err) { alert(err && err.code === 'permission-denied' ? 'Not saved: the new security rules need pasting into Firebase first.' : friendlyError(err)); }
@@ -5128,8 +5447,6 @@ function showReport(id) {
         if (confirm('Take over this report from ' + r.lookingBy + '?')) logAction('Took over from ' + r.lookingBy, { claim: true });
       } }, 'Take over from ' + r.lookingBy));
     }
-    if (acts.length) box.appendChild(h('details', { class: 'handle-log' }, h('summary', null, 'What\u2019s been done (' + acts.length + ')'),
-      h('ul', null, acts.slice().reverse().map(a => h('li', null, h('b', null, a.by || 'Someone'), ' ' + a.what.charAt(0).toLowerCase() + a.what.slice(1), h('small', null, when(a.at)))))));
     return box;
   }
 
@@ -5147,6 +5464,7 @@ function showReport(id) {
       h('span', null, 'The reporter felt the dog was in immediate danger. ' + REPORT_DANGER[r.danger].text)));
     else if (r.danger === 'no') root.appendChild(h('p', { class: 'hint', style: 'margin:-4px 0 10px' }, 'The reporter said the dog was not in immediate danger.'));
     if (isNew) root.appendChild(handlingPanel(r));
+    root.appendChild(caseLog(r, 'Report received from the website'));
     if (!isNew) root.appendChild(h('div', { class: 'fb-posted report-done' },
       h('span', { class: 'ok' }, tickIcon('#ffffff', 24)),
       h('div', null, h('strong', null, reportOutcome(r)),
@@ -5174,7 +5492,7 @@ function showReport(id) {
         h('div', { class: 'row' },
           h('button', { class: 'btn', type: 'button', id: 'photo-safe', onclick: async e => {
             e.target.disabled = true;
-            try { await fb.updateDoc(ref, { photoReview: 'safe', photoReviewBy: state.profile.name || '', photoReviewByUid: state.user.uid, photoReviewAt: fb.serverTimestamp() }); }
+            try { await fb.updateDoc(ref, withLog({ photoReview: 'safe', photoReviewBy: state.profile.name || '', photoReviewByUid: state.user.uid, photoReviewAt: fb.serverTimestamp() }, 'Checked the photo: safe')); }
             catch (err) { e.target.disabled = false; pmsg.textContent = err && err.code === 'permission-denied' ? 'Not allowed yet. The new security rules need pasting into Firebase first.' : friendlyError(err); }
           } }, 'Photo is safe'),
           h('button', { class: 'btn danger', type: 'button', id: 'photo-bad', onclick: () => popup({ tone: 'bad', title: 'Inappropriate photo?',
@@ -5231,7 +5549,7 @@ function showReport(id) {
 
     if (!isNew) {
       if (r.status === 'rejected') {
-        root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', onclick: () => setStatus({ status: 'new', rejectReason: '' }) }, 'Move back to New'));
+        root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', onclick: () => setStatus(withLog({ status: 'new', rejectReason: '' }, 'Moved back to New')) }, 'Move back to New'));
       }
       // Admins (and the developer) can delete any dealt-with report straight away instead of waiting 30 days.
       if (isAdmin()) {
@@ -5261,9 +5579,10 @@ function showReport(id) {
       const cur = ownerPerm(r);
       const setPerm = async v => {
         try {
-          await fb.updateDoc(ref, v === 'waiting'
+          await fb.updateDoc(ref, withLog(v === 'waiting'
             ? { ownerConsent: false, ownerRefused: false, ownerConsentBy: '', ownerConsentByUid: '', ownerConsentAt: null }
-            : { ownerConsent: v === 'given', ownerRefused: v === 'refused', ownerConsentBy: state.profile.name || '', ownerConsentByUid: state.user.uid, ownerConsentAt: fb.serverTimestamp() });
+            : { ownerConsent: v === 'given', ownerRefused: v === 'refused', ownerConsentBy: state.profile.name || '', ownerConsentByUid: state.user.uid, ownerConsentAt: fb.serverTimestamp() },
+            { waiting: 'Owner permission: not spoken to them yet', given: 'Owner permission: owner agreed', refused: 'Owner permission: owner said no' }[v]));
         } catch (err) { msg.textContent = friendlyError(err); }
       };
       box.appendChild(h('p', { class: 'perm-q' }, 'Owner permission for a search by Lost Dogs Ayrshire'));
@@ -5284,9 +5603,10 @@ function showReport(id) {
       const cur = r.ownerConsent ? 'given' : r.ownerRefused ? 'refused' : 'waiting';
       const setSpoke = async v => {
         try {
-          await fb.updateDoc(ref, v === 'waiting'
+          await fb.updateDoc(ref, withLog(v === 'waiting'
             ? { ownerConsent: false, ownerRefused: false, ownerConsentBy: '', ownerConsentByUid: '', ownerConsentAt: null }
-            : { ownerConsent: v === 'given', ownerRefused: v === 'refused', ownerConsentBy: state.profile.name || '', ownerConsentByUid: state.user.uid, ownerConsentAt: fb.serverTimestamp() });
+            : { ownerConsent: v === 'given', ownerRefused: v === 'refused', ownerConsentBy: state.profile.name || '', ownerConsentByUid: state.user.uid, ownerConsentAt: fb.serverTimestamp() },
+            { waiting: 'Set back to: not spoken to them yet', given: 'Spoke with the owner', refused: 'Not their dog / no help wanted' }[v]));
         } catch (err) { msg.textContent = friendlyError(err); }
       };
       box.appendChild(h('p', { class: 'perm-q' }, r.knows === 'owner' ? 'Have you spoken with the owner?' : 'Have you spoken with them (the owner)?'));
@@ -5298,7 +5618,7 @@ function showReport(id) {
       box.appendChild(h('button', { class: 'btn wide ghost', type: 'button', id: 'report-followed', disabled: cur === 'waiting', onclick: async e => {
         if (cur === 'waiting') return;
         e.target.disabled = true;
-        try { await fb.updateDoc(ref, { status: 'sighting', outcomeDogId: r.dogId || '', outcomeDogName: r.dogName || '', ...reportStamp() }); }
+        try { await fb.updateDoc(ref, withLog({ status: 'sighting', outcomeDogId: r.dogId || '', outcomeDogName: r.dogName || '', ...reportStamp() }, 'Marked as followed up')); }
         catch (err) { e.target.disabled = false; msg.textContent = friendlyError(err); }
       } }, 'Mark as followed up'));
       box.appendChild(h('p', { class: 'hint' }, cur === 'waiting'
@@ -5343,7 +5663,7 @@ function showReport(id) {
     box.appendChild(h('div', { class: 'row' }, why,
       h('button', { class: 'btn danger', type: 'button', onclick: () => {
         if (!why.value) { msg.textContent = 'Choose a reason first.'; return; }
-        setStatus({ status: 'rejected', rejectReason: why.value, ...reportStamp() });
+        setStatus(withLog({ status: 'rejected', rejectReason: why.value, ...reportStamp() }, 'Rejected: ' + why.value));
       } }, 'Reject')));
     box.appendChild(msg);
     root.appendChild(box);
@@ -5366,7 +5686,7 @@ async function addReportToDog(r, dog, notify) {
   const text = 'Sighting reported by a member of the public in ' + (r.town || 'an unknown place') + (reportSeen(r) ? ' on ' + reportSeen(r) : '') + '.' + (note ? ' "' + note + '"' : '');
   const upd = await fb.addDoc(fb.collection(fb.db, 'dogs', dog.id, 'updates'), { text, byName: me, createdAt: fb.serverTimestamp() });
   fb.updateDoc(fb.doc(fb.db, 'dogs', dog.id), { updateCount: fb.increment(1), lastUpdateAt: fb.serverTimestamp() }).catch(() => {});
-  await fb.updateDoc(fb.doc(fb.db, 'reports', r.id), { status: 'sighting', outcomeDogId: dog.id, outcomeDogName: dog.name || '', ...reportStamp() });
+  await fb.updateDoc(fb.doc(fb.db, 'reports', r.id), withLog({ status: 'sighting', outcomeDogId: dog.id, outcomeDogName: dog.name || '', ...reportStamp() }, 'Added as a sighting to ' + (dog.name || 'a dog') + (dog.lastSeenPlace ? ' (' + dog.lastSeenPlace + ')' : '')));
   if (notify) sendPush({ type: 'update', dogId: dog.id, updateId: upd.id });
 }
 
@@ -7264,7 +7584,7 @@ function showSopReads(section) {
 //  Create Lost Dog Poster (drawn on the phone, nothing is uploaded)
 // ============================================================
 const POSTER = { W: 1254, H: 1254, purple: '#5220c4', yellow: '#fdf90f', lilac: '#7f52de', white: '#ffffff' };
-const poster = { photo: null, noPhoto: false, webFont: false, format: 'square', saveInk: false };
+const poster = { photo: null, noPhoto: false, webFont: false, format: 'square', saveInk: false, kind: 'lost' };   // kind: 'lost' or 'found-safe'
 
 // Poster lettering: Montserrat, the same heavy style as the other posters.
 // If it cannot be downloaded the phone's own heaviest font is used instead.
@@ -7276,7 +7596,7 @@ function posterValues() {
   const d = v('poster-date');           // yyyy-mm-dd from the date picker
   return {
     colour: v('poster-colour'), sex: v('poster-sex'), area: v('poster-area'), contact: v('poster-contact'),
-    date: d ? d.split('-').reverse().join('/') : ''
+    date: d ? d.split('-').reverse().join('/') : '', qr: (() => { try { return posterDog ? dogReportUrl(posterDog.id) : ''; } catch (e) { return ''; } })()
   };
 }
 
@@ -7338,6 +7658,7 @@ function posterMark(ctx, kind, x, y, s, colour) {
 }
 
 function drawPoster(canvas, values, forTile) {
+  if (poster.kind === 'found-safe' && !forTile) return drawFoundSafe(canvas, values);
   const ctx = canvas.getContext('2d');
   const k = canvas.width / POSTER.W;
   ctx.setTransform(k, 0, 0, k, 0, 0);
@@ -7479,6 +7800,7 @@ function posterPhoto(ctx, x, y, s, radius, border, borderColour, step, markPx) {
 }
 
 function drawPosterA4(canvas, values, saveInk) {
+  if (poster.kind === 'found-safe') return drawFoundSafeA4(canvas, values, saveInk);
   const ctx = canvas.getContext('2d');
   const k = canvas.width / A4.W;
   ctx.setTransform(k, 0, 0, k, 0, 0);
@@ -7512,8 +7834,23 @@ function drawPosterA4(canvas, values, saveInk) {
   posterBar(ctx, 60, 1180, 562, c.bar);
 
   let list;   // where the two lists start and how big they are
+  // Made for a dog on the app: a QR code that opens the website's report form for this dog.
+  const qrBox = (x, y, w, hgt, big) => {
+    ctx.fillStyle = W; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, hgt, 28) : ctx.rect(x, y, w, hgt); ctx.fill();
+    if (saveInk) { ctx.strokeStyle = P; ctx.lineWidth = 5; ctx.stroke(); }
+    const head = big ? 44 : 30, cap = big ? 28 : 22, size = Math.min(w - 50, hgt - head - cap * 2 - 90);
+    posterLine(ctx, [['SEEN THIS DOG?', P]], x + w / 2, y + 22 + head / 2 + 8, head, 900, w - 30, 'center');
+    try {
+      const m = qrMatrix(values.qr), n = m.length, cell = size / n, ox = x + (w - size) / 2, oy = y + head + 44;
+      ctx.fillStyle = '#1a0a4a';
+      for (let yy = 0; yy < n; yy++) for (let xx = 0; xx < n; xx++) if (m[yy][xx]) ctx.fillRect(ox + xx * cell, oy + yy * cell, cell + 0.4, cell + 0.4);
+    } catch (e) {}
+    posterLine(ctx, [['SCAN TO REPORT', P]], x + w / 2, y + hgt - cap * 2 - 14, cap, 900, w - 30, 'center');
+    posterLine(ctx, [['A SIGHTING', P]], x + w / 2, y + hgt - cap - 6, cap, 900, w - 30, 'center');
+  };
   if (hasPhoto) {
-    posterPhoto(ctx, 320, 592, 600, 30, 10, saveInk ? P : Y, 38, 12);
+    if (values.qr) { posterPhoto(ctx, 60, 592, 600, 30, 10, saveInk ? P : Y, 38, 12); qrBox(690, 592, 490, 600, true); }
+    else posterPhoto(ctx, 320, 592, 600, 30, 10, saveInk ? P : Y, 38, 12);
     const line1 = [[up(values.colour) || blank('COLOUR'), c.text]];
     if (values.sex) line1.push([' · ', c.accent], [up(values.sex), c.text]);
     posterLine(ctx, line1, 620, 1240, 52, 800, 1120, 'center');
@@ -7527,12 +7864,13 @@ function drawPosterA4(canvas, values, saveInk) {
     ctx.beginPath();
     ctx.roundRect ? ctx.roundRect(60, 600, 1120, 520, 30) : ctx.rect(60, 600, 1120, 520);
     ctx.fill();
-    const step = rows.length === 4 ? 124 : 156, top = 600 + 260 - (rows.length - 1) * step / 2;
+    const step = rows.length === 4 ? 124 : 156, top = 600 + 260 - (rows.length - 1) * step / 2, textW = values.qr ? 720 : 1020;
     rows.forEach((r, i) => {
       const y = top + i * step;
-      posterLine(ctx, [[r[0], P]], 110, y - 40, 28, 800, 1020, 'left');
-      posterLine(ctx, [[r[1], P]], 110, y + 14, 72, 900, 1020, 'left');
+      posterLine(ctx, [[r[0], P]], 110, y - 40, 28, 800, textW, 'left');
+      posterLine(ctx, [[r[1], P]], 110, y + 14, 72, 900, textW, 'left');
     });
+    if (values.qr) qrBox(860, 640, 290, 440, false);
     list = { top: 1196, head: 50, gap: 62, a: 36, stepA: 50, b: 32, stepB: 46, mark: 32 };
   }
 
@@ -7557,6 +7895,181 @@ function drawPosterA4(canvas, values, saveInk) {
   ctx.fillRect(0, 1667, A4.W, A4.H - 1667);
   posterLine(ctx, [['CONTACT ' + (up(values.contact) || '(NUMBER)'), P]], 620, 1684, 70, 900, 1120, 'center');
   posterLine(ctx, [['#LostDog  |  #LostDogsAyrshire  |  #TeamLDA  |  #AyrshireDogs', P]], 620, 1733, 22, 800, 1120, 'center');
+}
+
+// ---------- Found Safe poster (a found dog that Lost Dogs Ayrshire is helping the finder with) ----------
+// Wrapped text, left aligned; returns the baseline of the last line.
+function posterWrap(ctx, text, x, y, maxW, px, weight, lh, colour) {
+  ctx.font = posterFont(px, weight); ctx.fillStyle = colour; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  let line = '', yy = y;
+  String(text).split(' ').forEach(w => { const t = line ? line + ' ' + w : w; if (line && ctx.measureText(t).width > maxW) { ctx.fillText(line, x, yy); yy += lh; line = w; } else line = t; });
+  if (line) ctx.fillText(line, x, yy);
+  return yy;
+}
+// The photo box: the chosen photo with the watermark, or "Photo to follow".
+function foundSafePhoto(ctx, x, y, s, r, border, borderColour, lilac, white) {
+  if (poster.photo && !poster.noPhoto) { posterPhoto(ctx, x, y, s, r, border, borderColour, Math.round(s / 15), Math.max(9, Math.round(s / 44))); return; }
+  ctx.fillStyle = borderColour; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, s, s, r) : ctx.rect(x, y, s, s); ctx.fill();
+  ctx.fillStyle = lilac; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x + border, y + border, s - border * 2, s - border * 2, Math.max(0, r - border)) : ctx.rect(x + border, y + border, s - border * 2, s - border * 2); ctx.fill();
+  posterPaw(ctx, x + s / 2 - s * 0.22, y + s * 0.16, s * 0.44, 0, 'rgba(255,255,255,0.28)');
+  posterLine(ctx, [['PHOTO', white]], x + s / 2, y + s * 0.72, Math.round(s * 0.11), 900, s - 60, 'center');
+  posterLine(ctx, [['TO FOLLOW', white]], x + s / 2, y + s * 0.84, Math.round(s * 0.11), 900, s - 60, 'center');
+}
+function foundSafeHead(ctx, cy, cap, maxW, colour, shadow) {
+  ctx.font = posterFont(100, 900);
+  const px = Math.round(100 * cap / (ctx.measureText('H').actualBoundingBoxAscent || 72));
+  if (shadow) posterLine(ctx, [['FOUND SAFE!', shadow]], ctx.canvas.width / ctx.getTransform().a / 2, cy + 8, px, 900, maxW, 'center');
+  posterLine(ctx, [['FOUND SAFE!', colour]], ctx.canvas.width / ctx.getTransform().a / 2, cy, px, 900, maxW, 'center');
+}
+function drawFoundSafe(canvas, values) {
+  const ctx = canvas.getContext('2d');
+  const k = canvas.width / POSTER.W;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  const { purple: P, yellow: Y, lilac: L, white: W } = POSTER;
+  const up = s => String(s || '').toUpperCase();
+  ctx.fillStyle = P; ctx.fillRect(0, 0, POSTER.W, POSTER.H);
+  posterPaw(ctx, 80, 60, 190, -12, L); posterPaw(ctx, 984, 60, 190, 12, L);
+  posterBar(ctx, 60, 487, 234, Y); posterBar(ctx, 767, 1194, 234, Y);
+  ctx.fillStyle = Y; ctx.beginPath(); ctx.arc(627, 146, 124, 0, Math.PI * 2); ctx.fill();
+  const logo = $('#logo-img');
+  if (logo.complete && logo.naturalWidth) ctx.drawImage(logo, 627 - 118, 146 - 118, 236, 236);
+  foundSafeHead(ctx, 350, 112, 1130, Y, 'rgba(0,0,0,0.22)');
+  posterBar(ctx, 60, 1194, 432, Y);
+  posterLine(ctx, [['DO YOU RECOGNISE ME?', W]], 627, 476, 40, 900, 1134, 'center');
+  posterLine(ctx, [['FOUND ', Y], [values.date || '(DATE)', W], [' · AREA ', Y], [up(values.area) || '(AREA)', W]], 627, 524, 36, 800, 1134, 'center');
+  // The photo as big as the page allows, with the message beside it
+  foundSafePhoto(ctx, 60, 554, 530, 28, 9, Y, L, W);
+  const col = 612, pw = 582, top = 554, ph = 530;
+  ctx.fillStyle = L; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(col, top, pw, ph, 26) : ctx.rect(col, top, pw, ph); ctx.fill();
+  posterLine(ctx, [['IS THIS YOUR DOG?', Y]], col + 28, top + 62, 40, 900, pw - 56, 'left');
+  let y = posterWrap(ctx, 'Lost Dogs Ayrshire are currently working with the finder of this dog.', col + 28, top + 146, pw - 56, 29, 800, 44, W);
+  posterWrap(ctx, 'Please contact Lost Dogs Ayrshire.', col + 28, y + 64, pw - 56, 29, 800, 44, W);
+  ctx.fillStyle = Y; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(col + 22, top + ph - 118, pw - 44, 96, 48) : ctx.rect(col + 22, top + ph - 118, pw - 44, 96); ctx.fill();
+  posterLine(ctx, [['PROOF OF OWNERSHIP', P]], col + pw / 2, top + ph - 88, 29, 900, pw - 100, 'center');
+  posterLine(ctx, [['WILL BE REQUIRED', P]], col + pw / 2, top + ph - 52, 29, 900, pw - 100, 'center');
+  // Yellow hill: number, web address and hashtags
+  ctx.fillStyle = Y; ctx.beginPath(); ctx.ellipse(627, 1146, 687, 54, 0, Math.PI, 0); ctx.fill(); ctx.fillRect(0, 1145, POSTER.W, POSTER.H - 1145);
+  posterLine(ctx, [['CONTACT ' + (up(values.contact) || '(NUMBER)'), P]], 627, 1144, 50, 900, 1100, 'center');
+  posterLine(ctx, [['lostdogsayrshire.org.uk', P]], 627, 1192, 26, 800, 1100, 'center');
+  posterLine(ctx, [['#FoundSafe  |  #LostDogsAyrshire  |  #TeamLDA  |  #AyrshireDogs', P]], 627, 1229, 19, 800, 1100, 'center');
+}
+// A4 for printing: a bigger photo, the message, and a QR code that opens this dog on the website.
+function drawFoundSafeA4(canvas, values, saveInk) {
+  const ctx = canvas.getContext('2d');
+  const k = canvas.width / A4.W;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  const { purple: P, yellow: Y, lilac: L, white: W } = POSTER;
+  const c = saveInk
+    ? { bg: W, head: P, text: P, accent: P, bar: P, paw: '#e6dcfb', shadow: null, panel: '#efe8ff', panelHead: P, panelText: P, band: P, bandText: W, photoBorder: P, nophoto: '#cdbcf5' }
+    : { bg: P, head: Y, text: W, accent: Y, bar: Y, paw: L, shadow: 'rgba(0,0,0,0.22)', panel: L, panelHead: Y, panelText: W, band: Y, bandText: P, photoBorder: Y, nophoto: L };
+  const up = s => String(s || '').toUpperCase();
+  ctx.fillStyle = c.bg; ctx.fillRect(0, 0, A4.W, A4.H);
+  posterPaw(ctx, 70, 50, 200, -12, c.paw); posterPaw(ctx, 970, 50, 200, 12, c.paw);
+  posterBar(ctx, 60, 465, 262, c.bar); posterBar(ctx, 775, 1180, 262, c.bar);
+  ctx.fillStyle = Y; ctx.beginPath(); ctx.arc(620, 165, 132, 0, Math.PI * 2); ctx.fill();
+  const logo = $('#logo-img');
+  if (logo.complete && logo.naturalWidth) ctx.drawImage(logo, 620 - 125, 165 - 125, 250, 250);
+  foundSafeHead(ctx, 425, 150, 1120, c.head, c.shadow);
+  posterBar(ctx, 60, 1180, 532, c.bar);
+  posterLine(ctx, [['DO YOU RECOGNISE ME?', c.text]], 620, 584, 50, 900, 1120, 'center');
+  posterLine(ctx, [['FOUND ', c.accent], [values.date || '(DATE)', c.text], [' · AREA ', c.accent], [up(values.area) || '(AREA)', c.text]], 620, 644, 44, 800, 1120, 'center');
+  foundSafePhoto(ctx, 320, 680, 600, 30, 10, c.photoBorder, c.nophoto, W);
+  // The message, with the QR code beside it
+  const top = 1306, ph = 288;
+  ctx.fillStyle = c.panel; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(60, top, 812, ph, 28) : ctx.rect(60, top, 812, ph); ctx.fill();
+  posterLine(ctx, [['IS THIS YOUR DOG?', c.panelHead]], 92, top + 50, 40, 900, 750, 'left');
+  posterWrap(ctx, 'Lost Dogs Ayrshire are currently working with the finder of this dog. Please contact Lost Dogs Ayrshire.', 92, top + 112, 750, 28, 800, 40, c.panelText);
+  ctx.fillStyle = c.band; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(84, top + ph - 82, 764, 62, 31) : ctx.rect(84, top + ph - 82, 764, 62); ctx.fill();
+  posterLine(ctx, [['PROOF OF OWNERSHIP WILL BE REQUIRED', c.bandText]], 466, top + ph - 51, 27, 900, 720, 'center');
+  const qx = 896, qw = 284;
+  ctx.fillStyle = W; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(qx, top, qw, ph, 28) : ctx.rect(qx, top, qw, ph); ctx.fill();
+  if (saveInk) { ctx.strokeStyle = P; ctx.lineWidth = 4; ctx.stroke(); }
+  try {
+    const m = qrMatrix(values.qr || 'https://lostdogsayrshire.org.uk'), n = m.length, size = 212, cell = size / n, ox = qx + (qw - size) / 2, oy = top + 16;
+    ctx.fillStyle = '#1a0a4a';
+    for (let yy = 0; yy < n; yy++) for (let xx = 0; xx < n; xx++) if (m[yy][xx]) ctx.fillRect(ox + xx * cell, oy + yy * cell, cell + 0.4, cell + 0.4);
+  } catch (e) {}
+  posterLine(ctx, [['SCAN TO TELL US', P]], qx + qw / 2, top + ph - 34, 26, 900, qw - 30, 'center');
+  // Yellow hill: number, web address and hashtags
+  ctx.fillStyle = Y; ctx.beginPath(); ctx.ellipse(620, 1656, 700, 42, 0, Math.PI, 0); ctx.fill(); ctx.fillRect(0, 1655, A4.W, A4.H - 1655);
+  posterLine(ctx, [['CONTACT ' + (up(values.contact) || '(NUMBER)'), P]], 620, 1656, 56, 900, 1120, 'center');
+  posterLine(ctx, [['lostdogsayrshire.org.uk', P]], 620, 1698, 26, 800, 1120, 'center');
+  posterLine(ctx, [['#FoundSafe  |  #LostDogsAyrshire  |  #TeamLDA  |  #AyrshireDogs', P]], 620, 1730, 20, 800, 1120, 'center');
+}
+
+// A small QR code maker (byte mode, medium error correction, versions 1-10), after Project Nayuki's method.
+function qrMatrix(text) {
+  const data = [...new TextEncoder().encode(text)];
+  const ECC = [-1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26], BLOCKS = [-1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5];
+  const rawModules = v => { let r = (16 * v + 128) * v + 64; if (v >= 2) { const n = Math.floor(v / 7) + 2; r -= (25 * n - 10) * n - 55; if (v >= 7) r -= 36; } return r; };
+  const dataCw = v => Math.floor(rawModules(v) / 8) - ECC[v] * BLOCKS[v];
+  let ver = 1;
+  while (ver <= 10 && 4 + (ver < 10 ? 8 : 16) + data.length * 8 > dataCw(ver) * 8) ver++;
+  if (ver > 10) throw new Error('Too long for a QR code');
+  // bits: mode, length, data, terminator, padding
+  const bits = []; const put = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
+  put(4, 4); put(data.length, ver < 10 ? 8 : 16); data.forEach(b => put(b, 8));
+  const cap = dataCw(ver) * 8;
+  put(0, Math.min(4, cap - bits.length)); put(0, (8 - bits.length % 8) % 8);
+  for (let p = 0xEC; bits.length < cap; p ^= 0xEC ^ 0x11) put(p, 8);
+  const bytes = []; for (let i = 0; i < bits.length; i += 8) bytes.push(bits.slice(i, i + 8).reduce((a, b) => a * 2 + b, 0));
+  // Reed-Solomon error correction, split into blocks and interleaved
+  const mul = (x, y) => { let z = 0; for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; } return z; };
+  const eccLen = ECC[ver], nb = BLOCKS[ver], raw = Math.floor(rawModules(ver) / 8);
+  const div = new Array(eccLen).fill(0); div[eccLen - 1] = 1;
+  for (let i = 0, root = 1; i < eccLen; i++) { for (let j = 0; j < eccLen; j++) { div[j] = mul(div[j], root); if (j + 1 < eccLen) div[j] ^= div[j + 1]; } root = mul(root, 2); }
+  const rem = d => { const r = new Array(eccLen).fill(0); d.forEach(b => { const f = b ^ r.shift(); r.push(0); div.forEach((c, i) => { r[i] ^= mul(c, f); }); }); return r; };
+  const shortN = nb - raw % nb, shortLen = Math.floor(raw / nb), blocks = [];
+  for (let i = 0, k = 0; i < nb; i++) { const len = shortLen - eccLen + (i < shortN ? 0 : 1); const dat = bytes.slice(k, k + len); k += len; const e = rem(dat); if (i < shortN) dat.push(0); blocks.push(dat.concat(e)); }
+  const words = [];
+  for (let i = 0; i < blocks[0].length; i++) blocks.forEach((b, j) => { if (i !== shortLen - eccLen || j >= shortN) words.push(b[i]); });
+  // The grid
+  const size = ver * 4 + 17, m = [], fn = [];
+  for (let y = 0; y < size; y++) { m.push(new Array(size).fill(false)); fn.push(new Array(size).fill(false)); }
+  const set = (x, y, dark) => { m[y][x] = dark; fn[y][x] = true; };
+  for (let i = 0; i < size; i++) { set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+  [[3, 3], [size - 4, 3], [3, size - 4]].forEach(([cx, cy]) => { for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) { const x = cx + dx, y = cy + dy, dist = Math.max(Math.abs(dx), Math.abs(dy)); if (x >= 0 && x < size && y >= 0 && y < size) set(x, y, dist !== 2 && dist !== 4); } });
+  if (ver > 1) {
+    const n = Math.floor(ver / 7) + 2, step = Math.ceil((ver * 4 + 4) / (n * 2 - 2)) * 2, pos = [6];
+    for (let p = size - 7; pos.length < n; p -= step) pos.splice(1, 0, p);
+    pos.forEach((a, i) => pos.forEach((b, j) => { if ((i === 0 && j === 0) || (i === 0 && j === n - 1) || (i === n - 1 && j === 0)) return; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) set(a + dx, b + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1); }));
+  }
+  const format = mask => {
+    const d = (0 << 3) | mask; let r = d; for (let i = 0; i < 10; i++) r = (r << 1) ^ ((r >>> 9) * 0x537);
+    const b = ((d << 10) | r) ^ 0x5412, bit = i => ((b >>> i) & 1) !== 0;
+    for (let i = 0; i <= 5; i++) set(8, i, bit(i));
+    set(8, 7, bit(6)); set(8, 8, bit(7)); set(7, 8, bit(8));
+    for (let i = 9; i < 15; i++) set(14 - i, 8, bit(i));
+    for (let i = 0; i < 8; i++) set(size - 1 - i, 8, bit(i));
+    for (let i = 8; i < 15; i++) set(8, size - 15 + i, bit(i));
+    set(8, size - 8, true);
+  };
+  format(0);
+  if (ver >= 7) { let r = ver; for (let i = 0; i < 12; i++) r = (r << 1) ^ ((r >>> 11) * 0x1F25); const b = (ver << 12) | r; for (let i = 0; i < 18; i++) { const dark = ((b >>> i) & 1) !== 0, a = size - 11 + i % 3, c = Math.floor(i / 3); set(a, c, dark); set(c, a, dark); } }
+  for (let right = size - 1, i = 0; right >= 1; right -= 2) {
+    if (right === 6) right = 5;
+    for (let v = 0; v < size; v++) for (let j = 0; j < 2; j++) {
+      const x = right - j, up = ((right + 1) & 2) === 0, y = up ? size - 1 - v : v;
+      if (!fn[y][x] && i < words.length * 8) { m[y][x] = ((words[i >>> 3] >>> (7 - (i & 7))) & 1) !== 0; i++; }
+    }
+  }
+  const MASKS = [(x, y) => (x + y) % 2 === 0, (x, y) => y % 2 === 0, (x, y) => x % 3 === 0, (x, y) => (x + y) % 3 === 0,
+    (x, y) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0, (x, y) => x * y % 2 + x * y % 3 === 0,
+    (x, y) => (x * y % 2 + x * y % 3) % 2 === 0, (x, y) => ((x + y) % 2 + x * y % 3) % 2 === 0];
+  const applyMask = k => { for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (!fn[y][x] && MASKS[k](x, y)) m[y][x] = !m[y][x]; };
+  const penalty = () => {
+    let p = 0, dark = 0;
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      if (m[y][x]) dark++;
+      if (x < size - 1 && y < size - 1 && m[y][x] === m[y][x + 1] && m[y][x] === m[y + 1][x] && m[y][x] === m[y + 1][x + 1]) p += 3;
+    }
+    for (let a = 0; a < size; a++) for (const line of [m[a], m.map(r => r[a])]) { let run = 1; for (let i = 1; i <= size; i++) { if (i < size && line[i] === line[i - 1]) run++; else { if (run >= 5) p += run - 2; run = 1; } } }
+    return p + Math.floor(Math.abs(dark * 20 - size * size * 10) / (size * size)) * 10;
+  };
+  let best = 0, bestP = Infinity;
+  for (let k = 0; k < 8; k++) { applyMask(k); format(k); const p = penalty(); if (p < bestP) { bestP = p; best = k; } applyMask(k); }
+  applyMask(best); format(best);
+  return m;
 }
 
 // Wrap a JPEG picture in a one-page A4 PDF, so it prints at exactly the right size.
@@ -7643,13 +8156,14 @@ function initPosterMaker() {
 
   $('#poster-save').addEventListener('click', () => {
     const v = posterValues(), missing = [];
+    const found = poster.kind === 'found-safe';
     if (!poster.photo && !poster.noPhoto) missing.push('a photo (or tap "No photo available")');
-    if (!v.colour) missing.push('the colour');
-    if (!v.date) missing.push('the date missing');
+    if (!v.colour && !found) missing.push('the colour');
+    if (!v.date) missing.push(found ? 'the date found' : 'the date missing');
     if (!v.area) missing.push('the area');
     if (!v.contact) missing.push('a contact number');
     if (missing.length) { $('#poster-msg').textContent = 'Still needed: ' + missing.join(', ') + '.'; return; }
-    const base = 'lost-dog-' + v.area.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const base = (found ? 'found-safe-' : 'lost-dog-') + v.area.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const canvas = $('#poster-canvas'), a4 = poster.format === 'a4';
     canvas.toBlob(async blob => {
       try {
@@ -7667,6 +8181,9 @@ function initPosterMaker() {
     c.width = 470; c.height = 470;
     drawPoster(c, { contact: '' }, true);
     $('#poster-tile-img').src = c.toDataURL('image/jpeg', 0.8);
+    const f = document.createElement('canvas'); f.width = f.height = 470;
+    drawFoundSafe(f, { contact: '07715 950588', date: 'DATE', area: 'AREA' });
+    $('#found-poster-tile-img').src = f.toDataURL('image/jpeg', 0.8);
     setFormat(poster.format);
   };
   const logo = $('#logo-img');
@@ -7764,17 +8281,30 @@ function lostDogText(v) {
   lines.push('Thank you for caring & sharing', '', '#lostdogsayrshire #LDA #lostdog #purpleandyellowcommunity');
   return lines.join('\n');
 }
+// Wording for a found dog that Lost Dogs Ayrshire is helping the finder with (Safe with finder).
+// The dog's own link goes near the top, so it shows before Facebook folds the post with "See more".
+function foundSafeText(place, link) {
+  return ['\ud83d\udc9c\ud83d\udc9b\ud83d\udc3e FOUND DOG \u2013 CAN YOU HELP? \ud83d\udc3e\ud83d\udc9b\ud83d\udc9c', '',
+    '\ud83d\udc36 This lovely dog has been found in ' + (place || '{location}') + '.', '',
+    link, '',
+    'The finder has kindly asked Lost Dogs Ayrshire to share the details in the hope of locating the owner. \ud83c\udfe1\ud83d\udc9c\ud83d\udc9b', '',
+    '\ud83d\udce9 Do you recognise this dog?', '',
+    'Please contact Lost Dogs Ayrshire directly if you have any information.', '',
+    '\ud83c\udf10 lostdogsayrshire.org.uk', '',
+    '\ud83d\udc9c\ud83d\udc9b Thank you for caring and sharing! \ud83d\udc3e', '',
+    '#LostDogsAyrshire #FoundDog #AyrshireDogs #CommunityHelpingCommunity #purpleandyellowcommunity'].join('\n');
+}
 // Draw the Lost Dog poster with a given photo (or none), without touching what is open in the poster maker.
-function lostDogPoster(values, photo, size, pos) {
-  const keep = { photo: poster.photo, noPhoto: poster.noPhoto, z: $('#poster-zoom').value, x: $('#poster-x').value, y: $('#poster-y').value };
+function lostDogPoster(values, photo, size, pos, kind) {
+  const keep = { photo: poster.photo, noPhoto: poster.noPhoto, kind: poster.kind, z: $('#poster-zoom').value, x: $('#poster-x').value, y: $('#poster-y').value };
   try {
-    poster.photo = photo || null; poster.noPhoto = !photo;
+    poster.photo = photo || null; poster.noPhoto = !photo; poster.kind = kind || 'lost';
     $('#poster-zoom').value = (pos && pos.z) || 100; $('#poster-x').value = pos && pos.x != null ? pos.x : 50; $('#poster-y').value = pos && pos.y != null ? pos.y : 50;
     const c = document.createElement('canvas'); c.width = c.height = size || 1080;
     drawPoster(c, values);
     return c.toDataURL('image/jpeg', 0.88);
   } finally {
-    poster.photo = keep.photo; poster.noPhoto = keep.noPhoto;
+    poster.photo = keep.photo; poster.noPhoto = keep.noPhoto; poster.kind = keep.kind;
     $('#poster-zoom').value = keep.z; $('#poster-x').value = keep.x; $('#poster-y').value = keep.y;
   }
 }
@@ -7782,16 +8312,18 @@ function lostDogPoster(values, photo, size, pos) {
 // From the poster maker: the square poster as it stands, with Lost Dog wording.
 $('#poster-fb').addEventListener('click', () => {
   const v = posterValues(), missing = [];
+  const found = poster.kind === 'found-safe';
   if (!poster.photo && !poster.noPhoto) missing.push('a photo (or tap "No photo available")');
-  if (!v.colour) missing.push('the colour');
-  if (!v.date) missing.push('the date missing');
+  if (!v.colour && !found) missing.push('the colour');
+  if (!v.date) missing.push(found ? 'the date found' : 'the date missing');
   if (!v.area) missing.push('the area');
   if (!v.contact) missing.push('a contact number');
   if (missing.length) { $('#poster-msg').textContent = 'Still needed: ' + missing.join(', ') + '.'; return; }
   const c = document.createElement('canvas'); c.width = c.height = 1080;
   drawPoster(c, v);
-  fbDraft = { from: 'poster', back: 'create-poster', label: 'Lost Dog poster',
-    images: [{ src: c.toDataURL('image/jpeg', 0.88), caption: 'The poster' }], text: lostDogText(v) };
+  fbDraft = { from: 'poster', back: found ? 'create-found-poster' : 'create-poster', label: found ? 'Found Safe poster' : 'Lost Dog poster',
+    images: [{ src: c.toDataURL('image/jpeg', 0.88), caption: 'The poster' }],
+    text: found ? foundSafeText(v.area, '\ud83d\udc40 Know this dog? Tell us here: https://lostdogsayrshire.org.uk/report') : lostDogText(v) };
   go('fbpost/poster');
 });
 
@@ -7813,6 +8345,13 @@ function addDogLink(text, line) {
 // Made from the dog's details and photo, and kept on its case (dogs/{id}/images/poster) so it can be seen,
 // saved to a phone, and remade after the details or photo change (for example when a photo arrives later).
 const NEW_POSTER_STATUSES = ['missing', 'loose'];   // posts whose pictures come from the dog's photo and details
+// A dog's own poster, made from its photo and details and kept on its case: Lost Dog for a missing dog,
+// Found Safe for a found dog that Lost Dogs Ayrshire is helping the finder with ("Safe with finder").
+const FINDER = 'Safe with finder (LDA)';   // LDA is working with the finder
+const ownPosterKind = d => !d ? '' : d.status === 'missing' ? 'lost' : d.status === 'found' && d.foundWhere === FINDER ? 'found-safe' : '';
+const OWN_POSTER = { lost: { name: 'Lost Dog poster', file: 'Lost-dog-poster.jpg' }, 'found-safe': { name: 'Found Safe poster', file: 'Found-safe-poster.jpg' } };
+const newPosterDog = d => !!d && (NEW_POSTER_STATUSES.includes(d.status) || ownPosterKind(d) === 'found-safe');
+const dogReportUrl = id => 'https://lostdogsayrshire.org.uk/report?dog=' + encodeURIComponent(id);
 function lostValues(d) {
   const when = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d.lastSeenAt || ''));
   return { name: d.name || '', colour: d.colour || '', sex: /^(male|female)$/i.test(d.sex || '') ? d.sex : '', area: String(d.lastSeenPlace || '').trim(),
@@ -7823,26 +8362,32 @@ async function dogPhotoSrc(dogId, d) {
   try { const p = await fb.getDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'main')); if (p.exists() && p.data().data) src = p.data().data; } catch (e) {}
   return src;
 }
-async function savedPosterSettings(dogId) {
-  try { const p = await state.fb.getDoc(state.fb.doc(state.fb.db, 'dogs', dogId, 'images', 'poster')); return p.exists() ? (p.data().settings || null) : null; } catch (e) { return null; }
+async function savedPosterSettings(dogId, kind) {
+  try {
+    const p = await state.fb.getDoc(state.fb.doc(state.fb.db, 'dogs', dogId, 'images', 'poster'));
+    const set = p.exists() ? (p.data().settings || null) : null;
+    return set && (set.kind || 'lost') === (kind || 'lost') ? set : null;   // a Lost Dog poster is not reused once the dog is found
+  } catch (e) { return null; }
 }
 // The poster as it stands: the settings chosen in the poster maker (colour, area, date, contact, photo position)
 // if it has been made, otherwise the dog's details; and the dog's photo.
 async function makeLostPoster(dogId, d, set) {
-  set = set || await savedPosterSettings(dogId);
+  const kind = ownPosterKind(d) || 'lost';
+  set = set || await savedPosterSettings(dogId, kind);
   const src = await dogPhotoSrc(dogId, d), photo = src && !(set && set.noPhoto && !d.thumb) ? await loadImage(src).catch(() => null) : null;
   const v = set ? { colour: set.colour || '', sex: set.sex || '', area: set.area || '', contact: set.contact || '07715 950588',
     date: set.date ? set.date.split('-').reverse().join('/') : '' } : lostValues(d);
-  return lostDogPoster(v, photo, 1080, set ? { z: set.zoom, x: set.x, y: set.y } : null);
+  v.qr = dogReportUrl(dogId);
+  return lostDogPoster(v, photo, 1080, set ? { z: set.zoom, x: set.x, y: set.y } : null, kind);
 }
 async function saveLostPoster(dogId, d, set) {
-  const fb = state.fb; set = set || await savedPosterSettings(dogId);
+  const fb = state.fb; set = set || await savedPosterSettings(dogId, ownPosterKind(d) || 'lost');
   const data = await makeLostPoster(dogId, d, set);
   await fb.setDoc(fb.doc(fb.db, 'dogs', dogId, 'images', 'poster'), { kind: 'poster', data, settings: set || null, hasPhoto: !!(d.thumb), madeAt: fb.serverTimestamp(), madeBy: state.profile.name || '' });
   return data;
 }
 // The dog's photo or poster has changed since it was put on Facebook: offer to update the post's pictures.
-const posterNewerThanPost = d => !!(d && d.fbPostId && d.posterAt && NEW_POSTER_STATUSES.includes(d.status) && millis(d.posterAt) > Math.max(d.fbPosterAt ? millis(d.fbPosterAt) : 0, d.fbPostedAt ? millis(d.fbPostedAt) : 0));
+const posterNewerThanPost = d => !!(d && d.fbPostId && d.posterAt && newPosterDog(d) && millis(d.posterAt) > Math.max(d.fbPosterAt ? millis(d.fbPosterAt) : 0, d.fbPostedAt ? millis(d.fbPostedAt) : 0));
 
 // From a dog: the right poster for its status, plus the dog's photo, with the matching wording.
 async function facebookDraftForDog(dogId) {
@@ -7856,7 +8401,13 @@ async function facebookDraftForDog(dogId) {
   const place = String(d.lastSeenPlace || '').trim();
   const images = [];
   let text, label;
-  if (std && $('#' + std + '-img')) {
+  if (ownPosterKind(d) === 'found-safe') {
+    // Safe with finder: the dog's own Found Safe poster (made now from its details if it hasn't been saved yet).
+    label = 'Found Safe poster';
+    images.push({ src: await makeLostPoster(dogId, d), caption: 'The poster' });
+    var template = foundSafeText('', dogLinkLine(d, dogId));
+    text = template.replace(/\{location\}/g, place || '[Town/Village]');
+  } else if (std && $('#' + std + '-img')) {
     label = (POSTER_NAMES[std] || st.label) + ' poster';
     images.push({ src: await asJpeg($('#' + std + '-img').src, 1080), caption: 'Picture 1: poster' });
     if (photoSrc) {
@@ -7874,7 +8425,7 @@ async function facebookDraftForDog(dogId) {
     const v = { name: d.name || '', colour: d.colour || '', sex: /^(male|female)$/i.test(d.sex || '') ? d.sex : '', area: place,
       date: when ? when[3] + '/' + when[2] + '/' + when[1] : '', contact: $('#poster-contact').defaultValue || '07715 950588' };
     const photo = photoSrc ? await loadImage(photoSrc).catch(() => null) : null;
-    const set = await savedPosterSettings(dogId);   // the dog's own poster, if one has been made
+    const set = await savedPosterSettings(dogId, 'lost');   // the dog's own poster, if one has been made
     const lp = set ? await makeLostPoster(dogId, d, set) : lostDogPoster(v, photo, 1080);
     images.push({ src: lp, caption: 'The poster' });
     text = lostDogText(v);
@@ -7888,7 +8439,7 @@ async function facebookDraftForDog(dogId) {
       : addDogLink(text, line);
     if (template) template = template.replace(/👀 Seen this dog\? Report it at lostdogsayrshire\.org\.uk\/report/, line);
   }
-  return { from: 'dog', dogId, back: 'dog/' + dogId, label, images, text, needPlace: !place && /\{location\}/.test(template || '') ? template : '', already: d.fbPostId ? { at: d.fbPostedAt, by: d.fbPostedBy || '', link: d.fbLink || '' } : null };
+  return { from: 'dog', dogId, back: 'dog/' + dogId + '/admin', label, images, text, needPlace: !place && /\{location\}/.test(template || '') ? template : '', already: d.fbPostId ? { at: d.fbPostedAt, by: d.fbPostedBy || '', link: d.fbLink || '' } : null };
 }
 
 
@@ -7900,7 +8451,7 @@ async function facebookDraftForDog(dogId) {
 // ============================================================
 const RD_MAX = 12, RD_HELD_DAYS = 2;
 const rdTags = d => d.status === 'missing' ? ['MISSING'] : d.status === 'loose' ? ['LOOSE DOG']
-  : [d.status === 'closed-safe' ? 'OWNER WANTED' : 'FOUND'].concat(d.foundWhere ? [d.foundWhere.toUpperCase()] : []);
+  : [d.status === 'closed-safe' ? 'OWNER WANTED' : 'FOUND'].concat(d.foundWhere ? [d.foundWhere.replace(' (LDA)', '').toUpperCase()] : []);   // (LDA) is for the team only
 function rdLoad(src) { return new Promise(res => { if (!src) return res(null); const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; }); }
 function rdWrap(ctx, text, maxW, maxLines) {
   const words = String(text).split(/\s+/), lines = []; let line = '';
@@ -8099,7 +8650,7 @@ function showFacebookPost(arg) {
     root.appendChild(h('p', { class: 'fb-note', style: 'text-align:center;margin-top:10px' }, 'Nothing is posted until you tap Post now.'));
   };
   if (arg === 'poster') {
-    if (!fbDraft || fbDraft.from !== 'poster') { go('create-poster'); return; }
+    if (!fbDraft || fbDraft.from !== 'poster') { go('posters'); return; }
     draw(fbDraft);
     return;
   }
@@ -8120,7 +8671,7 @@ function tickIcon(colour, px) {
 
 // ---- 5.1: when a case moves on, put the news at the top of the original Facebook post ----
 const FB_UPDATE_STATUSES = ['found', 'reunited', 'home-safe', 'no-further-sightings', 'paws-down'];
-const canUpdateFacebook = d => canPostFacebook() && !!(d && d.fbPostId) && (FB_UPDATE_STATUSES.includes(d.status) || NEW_POSTER_STATUSES.includes(d.status));
+const canUpdateFacebook = d => canPostFacebook() && !!(d && d.fbPostId) && (FB_UPDATE_STATUSES.includes(d.status) || newPosterDog(d));
 // The group's own wording for the new status (the same text as its standard poster).
 // Every built-in poster that has wording, for the "Poster" choice on the Facebook update screen.
 const CARE_POSTER_NAMES = { 'safe-at-vets': 'Safe with vet', 'safe-at-police': 'Safe at police station', 'safe-at-kennels': 'Safe at kennels' };
@@ -8141,23 +8692,25 @@ function fbUpdateTemplate(status) {
   return img ? img.getAttribute('alt') || '' : '';
 }
 let fbUpdateJustChanged = '', fbUpdatePoster = '';
-// The dog's own Lost Dog poster on its page: see it, save it to the phone, or remake it from the details.
+// The dog's own poster on its page (Lost Dog, or Found Safe): see it, save it to the phone, or remake it from the details.
 function lostPosterCard(id, d) {
-  const fb = state.fb, card = h('div', { class: 'lp-card' }, h('h3', null, 'Lost Dog poster'), h('p', { class: 'fb-note' }, 'Loading\u2026'));
+  const fb = state.fb, kind = ownPosterKind(d) || 'lost', o = OWN_POSTER[kind];
+  const card = h('div', { class: 'lp-card' }, h('h3', null, o.name), h('p', { class: 'fb-note' }, 'Loading\u2026'));
+  const addBtn = () => h('button', { class: 'btn wide', type: 'button', id: 'lp-add', 'data-go': 'create-poster/' + id }, 'Add a ' + o.name + ' for this dog');
   fb.getDoc(fb.doc(fb.db, 'dogs', id, 'images', 'poster')).then(p => {
-    card.textContent = ''; card.appendChild(h('h3', null, 'Lost Dog poster'));
-    if (!(p.exists() && p.data().data)) {
-      card.appendChild(h('p', { class: 'fb-note' }, 'No poster has been made for this dog yet.'));
-      card.appendChild(h('button', { class: 'btn wide', type: 'button', id: 'lp-add', 'data-go': 'create-poster/' + id }, 'Add a Lost Dog poster for this dog'));
+    card.textContent = ''; card.appendChild(h('h3', null, o.name));
+    const x = p.exists() ? p.data() : null;
+    if (!(x && x.data) || ((x.settings && x.settings.kind) || 'lost') !== kind) {
+      card.appendChild(h('p', { class: 'fb-note' }, 'No ' + o.name + ' has been made for this dog yet.'));
+      card.appendChild(addBtn());
       return;
     }
-    const x = p.data();
-    card.appendChild(h('img', { class: 'lp-img', src: x.data, alt: 'This dog\u2019s Lost Dog poster' }));
+    card.appendChild(h('img', { class: 'lp-img', src: x.data, alt: 'This dog\u2019s ' + o.name }));
     card.appendChild(h('p', { class: 'fb-note' }, 'Kept with this dog' + (x.madeBy ? ' \u00b7 made by ' + x.madeBy : '') + (x.madeAt ? ', ' + when(x.madeAt) : '') + '. Press Edit poster to change anything, add a photo, or make an A4 copy for printing.'));
     card.appendChild(h('div', { class: 'lp-btns' },
       h('button', { class: 'btn', type: 'button', id: 'lp-edit', 'data-go': 'create-poster/' + id }, 'Edit poster'),
-      h('a', { class: 'btn ghost', href: x.data, download: 'Lost-dog-poster.jpg' }, 'Save to device')));
-  }).catch(() => { card.textContent = ''; card.appendChild(h('h3', null, 'Lost Dog poster')); card.appendChild(h('button', { class: 'btn wide', type: 'button', 'data-go': 'create-poster/' + id }, 'Add a Lost Dog poster for this dog')); });
+      h('a', { class: 'btn ghost', href: x.data, download: o.file }, 'Save to device')));
+  }).catch(() => { card.textContent = ''; card.appendChild(h('h3', null, o.name)); card.appendChild(addBtn()); });
   return card;
 }
 
@@ -8166,27 +8719,36 @@ function lostPosterCard(id, d) {
 // with the dog's photo. "Save to this dog" keeps the poster and its settings on the dog's case, so it can be
 // edited again later, saved as A4, or put on Facebook. A photo chosen here also becomes the dog's photo if it had none.
 let posterDog = null, posterAfterSave = false;
-async function openPosterForDog(id) {
+// The poster maker's wording for the kind of poster: a Found Safe poster has no colour or sex on it, and a "found" date.
+function setPosterKind(kind) {
+  poster.kind = kind || 'lost';
+  const found = poster.kind === 'found-safe';
+  $('#poster-desc-fields').hidden = found;
+  $('#poster-date-label').textContent = found ? 'Date found' : 'Date missing';
+  $('#poster-canvas').setAttribute('aria-label', found ? 'Preview of the Found Safe poster' : 'Preview of the lost dog poster');
+}
+async function openPosterForDog(id, generalKind) {
   const fb = state.fb;
   poster.photoFile = null;
   $('#poster-save-dog').hidden = !id; $('#poster-fb-box').classList.toggle('no-dog', !!id);
   if ($('#poster-fb-box')) $('#poster-fb-box').style.display = id ? 'none' : '';
-  if (!id && posterDog) {   // back to the general poster maker after a dog's poster: start clean
+  if (!id && (posterDog || poster.kind !== (generalKind || 'lost'))) {   // back to a general poster maker after a dog's poster (or the other kind): start clean
     ['poster-colour', 'poster-date', 'poster-area'].forEach(k => { $('#' + k).value = ''; }); $('#poster-contact').value = $('#poster-contact').defaultValue;
     poster.photo = null; poster.noPhoto = false; $('#poster-photo-tools').hidden = true; $('#poster-photo-btn').textContent = 'Choose a photo';
     const nb = $('#poster-nophoto'); nb.setAttribute('aria-pressed', 'false'); nb.classList.add('ghost'); nb.textContent = 'No photo available'; $('#poster-nophoto-note').textContent = '';
     refreshPoster();
   }
-  if (!id) { posterDog = null; $('#poster-title').textContent = 'Create Lost Dog Poster'; $('#poster-intro').textContent = 'Fill in the details and the poster is made for you.'; $('#poster-back').setAttribute('data-go', 'posters'); $('#poster-back').innerHTML = '&larr; Posters'; return; }
+  if (!id) { posterDog = null; setPosterKind(generalKind || 'lost'); refreshPoster(); $('#poster-title').textContent = generalKind === 'found-safe' ? 'Create Found Safe Poster' : 'Create Lost Dog Poster'; $('#poster-intro').textContent = 'Fill in the details and the poster is made for you.'; $('#poster-back').setAttribute('data-go', 'posters'); $('#poster-back').innerHTML = '&larr; Posters'; return; }
   if (posterDog && posterDog.id === id && posterDog.keep) { posterDog.keep = false; return; }   // coming back to the same dog: leave the work as it is
   $('#poster-msg').textContent = 'Loading the dog\u2026';
-  $('#poster-back').setAttribute('data-go', 'dog/' + id); $('#poster-back').innerHTML = '&larr; Back to the dog';
+  $('#poster-back').setAttribute('data-go', 'dog/' + id + '/admin'); $('#poster-back').innerHTML = '&larr; Back to the dog';
   try {
     const snap = await fb.getDoc(fb.doc(fb.db, 'dogs', id));
     if (!snap.exists()) { $('#poster-msg').textContent = 'This dog is no longer listed.'; return; }
-    const d = snap.data(), set = await savedPosterSettings(id);
-    posterDog = { id, d, hadPoster: !!set };
-    $('#poster-title').textContent = 'Lost Dog poster' + (d.name && !/^unknown$/i.test(d.name) ? ' for ' + d.name : '');
+    const d = snap.data(), kind = ownPosterKind(d) || 'lost', set = await savedPosterSettings(id, kind);
+    posterDog = { id, d, hadPoster: !!set, kind };
+    setPosterKind(kind);
+    $('#poster-title').textContent = OWN_POSTER[kind].name + (d.name && !/^unknown$/i.test(d.name) ? ' for ' + d.name : '');
     $('#poster-intro').textContent = set ? 'This dog\u2019s poster. Change anything, then press Save to this dog.' : 'Filled in from the dog\u2019s details. Check it, then press Save to this dog.';
     const v = lostValues(d), iso = v.date ? v.date.split('/').reverse().join('-') : '';
     $('#poster-colour').value = set ? set.colour || '' : v.colour;
@@ -8214,7 +8776,7 @@ $('#poster-save-dog').addEventListener('click', async () => {
   if (missing.length) { m.textContent = 'Still needed: ' + missing.join(', ') + '.'; return; }
   btn.disabled = true; m.textContent = 'Saving the poster to this dog\u2026';
   try {
-    const set = { colour: v.colour, sex: $('#poster-sex').value, date: $('#poster-date').value, area: v.area, contact: v.contact,
+    const set = { kind: poster.kind, colour: v.colour, sex: $('#poster-sex').value, date: $('#poster-date').value, area: v.area, contact: v.contact,
       zoom: +$('#poster-zoom').value, x: +$('#poster-x').value, y: +$('#poster-y').value, noPhoto: !!poster.noPhoto };
     const upd = { posterAt: fb.serverTimestamp(), updatedAt: fb.serverTimestamp() };
     let d = posterDog.d;
@@ -8228,12 +8790,12 @@ $('#poster-save-dog').addEventListener('click', async () => {
     const c = document.createElement('canvas'); c.width = c.height = 1080; drawPoster(c, v);
     const data = c.toDataURL('image/jpeg', 0.88);
     await fb.setDoc(fb.doc(fb.db, 'dogs', id, 'images', 'poster'), { kind: 'poster', data, settings: set, hasPhoto: !!poster.photo && !poster.noPhoto, madeAt: fb.serverTimestamp(), madeBy: state.profile.name || '' });
-    fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'), { kind: 'note', text: (posterDog.hadPoster ? 'Lost Dog poster updated.' : 'Lost Dog poster made.'), byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() }).catch(() => {});
+    fb.addDoc(fb.collection(fb.db, 'dogs', id, 'updates'), { kind: 'note', text: OWN_POSTER[poster.kind].name + (posterDog.hadPoster ? ' updated.' : ' made.'), byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() }).catch(() => {});
     btn.disabled = false; m.textContent = '';
     poster.photoFile = null;
     // Already on Facebook: offer to put the new poster on the post (the text stays as it is).
     if (d.fbPostId && canPostFacebook()) { fbUpdatePoster = id; go('fbupdate/' + id); return; }
-    go('dog/' + id);
+    go('dog/' + id + '/admin');
   } catch (err) { btn.disabled = false; m.textContent = friendlyError(err); }
 });
 // Called after a status change: offer the update when it applies.
@@ -8245,7 +8807,7 @@ function offerFacebookUpdate(dogId, before, after, dog) {
 }
 function showFacebookUpdate(dogId) {
   const fb = state.fb, root = $('#fbupdate-body');
-  $('#fbupdate-back').setAttribute('data-go', 'dog/' + dogId);
+  $('#fbupdate-back').setAttribute('data-go', 'dog/' + dogId + '/admin');
   root.textContent = '';
   root.appendChild(h('p', { class: 'empty' }, 'Loading…'));
   const justChanged = fbUpdateJustChanged === dogId; fbUpdateJustChanged = '';
@@ -8255,26 +8817,28 @@ function showFacebookUpdate(dogId) {
     if (!snap.exists()) { root.appendChild(h('p', { class: 'empty' }, 'This dog is no longer listed.')); return; }
     const d = snap.data({ serverTimestamps: 'estimate' }), st = STATUSES[d.status] || { label: d.status };
     if (!canUpdateFacebook(d)) { root.appendChild(h('p', { class: 'empty' }, d.fbPostId ? 'There is no Facebook update for this status.' : 'This dog has not been posted to Facebook from the app.')); return; }
-    const newPoster = NEW_POSTER_STATUSES.includes(d.status);   // a missing or loose dog: the update is a new poster or photo
-    // A missing dog's own Lost Dog poster, as it stands now (made fresh from the details and photo).
-    const lostImg = d.status === 'missing' ? await makeLostPoster(dogId, d).catch(() => '') : '';
+    const own = ownPosterKind(d);   // 'lost' (missing) or 'found-safe' (Safe with finder): the dog has its own poster
+    const newPoster = newPosterDog(d) && (posterMode || !FB_UPDATE_STATUSES.includes(d.status) || (d.fbUpdateStatus || d.fbPostedKey) === updateKey(d));   // the update is a new poster or photo
+    // The dog's own poster, as it stands now (made fresh from the details and photo).
+    const lostImg = own ? await makeLostPoster(dogId, d).catch(() => '') : '';
     if (justChanged) root.appendChild(h('p', { class: 'fb-warn', style: 'background:#1d8a3a;color:#fff' }, 'Status changed to ' + updateLabel(updateKey(d)) + '.'));
-    if (posterMode) root.appendChild(h('p', { class: 'fb-warn', style: 'background:#1d8a3a;color:#fff' }, d.status === 'missing' ? 'Saved. The dog\u2019s Lost Dog poster has been remade.' : 'Saved. The dog\u2019s photo has changed.'));
+    if (posterMode) root.appendChild(h('p', { class: 'fb-warn', style: 'background:#1d8a3a;color:#fff' }, own ? 'Saved. The dog\u2019s ' + OWN_POSTER[own].name + ' has been remade.' : 'Saved. The dog\u2019s photo has changed.'));
     root.appendChild(h('div', { class: 'fb-to' }, d.thumb ? h('img', { src: d.thumb, alt: '', style: 'border-radius:8px' }) : h('img', { src: $('#logo-img').src, alt: '' }),
       h('div', null, h('span', null, 'Original post' + (d.fbPostedAt ? ' · ' + when(d.fbPostedAt) : '')), h('strong', null, (d.name && !/^unknown$/i.test(d.name) ? d.name + ' · ' : '') + (d.lastSeenPlace || 'Facebook post')))));
     if (d.fbUpdateStatus) root.appendChild(h('p', { class: 'fb-warn' }, 'Already updated to ' + updateLabel(d.fbUpdateStatus) + (d.fbUpdatedBy ? ' by ' + d.fbUpdatedBy : '') + (d.fbUpdatedAt ? ', ' + when(d.fbUpdatedAt) : '') + '. This replaces that update.'));
     const place = String(d.lastSeenPlace || '').trim();
     // The poster (and its wording) follows the dog's new status. If it's not the right one, the admin can pick
     // another here: the picture and the wording both change to match.
-    const pStd0 = d.status === 'missing' && lostImg ? 'lost-dog' : careOf(d) ? careOf(d).poster : st.poster;
-    const posterList = (lostImg ? [['lost-dog', 'Lost Dog poster (this dog)']] : []).concat(posterChoices());
+    const pStd0 = own && lostImg ? 'lost-dog' : careOf(d) ? careOf(d).poster : st.poster;
+    const posterList = (lostImg ? [['lost-dog', OWN_POSTER[own].name + ' (this dog)']] : []).concat(posterChoices());
     let posterKey = pStd0 === 'lost-dog' || (pStd0 && $('#' + pStd0 + '-img')) ? pStd0 : '';
     const noTags = t => String(t || '').split('\n').filter(line => !/^\s*(#[^\s#]+\s*)+$/.test(line)).join('\n').replace(/\n{3,}/g, '\n\n').trim();
-    const newPosterText = () => d.status === 'missing'
+    const newPosterText = () => own === 'found-safe' ? noTags(foundSafeText('{location}', dogLinkLine(d, dogId)))
+      : d.status === 'missing'
       ? '\ud83d\udc9b\ud83d\udc9c Update \u2013 new poster \ud83d\udc9c\ud83d\udc9b\n\nThis dog is still missing. Here is the updated poster' + (d.thumb ? ', now with a photo' : '') + '. Please keep sharing and keep an eye out.\n\nPlease do not shout, pursue, grab or whistle.\n\n' + dogLinkLine(d, dogId)
       : '\ud83d\udc9b\ud83d\udc9c Update \u2013 photo added \ud83d\udc9c\ud83d\udc9b\n\nWe now have a photo of this loose dog. Please keep an eye out and keep sharing.\n\nPlease do not pursue or call the dog.\n\n' + dogLinkLine(d, dogId);
     const templateFor = key => {
-      if (newPoster && (key === 'lost-dog' || key === pStd0)) return newPosterText();
+      if ((newPoster || own === 'found-safe') && (key === 'lost-dog' || key === pStd0)) return newPosterText();
       const raw = key && $('#' + key + ' .post') ? noTags($('#' + key + ' .post').getAttribute('data-template')) : fbUpdateTemplate(updateKey(d));
       // Vets, police and kennels posters: the dog's own name for that place if it has one, otherwise [Vets Name] etc. to fill in.
       const care = Object.values(CARE).find(c => c.poster === key), mine = careOf(d);
@@ -8309,7 +8873,7 @@ function showFacebookUpdate(dogId) {
     const pics = h('div', { class: 'fb-pics' });
     const drawPics = () => {
       pics.textContent = '';
-      if (posterKey === 'lost-dog') { pics.appendChild(h('figure', null, h('img', { src: lostImg, alt: 'The new poster', id: 'fbupdate-poster-img' }), h('figcaption', null, 'The dog\u2019s new Lost Dog poster'))); return; }
+      if (posterKey === 'lost-dog') { pics.appendChild(h('figure', null, h('img', { src: lostImg, alt: 'The new poster', id: 'fbupdate-poster-img' }), h('figcaption', null, 'The dog\u2019s ' + OWN_POSTER[own].name))); return; }
       const pi = posterKey && $('#' + posterKey + '-img');
       if (pi) pics.appendChild(h('figure', null, h('img', { src: pi.src, alt: 'New poster', id: 'fbupdate-poster-img' }), h('figcaption', null, 'Picture 1: the poster')));
       if (d.thumb) pics.appendChild(h('figure', null, h('img', { src: d.thumb, alt: 'The dog’s photo' }), h('figcaption', null, 'Picture 2: the dog’s photo')));
@@ -8356,8 +8920,8 @@ function showFacebookUpdate(dogId) {
           root.appendChild(h('div', { class: 'fb-done' }, h('div', { class: 'tick' }, tickIcon('#3e12a3', 56)),
             h('h3', null, r.picturesOnly ? (r.pictures.changed ? 'Picture updated' : r.pictures.noPictures ? 'Picture missing' : 'Picture not changed')
               : r.pictures.changed ? 'Post updated, with the new poster' : r.pictures.noPictures ? 'Text updated – pictures missing' : 'Text updated'),
-            h('p', null, r.picturesOnly ? (r.pictures.changed ? 'The Facebook post now shows the new ' + (d.status === 'missing' ? 'poster' : 'poster and photo') + '. Its text hasn’t changed. Open the post to check.'
-              : r.pictures.noPictures ? 'Facebook didn’t accept the new picture and the post now has no picture. Press Update Facebook with the new ' + (d.status === 'missing' ? 'poster' : 'photo') + ' on the dog’s page to try again, or add it on Facebook (… → Edit post).'
+            h('p', null, r.picturesOnly ? (r.pictures.changed ? 'The Facebook post now shows the new ' + (own ? 'poster' : 'poster and photo') + '. Its text hasn’t changed. Open the post to check.'
+              : r.pictures.noPictures ? 'Facebook didn’t accept the new picture and the post now has no picture. Press Update Facebook with the new ' + (own ? 'poster' : 'photo') + ' on the dog’s page to try again, or add it on Facebook (… → Edit post).'
               : 'Facebook didn’t allow the picture to be changed. The post is as it was.')
               : r.pictures.changed
               ? 'The post now shows the new poster and the dog’s photo. Open the post to check.'
@@ -8377,7 +8941,7 @@ function showFacebookUpdate(dogId) {
       } catch (err) { btn.disabled = false; msg.textContent = fbError(err); }
     } }, newPoster ? 'Update the picture on Facebook' : 'Update Facebook');
     root.appendChild(btn);
-    root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'dog/' + dogId }, 'Not now'));
+    root.appendChild(h('button', { class: 'btn wide ghost', type: 'button', 'data-go': 'dog/' + dogId + '/admin' }, 'Not now'));
     root.appendChild(msg);
     root.appendChild(h('p', { class: 'fb-note', style: 'text-align:center;margin-top:10px' }, 'Not now keeps an “Update the Facebook post” button on the dog’s page.'));
   }).catch(err => { root.textContent = ''; root.appendChild(h('p', { class: 'empty' }, friendlyError(err))); });
