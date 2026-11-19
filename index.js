@@ -397,7 +397,8 @@ exports.facebookPost = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async r
   const dogId = d.dogId ? String(d.dogId) : '';
   if (dogId && !/^[A-Za-z0-9_-]{1,64}$/.test(dogId)) throw new HttpsError('invalid-argument', 'Which dog?');
   const dogRef = dogId ? db.collection('dogs').doc(dogId) : null;
-  if (dogRef && !(await dogRef.get()).exists) throw new HttpsError('not-found', 'That dog is not listed.');
+  const dogSnap0 = dogRef ? await dogRef.get() : null;
+  if (dogRef && !dogSnap0.exists) throw new HttpsError('not-found', 'That dog is not listed.');
   // The daily round-up (admins only): remember when it went out and which dogs were in it.
   const roundup = !dogId && d.roundup && Array.isArray(d.roundup.dogIds) ? d.roundup.dogIds.filter(x => typeof x === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(x)).slice(0, 60) : null;
   if (roundup) await caller(request, ['admin', 'developer']);
@@ -434,7 +435,7 @@ exports.facebookPost = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async r
     // Keep the dog's photo exactly as posted (with its watermark), so an automatic update can use it again.
     if (images.length === 2 && images[1].length < 900000) await dogRef.collection('images').doc('fbphoto').set({ kind: 'fbphoto', data: 'data:image/jpeg;base64,' + images[1], at: admin.firestore.FieldValue.serverTimestamp() }).catch(() => {});
     await dogRef.update({ fbPostId: postId, fbLink: link, fbMessage: message, fbPostedAt: admin.firestore.FieldValue.serverTimestamp(), fbPostedBy: me.name,
-      fbUpdateStatus: '', fbUpdatedAt: null, fbUpdatedBy: '' });
+      fbUpdateStatus: '', fbUpdatedAt: null, fbUpdatedBy: '', fbPostedKey: updateKeyOf(dogSnap0.data()) });   // what the post already shows
     await dogRef.collection('updates').add({ kind: 'facebook', text: 'Posted to the Facebook Page (' + what + ').', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
   }
   if (roundup) await db.collection('settings').doc('roundup').set({ at: admin.firestore.FieldValue.serverTimestamp(), by: me.name, link, dogIds: roundup, count: roundup.length });
@@ -444,7 +445,10 @@ exports.facebookPost = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async r
 // When a dog's case moves on (Found, Reunited, Home safe and so on), put the news at the top of the
 // original Facebook post. The original text stays underneath; a later update replaces the earlier one.
 const FB_SPLIT = '\n\n\u2B07\uFE0F Original post \u2B07\uFE0F\n\n';
-const UPDATE_LABEL = { missing: 'New poster', loose: 'New photo', 'found-kennels': 'Safe at kennels', 'found-vets': 'Safe with vet', 'found-police': 'Safe at police station', found: 'Found', reunited: 'Reunited', 'home-safe': 'Home safe', 'no-further-sightings': 'No further sightings', 'paws-down': 'Paws down' };
+// Which Facebook update a dog's status counts as: Safe at kennels, vet or police station, and Safe with finder, have their own wording.
+const CARE_KEY = { 'Safe at kennels': 'found-kennels', 'Safe with vet': 'found-vets', 'Safe at police station': 'found-police', 'Safe with finder (LDA)': 'found-finder' };
+const updateKeyOf = dog => (dog && dog.status === 'found' && CARE_KEY[dog.foundWhere]) ? CARE_KEY[dog.foundWhere] : String((dog && dog.status) || '');
+const UPDATE_LABEL = { missing: 'New poster', loose: 'New photo', 'found-finder': 'Safe with finder (LDA)', 'found-kennels': 'Safe at kennels', 'found-vets': 'Safe with vet', 'found-police': 'Safe at police station', found: 'Found', reunited: 'Reunited', 'home-safe': 'Home safe', 'no-further-sightings': 'No further sightings', 'paws-down': 'Paws down' };
 // Swap a post's pictures (and set its text) in one go. Facebook has no documented way to do this, but testing
 // (10 Nov 2026) showed: the first try fails and clears the old pictures, and a second try then attaches the new
 // ones. So: try, and if Facebook refuses, wait a moment and try once more with fresh uploads. Afterwards, if it
@@ -529,13 +533,12 @@ exports.facebookUpdate = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async
   }
   if (picturesOnly) {
     if (pictures.changed) await dogRef.update({ fbPosterAt: admin.firestore.FieldValue.serverTimestamp() });
-    await dogRef.collection('updates').add({ kind: 'facebook', text: pictures.changed ? 'Facebook post picture updated (new ' + (dog.status === 'missing' ? 'poster' : 'photo') + '); the text was left as it was.'
+    await dogRef.collection('updates').add({ kind: 'facebook', text: pictures.changed ? 'Facebook post picture updated (new ' + (dog.status === 'loose' ? 'photo' : 'poster') + '); the text was left as it was.'
       : pictures.noPictures ? 'The new picture was not accepted by Facebook and the post now has no pictures.' : 'Facebook would not change the post\u2019s picture.', byName: me.name, byUid: me.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
     return { updated: !!pictures.changed, link: dog.fbLink || '', pictures, picturesOnly: true };
   }
-  // A Found dog that is safe at kennels has its own wording, so it counts as its own update.
-  const CARE_KEY = { 'Safe at kennels': 'found-kennels', 'Safe with vet': 'found-vets', 'Safe at police station': 'found-police' };
-  const key = dog.status === 'found' && CARE_KEY[dog.foundWhere] ? CARE_KEY[dog.foundWhere] : String(dog.status || '');
+  // A Found dog that is safe at kennels (or with the finder) has its own wording, so it counts as its own update.
+  const key = updateKeyOf(dog);
   const label = UPDATE_LABEL[key] || String(dog.status || 'update');
   await dogRef.update({ fbUpdateStatus: key, fbUpdatedAt: admin.firestore.FieldValue.serverTimestamp(), fbUpdatedBy: me.name,
     ...(pictures && pictures.changed ? { fbPosterAt: admin.firestore.FieldValue.serverTimestamp() } : {}) });   // the post now has the latest poster/photo
@@ -549,7 +552,7 @@ exports.facebookUpdate = onCall({ timeoutSeconds: 120, memory: '512MiB' }, async
 // is tidied away with the closed cases. Its Facebook post: moved to the kept dog if that one has none;
 // otherwise deleted on Facebook if the admin asks (the app made it, so it can), or a reminder is left on
 // the kept dog's page to remove it by hand.
-const FB_FIELDS = ['fbPostId', 'fbLink', 'fbPostedAt', 'fbPostedBy', 'fbMessage', 'fbUpdateStatus', 'fbUpdatedAt', 'fbUpdatedBy', 'fbPosterAt'];
+const FB_FIELDS = ['fbPostId', 'fbLink', 'fbPostedAt', 'fbPostedBy', 'fbMessage', 'fbUpdateStatus', 'fbUpdatedAt', 'fbUpdatedBy', 'fbPosterAt', 'fbPostedKey'];
 exports.mergeDogs = onCall({ timeoutSeconds: 120 }, async request => {
   const me = await caller(request, ['admin', 'developer']);
   const db = admin.firestore(), d = request.data || {}, S = admin.firestore.FieldValue;
@@ -657,7 +660,8 @@ exports.publicDogs = onCall({ cors: true }, async () => {
       breed: String(x.breed || '').trim().slice(0, 60) || 'Unknown',
       area: String(x.lastSeenPlace || '').trim().slice(0, 80),
       status: x.status, statusLabel: safe ? SAFE_STATUS[x.status] : quiet ? QUIET_STATUS[x.status] : held ? 'Owner wanted' : PUBLIC_STATUS[x.status], safe, held, quiet,
-      foundWhere: (x.status === 'found' || held) && FOUND_WHERE.includes(x.foundWhere) ? x.foundWhere : '',
+      // "Safe with finder (LDA)" (LDA is working with the finder) shows publicly as just Safe with finder.
+      foundWhere: (x.status === 'found' || held) && FOUND_WHERE.includes(String(x.foundWhere || '').replace(' (LDA)', '')) ? String(x.foundWhere).replace(' (LDA)', '') : '',
       thumb: typeof x.thumb === 'string' && x.thumb.startsWith('data:image/') && x.thumb.length < 120000 ? x.thumb : '',
       added: millis(x.createdAt)
     };
