@@ -1046,7 +1046,9 @@ let airData = null;
 async function loadAirspace() {
   if (airData) return airData;
   try {
-    const r = await fetch('airspace.json', { cache: 'no-cache' });
+    // The file is built weekly in the Missing-person repo. Use a copy beside this page if there is one, otherwise that one.
+    let r = await fetch('airspace.json', { cache: 'no-cache' }).catch(() => null);
+    if (!r || !r.ok) r = await fetch('/Missing-person/airspace.json', { cache: 'no-cache' });
     if (!r.ok) throw new Error(r.status === 404 ? 'airspace.json not on the site yet' : 'server replied ' + r.status);
     const j = await r.json();
     if (!j.areas || !j.areas.length) throw new Error('file has no areas');
