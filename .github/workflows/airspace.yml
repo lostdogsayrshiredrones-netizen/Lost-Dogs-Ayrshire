@@ -1,1 +1,27 @@
+name: Update airspace data
 
+on:
+  schedule:
+    - cron: '17 6 * * 4'   # every Thursday morning (AIRAC changes fall on Thursdays)
+  workflow_dispatch:        # adds a "Run workflow" button
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download NATS data and build airspace.json
+        run: python3 build_airspace.py
+      - name: Save airspace.json if it changed
+        run: |
+          git config user.name "airspace-bot"
+          git config user.email "airspace-bot@users.noreply.github.com"
+          git add airspace.json
+          git diff --cached --quiet || git commit -m "Update airspace data"
+          git push
