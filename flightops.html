@@ -1492,21 +1492,26 @@ function loadRecordsFile(input){
   let o=null;try{o=JSON.parse(r.result)}catch(e){}
   const inc=o&&o.db;
   if(!inc||!Array.isArray(inc.flights)||!Array.isArray(inc.aircraft)){toast('That isn’t a FlightOps records file');return}
-  let added=0;
-  if(!db.flights.length&&!db.pilot){db=inc;added=inc.flights.length} // nothing here yet: take everything as it was
+  let added=0,kit=0;
+  if(!db.flights.length&&!db.pilot){db=inc;added=inc.flights.length;kit=inc.aircraft.length} // nothing here yet: take everything as it was
   else{                                                               // already in use here: add what's missing, change nothing
    const have=new Set(db.flights.map(x=>x.id)),haveA=new Set(db.aircraft.map(x=>x.id));
    inc.flights.forEach(x=>{if(!have.has(x.id)){db.flights.push(x);added++}});
-   inc.aircraft.forEach(x=>{if(!haveA.has(x.id))db.aircraft.push(x)});
-   if(!db.pilot&&inc.pilot)db.pilot=inc.pilot;
+   const used=new Set(db.flights.map(x=>x.aircraftId)),isSample=a=>/DEMO/i.test((a.serial||'')+(a.controller||''));
+   inc.aircraft.forEach(x=>{                                           // aircraft, controller, batteries and serial numbers
+    const i=db.aircraft.findIndex(a=>a.id===x.id);
+    if(i<0){db.aircraft.push(x);kit++}
+    else if(isSample(db.aircraft[i])||!used.has(x.id)){db.aircraft[i]=x;kit++} // replace the sample, or one not yet flown here
+   });
+   if(inc.pilot){db.pilot=db.pilot||{};Object.keys(inc.pilot).forEach(k=>{if(!db.pilot[k])db.pilot[k]=inc.pilot[k]})} // fill in anything missing, e.g. Flyer ID
    db.flights.sort((a,b)=>String(a.time).localeCompare(String(b.time)));
   }
-  try{localStorage.setItem(KEY,JSON.stringify(db));sessionStorage.setItem('fo_moved',String(added))}catch(e){}
+  try{localStorage.setItem(KEY,JSON.stringify(db));sessionStorage.setItem('fo_moved',JSON.stringify([added,kit]))}catch(e){}
   location.reload();
  };
  r.readAsText(f);
 }
-try{const m=sessionStorage.getItem('fo_moved');if(m!==null){sessionStorage.removeItem('fo_moved');setTimeout(()=>toast(m==='1'?'1 flight brought in':m+' flights brought in'),300)}}catch(e){}
+try{const m=sessionStorage.getItem('fo_moved');if(m!==null){sessionStorage.removeItem('fo_moved');const[f,k]=JSON.parse(m),pl=(n,w)=>n+' '+w+(n===1?'':'s');setTimeout(()=>toast(f||k?'Brought in: '+pl(f,'flight')+', '+k+' aircraft with kit':'Nothing new – already here'),300)}}catch(e){}
 
 /* ================= Boot ================= */
 updateHome();renderHome();
