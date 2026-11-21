@@ -197,7 +197,7 @@ const ENDCHECKS=[['insp','Aircraft inspected'],['props','Propellers inspected'],
 const BATT_STATUS=['Good – return to service','Needs inspection','Retire / do not use'];
 const BATT_STORAGE=['Being charged','In storage','Awaiting inspection','Faulty – quarantined'];
 const INCIDENT_TYPES=['Loss of signal','Emergency landing','Flyaway','Collision','Near miss','Airspace issue','Battery issue','GNSS issue','Equipment failure','Weather issue','Injury','Property damage','Other'];
-const CHECKS=['Arms / frame','Motors','Landing gear','Gimbal','Cameras','Sensors','Obstacle avoidance','SD card','Firmware / aircraft status'];
+const CHECKS=['Arms / frame','Motors','Landing gear','Gimbal','Cameras','Sensors','Obstacle avoidance','SD card','Firmware / aircraft status','Remote ID broadcasting (operator ID set)'];
 const $=id=>document.getElementById(id);
 const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -252,7 +252,7 @@ const RISK_DEFAULTS={
    Applies to every flight. Pilots confirm it each flight; only hazards NOT covered here are assessed on the day.
    Scored in the app's own system: likelihood (1 Rare … 5 Almost certain) × severity (1 Negligible … 5 Critical).
    Each row: [hazard, impact, existing controls, severity, likelihood, further controls ('' if none), revised severity, revised likelihood] */
-const GRA={ref:'LDA/DSARA01',doc:'Operations Manual v1 – Appendix F1, Generic Operational Risk Register',ver:'21 Nov 2026',review:'2027-11-21',
+const GRA={ref:'LDA/DSARA01',doc:'Operations Manual V3 – Appendix H, Generic Operational Risk Register',ver:'21 Nov 2026',review:'2027-11-21',
  groups:[
  ['Job specific',[
   ['Collision with persons under remote pilot control','Injury to persons. Damage to UAS.','Control briefing given to crew and client before flight. Flown only by a qualified, current remote pilot (GVC or RPC-L1).',4,1,'',0,0],
