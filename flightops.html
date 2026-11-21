@@ -116,6 +116,7 @@ button.secondary{background:var(--dsra-soft);color:var(--dsra-deep)}
 body.typing .bottom{display:none}
 html{min-height:100%}body{min-height:100vh;min-height:100dvh}
 #locBtn{margin-top:10px}
+.needs{background:#fff7b8;border-left:4px solid #e0b400;border-radius:8px;padding:8px 10px;margin-left:-10px;margin-right:-10px}.needtag{display:inline-block;margin-left:6px;font-size:13px;font-weight:800;color:#7a5a00}.needbox{margin-top:8px;background:#fff7b8;border:2px solid #e0b400;border-radius:10px;padding:8px 10px;color:#3d2e00;font-size:15px}.linkbtn{background:none;border:0;color:#667085;font-weight:600;padding:4px 0;margin:2px 0 6px;text-align:left;width:auto;font-size:14px;box-shadow:none;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -746,6 +747,7 @@ function renderBatteries(){
 function batCard(b){
  const d=flight.batteries[b.id],s=batState(d);
  return `<div class="card ${s.ok?'':'issue'}" id="bc_${b.id}"><div class="row"><h3>🔋 ${esc(b.name)}</h3><span id="bp_${b.id}" class="pill ${s.cls}">${s.label}</span></div>
+ <button class="linkbtn" onclick="toggleBattery('${b.id}')">✕ Remove this battery from the flight</button>
  <div class="serial">Serial number<b>${esc(b.serial)}</b></div>
  <label>1 · Visual condition (before fitting)</label>
  <div class="seg"><button class="${d.visual&&!d.defect?'on':''}" onclick="batOk('${b.id}')">${d.visual&&!d.defect?'✓ ':''}No defects</button><button class="${d.defect?'on neg':''}" onclick="batDefect('${b.id}')">Defect found</button></div>
@@ -762,7 +764,7 @@ function batCard(b){
  <div class="small" style="margin:4px 0 8px">${d.prev!==undefined?`Recorded in Equipment: <b>${d.prev}</b>. Enter the current cycle after charging – Equipment updates automatically.`:'No cycle recorded yet – enter the battery’s current charge cycle. Equipment updates automatically.'}</div>
  <input type="number" min="0" step="1" inputmode="numeric" placeholder="Current charge cycle" value="${esc(d.cycle==null?'':d.cycle)}" oninput="battInput('${b.id}','cycle',this.value)">
  <div class="small" id="br_${b.id}" style="margin-top:10px;${s.ok?'':'color:#b42318;font-weight:650'}">${s.reason}</div>
- <button class="secondary" onclick="toggleBattery('${b.id}')">Remove from this flight</button></div>`;
+ </div>`;
 }
 function toggleBattery(id){
  const a=curAircraft();
@@ -835,22 +837,34 @@ function checkWind(){
  $('weatherCard').classList.toggle('issue',msgs.length>0);
  updateBanners();
 }
+function weatherMissing(){
+ const w=flight.weather,m=[];
+ if(!w.dn)m.push(['dn','Day or night']);
+ if(w.dn==='Night'&&w.lights===undefined)m.push(['lights','Anti-collision lights']);
+ if(!w.cond)m.push(['cond','Weather conditions']);
+ if(condFlags(liveF()).amber.length&&!(w.mitigation||'').trim())m.push(['mitigation','Mitigation / limits']);
+ if(!w.vis)m.push(['vis','Visibility']);
+ if(w.temp===undefined||isNaN(w.temp))m.push(['temp','Temperature']);
+ if(w.wind===undefined||isNaN(w.wind))m.push(['wind','Wind speed']);
+ return m;
+}
 function renderWeather(){
  const a=curAircraft();if(!a)return;
  const w=flight.weather,am=condFlags(liveF()).amber;
  const conds=CONDS.map(c=>({l:c,v:c,cls:c==='Rain'?(a.rainOk?'amb':'neg'):c==='Icy conditions'?(a.iceOk?'amb':'neg'):'',sub:c==='Rain'?(a.rainOk?'Increased risk':'NO FLY – not rated'):c==='Icy conditions'?(a.iceOk?'Increased risk':'NO FLY – not rated'):''}));
  const vis=VIS.map(v=>({l:v,v,cls:v==='Unacceptable'?'neg':'',sub:v==='Unacceptable'?'NO FLY':''}));
- const val=k=>esc(w[k]==null?'':w[k]);
+ const val=k=>esc(w[k]==null?'':w[k]),miss=w.liveAt?weatherMissing():[],mk=new Set(miss.map(x=>x[0]));
+ const need=k=>mk.has(k)?' class="needs" id="need_'+k+'"':'',tag=k=>mk.has(k)?' <span class="needtag">👉 Your answer needed</span>':'';
  $('weatherBody').innerHTML=`<div class="card" id="weatherCard">
- <div class="livewx"><b>Live weather</b><div class="small">${w.liveAt?'Filled from the live forecast at '+esc(w.liveAt)+'. Check it matches what you can see.':'Fill the boxes below from the live forecast for where you are standing. You can change anything afterwards.'}</div><button type="button" id="liveWxBtn" onclick="fillLiveWeather()">${w.liveAt?'Refresh live weather':'Fill from live weather'}</button></div>
- <label style="margin-top:0">Day or night?</label>${segF('weather.dn',w.dn,[{l:'Day',v:'Day'},{l:'Night',v:'Night'}],'renderWeather',true)}
- ${w.dn==='Night'?`<label>Anti-collision lights fitted and on?</label>${segF('weather.lights',w.lights,[{l:'Yes',v:true},{l:'No',v:false,neg:true}],'renderWeather')}`:''}
- <label>Weather conditions</label>${chipsF('weather.cond',w.cond,conds,'renderWeather')}
- ${am.length?`<label>Mitigation / limits *</label><div class="hint" style="margin:0 0 6px">Required because of the increased risk. Say how you will manage it.</div><textarea oninput="flight.weather.mitigation=this.value" placeholder="e.g. short area check only – land immediately if ice forms on the props">${esc(w.mitigation||'')}</textarea>`:''}
- <label>Visibility</label>${chipsF('weather.vis',w.vis,vis,'renderWeather')}
- <label>Temperature (°C)</label><input type="number" step="0.1" inputmode="decimal" value="${val('temp')}" oninput="flight.weather.temp=this.value===''?undefined:+this.value">
+ <div class="livewx"><b>Live weather</b><div class="small">${w.liveAt?'Filled from the live forecast at '+esc(w.liveAt)+'. Check it matches what you can see.'+(miss.length?`<div class="needbox">👉 <b>Still needs you:</b> ${miss.map(x=>esc(x[1])).join(', ')}</div>`:'<div class="small" style="color:var(--ok);font-weight:700;margin-top:6px">✓ Everything on this page is filled in</div>'):'Fill the boxes below from the live forecast for where you are standing. You can change anything afterwards.'}</div><button type="button" id="liveWxBtn" onclick="fillLiveWeather()">${w.liveAt?'Refresh live weather':'Fill from live weather'}</button></div>
+ <label style="margin-top:0"${need('dn')}>Day or night?${tag('dn')}</label>${segF('weather.dn',w.dn,[{l:'Day',v:'Day'},{l:'Night',v:'Night'}],'renderWeather',true)}
+ ${w.dn==='Night'?`<label${need('lights')}>Anti-collision lights fitted and on?${tag('lights')}</label>${segF('weather.lights',w.lights,[{l:'Yes',v:true},{l:'No',v:false,neg:true}],'renderWeather')}`:''}
+ <label${need('cond')}>Weather conditions${tag('cond')}</label>${chipsF('weather.cond',w.cond,conds,'renderWeather')}
+ ${am.length?`<label${need('mitigation')}>Mitigation / limits *${tag('mitigation')}</label><div class="hint" style="margin:0 0 6px">Required because of the increased risk. Say how you will manage it.</div><textarea oninput="flight.weather.mitigation=this.value" placeholder="e.g. short area check only – land immediately if ice forms on the props">${esc(w.mitigation||'')}</textarea>`:''}
+ <label${need('vis')}>Visibility${tag('vis')}</label>${chipsF('weather.vis',w.vis,vis,'renderWeather')}
+ <label${need('temp')}>Temperature (°C)${tag('temp')}</label><input type="number" step="0.1" inputmode="decimal" value="${val('temp')}" oninput="flight.weather.temp=this.value===''?undefined:+this.value" onchange="if(flight.weather.liveAt)renderWeather()">
  <div class="small" id="windLimit" style="margin-top:14px"></div>
- <label style="margin-top:6px">Wind speed (m/s)</label><input id="wind" type="number" step="0.1" inputmode="decimal" value="${val('wind')}" oninput="checkWind()">
+ <label style="margin-top:6px"${need('wind')}>Wind speed (m/s)${tag('wind')}</label><input id="wind" type="number" step="0.1" inputmode="decimal" value="${val('wind')}" oninput="checkWind()" onchange="if(flight.weather.liveAt)renderWeather()">
  <label>Maximum gust (m/s)</label><input id="gust" type="number" step="0.1" inputmode="decimal" value="${val('gust')}" oninput="checkWind()">
  <div class="defnote" id="windWarn" style="display:none"></div>
  <label>Wind direction (optional)</label><select onchange="flight.weather.windDir=this.value">${DIRS.map(d=>`<option value="${d}" ${w.windDir===d?'selected':''}>${d||'Select…'}</option>`).join('')}</select>
@@ -912,7 +926,8 @@ async function fillLiveWeather(){
   w.liveAt=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' ('+lat+', '+lon+')';
   const note='Live forecast (Open-Meteo) at '+w.liveAt+(code>=95?'. Thunderstorm in the forecast.':'');
   w.notes=(w.notes||'').replace(/^Live forecast \(Open-Meteo\)[^\n]*\n?/,'');w.notes=note+(w.notes?'\n'+w.notes:'');
-  renderWeather();toast('Weather filled from the live forecast');
+  renderWeather();const left=weatherMissing();
+  if(left.length){toast('Filled from the live forecast – '+left.length+(left.length===1?' answer':' answers')+' still needed from you');const el=$('need_'+left[0][0]);if(el)setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'center'}),350)}else toast('Weather filled from the live forecast');
  }catch(e){toast(e.name==='AbortError'?'Weather service timed out. Try again.':(e.message||'Could not get live weather'));if(btn){btn.disabled=false;btn.textContent='Fill from live weather'}}
 }
 async function goAirspace(){
