@@ -188,6 +188,9 @@ html{min-height:100%}body{min-height:100vh;min-height:100dvh}
 /* ================= Core / data ================= */
 const KEY='flightops_v3'; // same key as v3 so existing data carries over
 const HAZARDS=[['people','People'],['roads','Roads / vehicles'],['buildings','Obstacles: buildings, trees, masts'],['power','Power lines'],['water','Water'],['terrain','Terrain'],['weather','Weather / wind'],['visibility','Visibility'],['wildlife','Wildlife / birds'],['aircraft','Other aircraft'],['drones','Other drones'],['rf','RF interference'],['gnss','GNSS issues'],['link','Loss of control link'],['battery','Battery issues'],['equipment','Equipment failure'],['airspace','Airspace restrictions'],['night','Night operations'],['emergency','Emergency services'],['other','Other']];
+// Hazards the GRA already covers on every flight (or the airspace step does) – not offered on site any more; older records still show them
+const GRA_COVERED=['wildlife','aircraft','rf','gnss','link','battery','equipment','airspace'];
+const SITE_HAZARDS=HAZARDS.filter(([k])=>!GRA_COVERED.includes(k));
 const LIK=['Rare','Unlikely','Possible','Likely','Almost certain'],SEV=['Negligible','Minor','Moderate','Major','Critical'];
 const ENDCHECKS=[['insp','Aircraft inspected'],['props','Propellers inspected'],['motors','Motors inspected'],['frame','Frame / arms inspected'],['gear','Landing gear inspected'],['gimbal','Gimbal / cameras inspected'],['sensors','Sensors inspected'],['serviceable','Aircraft serviceable']];
 const BATT_STATUS=['Good – return to service','Needs inspection','Retire / do not use'];
@@ -1034,7 +1037,7 @@ function renderRisk(){
  <button class="secondary" onclick="graOpen=!graOpen;renderRisk()">${graOpen?'Hide the GRA':'📋 View the GRA'}</button>${graOpen?graTableHtml():''}
  <button class="${r.graOk?'':'secondary'}" style="${r.graOk?'background:var(--ok)':''}" onclick="flight.risk.graOk=!flight.risk.graOk;renderRisk()">${r.graOk?'✓ GRA reviewed – controls in place':'Confirm: GRA reviewed and its controls are in place'}</button></div>
  <div class="card"><h3>Anything else at this site?</h3><div class="small">Only add hazards for this flight that the GRA doesn’t already cover. NO FLY when a hazard's ${cfg.basis==='initial'?'initial':'after-controls'} score reaches ${cfg.high}.</div>
- <div class="chips">${HAZARDS.map(([k,n])=>`<button class="chip ${r.hazards[k]?'on':''}" onclick="toggleHazard('${k}')"><b>${r.hazards[k]?'✓ ':''}${esc(n)}</b></button>`).join('')}</div>
+ <div class="chips">${SITE_HAZARDS.map(([k,n])=>`<button class="chip ${r.hazards[k]?'on':''}" onclick="toggleHazard('${k}')"><b>${r.hazards[k]?'✓ ':''}${esc(n)}</b></button>`).join('')}</div>
  <button class="${r.none?'':'secondary'}" style="${r.none?'background:var(--ok)':''}" onclick="noHazards()">${r.none?'✓ ':''}Nothing extra at this site</button></div>
  ${sel.map(([k,n])=>hazardCard(k,n)).join('')}${top}`;
  updateBanners();
