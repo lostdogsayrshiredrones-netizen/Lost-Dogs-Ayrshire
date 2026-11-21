@@ -147,9 +147,9 @@ html{min-height:100%}body{min-height:100vh;min-height:100dvh}
 <div id="flightSetup"></div>
 </section>
 
-<section id="checks" class="screen"><button class="back" onclick="show('new')">‹ Aircraft</button><h2>Aircraft inspection</h2><div class="nfb"></div><div id="checksList"></div><button onclick="goProps()">Continue</button></section>
+<section id="checks" class="screen"><button class="back" onclick="show('new')">‹ Aircraft</button><h2>Aircraft & propellers</h2><div class="nfb"></div><div id="checksList"></div><button onclick="goController()">Continue</button></section>
 <section id="props" class="screen"><button class="back" onclick="show('checks')">‹ Inspection</button><h2>Propellers</h2><div class="nfb"></div><div id="propsList"></div><button onclick="goController()">Continue</button></section>
-<section id="controller" class="screen"><button class="back" onclick="show('props')">‹ Props</button><h2>Controller</h2><div class="nfb"></div><div id="controllerBody"></div><button onclick="goBatteries()">Continue</button></section>
+<section id="controller" class="screen"><button class="back" onclick="show('checks')">‹ Inspection</button><h2>Controller</h2><div class="nfb"></div><div id="controllerBody"></div><button onclick="goBatteries()">Continue</button></section>
 <section id="batteries" class="screen"><button class="back" onclick="show('controller')">‹ Controller</button><h2>Batteries</h2><div class="nfb"></div><div id="batteryBody"></div><button onclick="goWeather()">Continue</button></section>
 <section id="weather" class="screen"><button class="back" onclick="show('batteries')">‹ Batteries</button><h2>Weather & conditions</h2><div class="nfb"></div>
 <div id="weatherBody"></div>
@@ -187,7 +187,7 @@ html{min-height:100%}body{min-height:100vh;min-height:100dvh}
 
 /* ================= Core / data ================= */
 const KEY='flightops_v3'; // same key as v3 so existing data carries over
-const HAZARDS=[['people','People'],['roads','Roads / vehicles'],['buildings','Buildings / structures'],['power','Power lines'],['water','Water'],['terrain','Terrain'],['weather','Weather / wind'],['visibility','Visibility'],['wildlife','Wildlife / birds'],['aircraft','Other aircraft'],['drones','Other drones'],['rf','RF interference'],['gnss','GNSS issues'],['link','Loss of control link'],['battery','Battery issues'],['equipment','Equipment failure'],['airspace','Airspace restrictions'],['night','Night operations'],['emergency','Emergency services'],['other','Other']];
+const HAZARDS=[['people','People'],['roads','Roads / vehicles'],['buildings','Obstacles: buildings, trees, masts'],['power','Power lines'],['water','Water'],['terrain','Terrain'],['weather','Weather / wind'],['visibility','Visibility'],['wildlife','Wildlife / birds'],['aircraft','Other aircraft'],['drones','Other drones'],['rf','RF interference'],['gnss','GNSS issues'],['link','Loss of control link'],['battery','Battery issues'],['equipment','Equipment failure'],['airspace','Airspace restrictions'],['night','Night operations'],['emergency','Emergency services'],['other','Other']];
 const LIK=['Rare','Unlikely','Possible','Likely','Almost certain'],SEV=['Negligible','Minor','Moderate','Major','Critical'];
 const ENDCHECKS=[['insp','Aircraft inspected'],['props','Propellers inspected'],['motors','Motors inspected'],['frame','Frame / arms inspected'],['gear','Landing gear inspected'],['gimbal','Gimbal / cameras inspected'],['sensors','Sensors inspected'],['serviceable','Aircraft serviceable']];
 const BATT_STATUS=['Good – return to service','Needs inspection','Retire / do not use'];
@@ -217,7 +217,7 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){if(!_w
 const PRESET_CONTROLS={
  people:'Keep a safe distance from uninvolved people and do not fly over crowds. Ground crew to brief and hold back members of the public. Pause or move if anyone approaches the area.',
  roads:'Avoid flying directly over moving traffic. Cross roads at height and at right angles. Observer to watch the road. Choose a take-off point well back from the carriageway.',
- buildings:'Keep a safe distance from buildings and structures. Watch for GPS and compass interference near steel and concrete. Allow for turbulence around buildings.',
+ buildings:'Keep a safe distance from buildings, trees, masts and other obstacles. Watch for GPS and compass interference near steel and concrete. Allow for turbulence around buildings.',
  power:'Power lines and cables identified and pointed out to the crew. Keep well clear horizontally and vertically, and never fly between or under lines. Take off and land away from overhead lines. Observer to watch line clearance.',
  water:'Keep the aircraft over land where possible. Do not take off or land near the water’s edge. Keep battery margin so the aircraft can return without ditching. Allow for low-level wind over water.',
  terrain:'Plan the flight around hills and slopes, allowing for the drone flying close to rising ground. Keep the return-to-home height above the highest ground and obstacles. Keep line of sight in valleys.',
@@ -612,7 +612,7 @@ async function goChecks(){
  renderChecks();show('checks');
 }
 
-const RENDER={checks:()=>renderChecks(),props:()=>renderProps(),controller:()=>renderController()};
+const RENDER={checks:()=>renderChecks(),props:()=>renderChecks(),controller:()=>renderController()};
 const LABEL={checks:k=>'Aircraft – '+k,props:k=>'Propeller '+k,controller:k=>({visual:'Controller – Visual condition',controls:'Controller – Connection / controls'}[k])};
 function clearDefect(st,key){st[key]=true;['_note','_dec','_mit','_at'].forEach(x=>delete st[key+x])}
 function checkCard(title,scope,key){
@@ -636,13 +636,23 @@ async function defectItem(scope,key){
  RENDER[scope]();updateBanners();
  toast(v._choice==='nofly'?'Defect recorded – NO FLY. Carry on to complete the record.':'Defect recorded – continuing with flight');
 }
-function renderChecks(){$('checksList').innerHTML=CHECKS.map(c=>checkCard(c,'checks',c)).join('')}
+function allChecksOk(){ // one tap marks every unanswered item OK; any defect already recorded is kept
+ CHECKS.forEach(c=>{if(flight.checks[c]===undefined)clearDefect(flight.checks,c)});
+ [1,2,3,4].forEach(n=>{if(flight.props[n]===undefined)clearDefect(flight.props,n)});
+ renderChecks();updateBanners();toast('All checks marked OK');
+}
+function renderChecks(){
+ const done=CHECKS.every(c=>flight.checks[c]!==undefined)&&[1,2,3,4].every(n=>flight.props[n]!==undefined);
+ $('checksList').innerHTML=`<div class="card"><div class="small" style="margin-bottom:10px">Inspect the aircraft and propellers. If everything is fine, tap below. If something isn’t, tap that item and choose <b>Defect found</b>.</div><button class="${done?'secondary':''}" style="${done?'':'background:var(--ok)'}" onclick="allChecksOk()">${done?'✓ All checks recorded':'✓ All checks OK – no defects'}</button></div>`
+  +CHECKS.map(c=>checkCard(c,'checks',c)).join('')+'<h3 style="margin:18px 4px 6px">Propellers</h3>'+[1,2,3,4].map(n=>checkCard('Propeller '+n,'props',n)).join('');
+}
 async function goProps(){
  if(!nf()&&!CHECKS.every(c=>flight.checks[c]!==undefined)){await info('Complete all aircraft checks before continuing.');return}
  renderProps();show('props');
 }
 function renderProps(){$('propsList').innerHTML=[1,2,3,4].map(n=>checkCard('Propeller '+n,'props',n)).join('')}
 async function goController(){
+ if(!nf()&&!CHECKS.every(c=>flight.checks[c]!==undefined)){await info('Complete all aircraft checks before continuing.');return}
  if(!nf()&&![1,2,3,4].every(n=>flight.props[n]!==undefined)){await info('Complete all propeller checks first.');return}
  renderController();show('controller');
 }
@@ -662,10 +672,9 @@ function batState(d){
  if(!d.visual)return{ok:false,cls:'bad',label:'REVIEW',reason:'Complete the visual inspection first'};
  if(!(d.charge>0))return{ok:false,cls:'bad',label:'REVIEW',reason:'Enter charge'};
  if(d.charge>100)return{ok:false,cls:'bad',label:'REVIEW',reason:'Charge must be between 1 and 100%'};
- if(d.temp===undefined||isNaN(d.temp))return{ok:false,cls:'bad',label:'REVIEW',reason:'Enter temperature'};
- if(d.temp<-20||d.temp>50)return{ok:false,cls:'bad',label:'REVIEW',reason:'Temperature outside −20 to 50 °C'};
- if(d.voltage===undefined||d.voltage===null||isNaN(d.voltage))return{ok:false,cls:'bad',label:'REVIEW',reason:'Enter the battery voltage'};
+ if(d.temp!=null&&!isNaN(d.temp)&&(d.temp<-20||d.temp>50))return{ok:false,cls:'bad',label:'REVIEW',reason:'Temperature outside −20 to 50 °C'};
  if(d.djiGreen===undefined)return{ok:false,cls:'bad',label:'REVIEW',reason:'Confirm whether DJI shows this battery as green'};
+ if(d.djiGreen!==true&&(d.voltage===undefined||d.voltage===null||isNaN(d.voltage)))return{ok:false,cls:'bad',label:'REVIEW',reason:'Enter the battery voltage'};
  if(d.cycle===undefined||d.cycle===null)return{ok:false,cls:'bad',label:'REVIEW',reason:'Enter the current charge cycle'};
  if(!Number.isInteger(d.cycle)||d.cycle<0)return{ok:false,cls:'bad',label:'REVIEW',reason:'Charge cycle must be a whole number'};
  if(d.prev!==undefined&&d.cycle<d.prev)return{ok:false,cls:'bad',label:'REVIEW',reason:`Cycle ${d.cycle} is lower than the ${d.prev} recorded in Equipment – check the serial number, or correct it in Equipment`};
@@ -691,13 +700,13 @@ function batCard(b){
  <div class="seg"><button class="${d.visual&&!d.defect?'on':''}" onclick="batOk('${b.id}')">${d.visual&&!d.defect?'✓ ':''}No defects</button><button class="${d.defect?'on neg':''}" onclick="batDefect('${b.id}')">Defect found</button></div>
  ${d.defect?`<div class="defnote"><b>Defect:</b> ${esc(d.defect)}<br>${d.dec==='nofly'?'Pilot decision: NO FLY':'Remove this battery and select a replacement.'}</div>`:''}
  <label style="margin-bottom:0">2 · Charge and temperature</label>
- <div class="grid"><div><label>Charge (%)</label><input type="number" min="0" max="100" inputmode="decimal" value="${esc(d.charge==null?'':d.charge)}" oninput="battInput('${b.id}','charge',this.value)"></div><div><label>Temperature (°C)</label><input type="number" step="0.1" inputmode="decimal" value="${esc(d.temp==null?'':d.temp)}" oninput="battInput('${b.id}','temp',this.value)"></div></div>
- <label style="margin-bottom:0">3 · Battery voltage</label>
- <div class="small" style="margin:4px 0 8px">Check the voltage and health indicator DJI shows for this battery.</div>
- <input type="number" step="0.01" min="0" inputmode="decimal" placeholder="Voltage (V)" value="${esc(d.voltage==null?'':d.voltage)}" oninput="battInput('${b.id}','voltage',this.value)">
- <label style="margin-top:12px">Does DJI show this battery as green?</label>
+ <div class="grid"><div><label>Charge (%)</label><input type="number" min="0" max="100" inputmode="decimal" value="${esc(d.charge==null?'':d.charge)}" oninput="battInput('${b.id}','charge',this.value)"></div><div><label>Temperature (°C) <span class="small">needed below 10 °C</span></label><input type="number" step="0.1" inputmode="decimal" value="${esc(d.temp==null?'':d.temp)}" oninput="battInput('${b.id}','temp',this.value)"></div></div>
+ <label style="margin-bottom:0">3 · Battery health</label>
+ <label style="margin-top:8px">Does DJI show this battery as green?</label>
  <div class="seg"><button class="${d.djiGreen===true?'on good':''}" onclick="battDjiGreen('${b.id}',true)">Yes</button><button class="${d.djiGreen===false?'on neg':''}" onclick="battDjiGreen('${b.id}',false)">No</button></div>
  ${d.djiGreen===false?`<div class="defnote"><b>Removed from service</b> – DJI did not show green.${d.djiNote?'<br>'+esc(d.djiNote):''}</div>`:''}
+ <label>Voltage (V)${d.djiGreen===true?' <span class="small">optional</span>':''}</label>
+ <input type="number" step="0.01" min="0" inputmode="decimal" placeholder="${d.djiGreen===true?'Optional when DJI shows green':'Voltage (V)'}" value="${esc(d.voltage==null?'':d.voltage)}" oninput="battInput('${b.id}','voltage',this.value)">
  <label style="margin-bottom:0">4 · Charge cycle</label>
  <div class="small" style="margin:4px 0 8px">${d.prev!==undefined?`Recorded in Equipment: <b>${d.prev}</b>. Enter the current cycle after charging – Equipment updates automatically.`:'No cycle recorded yet – enter the battery’s current charge cycle. Equipment updates automatically.'}</div>
  <input type="number" min="0" step="1" inputmode="numeric" placeholder="Current charge cycle" value="${esc(d.cycle==null?'':d.cycle)}" oninput="battInput('${b.id}','cycle',this.value)">
@@ -858,6 +867,9 @@ async function fillLiveWeather(){
 async function goAirspace(){
  checkWind();
  if(!nf()){
+  const wt=flight.weather.temp,cold=wt!=null&&!isNaN(wt)&&wt<10;
+  const noTemp=cold?Object.values(flight.batteries).filter(d=>d.temp==null||isNaN(d.temp)):[];
+  if(noTemp.length){await info(`It’s ${wt} °C, so battery temperature matters. Enter the temperature for:\n\n${noTemp.map(d=>'• '+d.name).join('\n')}`,'Cold weather – battery temperature');renderBatteries();show('batteries');return}
   const w=flight.weather,miss=[];
   if(!w.dn)miss.push('Day or night');
   if(w.dn==='Night'&&w.lights===undefined)miss.push('Anti-collision lights (night)');
@@ -886,17 +898,6 @@ function renderSite(){
  <label>Emergency landing options identified</label>${segF('tolp.emergency',tl.emergency,[{l:'Yes',v:true},{l:'No',v:false,neg:true}],'renderSite')}
  ${tl.emergency===false?`<label>Why not, or what is the plan instead? *</label><textarea oninput="flight.tolp.emergencyNote=this.value" placeholder="Explain">${esc(tl.emergencyNote||'')}</textarea>`:tl.emergency===true?`<label>Describe the options (optional)</label><textarea oninput="flight.tolp.emergencyNote=this.value" placeholder="Where could you land if needed?">${esc(tl.emergencyNote||'')}</textarea>`:''}
  <label>TOLP notes (optional)</label><textarea oninput="flight.tolp.notes=this.value" placeholder="Grid reference, surface, hazards nearby…">${esc(tl.notes||'')}</textarea></div>
- <div class="card"><h3>Site hazards</h3><div class="small">Identify anything present at or near the site. Tap "No issues identified" if none apply.</div>
- <button class="${tl.none?'':'secondary'}" style="${tl.none?'background:var(--ok)':''}" onclick="noSiteIssues()">${tl.none?'✓ ':''}No issues identified</button>
- <label>Obstacles identified</label>${hazBtns('obstacles',tl.obstacles)}
- ${tl.obstacles?`<label>Describe the obstacles *</label><textarea oninput="flight.tolp.obstaclesNote=this.value" placeholder="What and where">${esc(tl.obstaclesNote||'')}</textarea>`:''}
- <label>Power lines / structures</label>${hazBtns('power',tl.power)}
- ${tl.power?`<label>Describe *</label><textarea oninput="flight.tolp.powerNote=this.value" placeholder="What and where">${esc(tl.powerNote||'')}</textarea>`:''}
- <label>People / vehicles</label>${hazBtns('people',tl.people)}
- ${tl.people?`<label>Describe *</label><textarea oninput="flight.tolp.peopleNote=this.value" placeholder="Who / what and where">${esc(tl.peopleNote||'')}</textarea>`:''}
- <label>Terrain considerations</label>${hazBtns('terrain',tl.terrain)}
- ${tl.terrain?`<label>Describe *</label><textarea oninput="flight.tolp.terrainNote=this.value" placeholder="Slopes, water, vegetation…">${esc(tl.terrainNote||'')}</textarea>`:''}
- <label>Other site hazards (optional)</label><textarea oninput="flight.tolp.otherHazards=this.value" placeholder="Anything else worth noting">${esc(tl.otherHazards||'')}</textarea></div>
  <div class="card"><h3>Airspace check</h3><div class="small">Select the option that applies.</div>
  <div class="chips">
  <button class="chip ${as.status==='frz'?'on':''}" onclick="setAirspace('frz')"><b>FRZ</b><span>Flight restriction zone</span></button>
@@ -929,10 +930,6 @@ async function goRisk(){
   if(tl.laClear===undefined)miss.push('Landing area clear');
   if(tl.emergency===undefined)miss.push('Emergency landing options identified');
   else if(tl.emergency===false&&!(tl.emergencyNote||'').trim())miss.push('Emergency landing options – explain the plan');
-  if(tl.obstacles===undefined)miss.push('Obstacles identified');else if(tl.obstacles&&!(tl.obstaclesNote||'').trim())miss.push('Obstacles identified – describe');
-  if(tl.power===undefined)miss.push('Power lines / structures');else if(tl.power&&!(tl.powerNote||'').trim())miss.push('Power lines / structures – describe');
-  if(tl.people===undefined)miss.push('People / vehicles');else if(tl.people&&!(tl.peopleNote||'').trim())miss.push('People / vehicles – describe');
-  if(tl.terrain===undefined)miss.push('Terrain considerations');else if(tl.terrain&&!(tl.terrainNote||'').trim())miss.push('Terrain considerations – describe');
   if(!as.status)miss.push('Airspace check – select an option, or "No issues identified"');
   else if(as.status==='frz'){
    if(!((as.frz||{}).authority||'').trim())miss.push('FRZ – relevant airport or authority');
@@ -1057,6 +1054,12 @@ function segYN(path,val,yesGood,labels){
 function setEnd2(path,v){const p=path.split('.');let o=endState;for(let i=0;i<p.length-1;i++){o[p[i]]=o[p[i]]||{};o=o[p[i]]}o[p[p.length-1]]=v;renderEndForm()}
 /* Sets a value without re-rendering the form — used for number/text fields so typing doesn't rebuild the DOM under the user's finger (which drops the on-screen keyboard on iOS after every character) */
 function setEnd3(path,v){const p=path.split('.');let o=endState;for(let i=0;i<p.length-1;i++){o[p[i]]=o[p[i]]||{};o=o[p[i]]}o[p[p.length-1]]=v}
+function endAllOk(){const s=endState;s.acOk=true;ENDCHECKS.forEach(([k])=>{s.checks[k]=true;delete s.checks[k+'_note']});Object.assign(s.controller,{visual:true,damage:false,serviceable:true});['visualNote','damageNote','serviceableNote'].forEach(k=>delete s.controller[k]);renderEndForm()}
+function endProblem(){const s=endState;s.acOk=false;ENDCHECKS.forEach(([k])=>{if(s.checks[k]===true)delete s.checks[k]});['visual','damage','serviceable'].forEach(k=>delete s.controller[k]);renderEndForm()}
+function battEndOk(bid,ok){const st=endState.batteries[bid]=endState.batteries[bid]||{};st.ok=ok;
+ if(ok){Object.assign(st,{condition:true,damage:false,status:BATT_STATUS[0]});delete st.conditionNote;delete st.damageNote}
+ else{['condition','damage','status'].forEach(k=>delete st[k])}
+ renderEndForm()}
 function battFlagged(st){if(!st)return false;return st.condition===false||st.damage===true||(st.status&&st.status!==BATT_STATUS[0])||(st.temp!=null&&(st.temp<-20||st.temp>60))}
 function ctrlFlagged(st){if(!st)return false;return st.visual===false||st.damage===true||st.serviceable===false}
 function renderEndForm(){
@@ -1067,29 +1070,34 @@ function renderEndForm(){
   return `<div class="check ${val===false?'red':''}"><div class="row"><b>${esc(label)}</b>${val===true?'<span class="pill ok">OK</span>':val===false?'<span class="pill bad">NEEDS ATTENTION</span>':''}</div>${segYN('checks.'+k,val,true)}${val===false?note('checks.'+k+'_note','Describe the issue'):''}</div>`;
  }).join('');
  const battCards=bats.map(([bid,b])=>{
-  const st=s.batteries[bid]=s.batteries[bid]||{},fl=battFlagged(st);
+  const st=s.batteries[bid]=s.batteries[bid]||{},fl=battFlagged(st),opt='<span class="small">optional</span>';
   return `<div class="card ${fl?'flagcard':''}"><div class="row"><h3>🔋 ${esc(b.name)}</h3>${fl?'<span class="pill bad">NEEDS INSPECTION</span>':''}</div><div class="serial">Serial number<b>${esc(b.serial)}</b></div>
-  <div class="grid"><div><label>Final charge (%)</label><input type="number" min="0" max="100" inputmode="decimal" value="${esc(st.charge==null?'':st.charge)}" oninput="setEnd3('batteries.${bid}.charge',this.value===''?undefined:+this.value)"></div><div><label>Battery temperature (°C)</label><input type="number" step="0.1" inputmode="decimal" value="${esc(st.temp==null?'':st.temp)}" oninput="setEnd3('batteries.${bid}.temp',this.value===''?undefined:+this.value)"></div><div><label>Voltage (V)</label><input type="number" step="0.01" min="0" inputmode="decimal" value="${esc(st.voltage==null?'':st.voltage)}" oninput="setEnd3('batteries.${bid}.voltage',this.value===''?undefined:+this.value)"></div></div>
-  <label>Battery condition</label>${segYN('batteries.'+bid+'.condition',st.condition,true)}
+  <label>Final charge (%)</label><input type="number" min="0" max="100" inputmode="decimal" value="${esc(st.charge==null?'':st.charge)}" oninput="setEnd3('batteries.${bid}.charge',this.value===''?undefined:+this.value)">
+  <div class="seg" style="margin-top:12px"><button class="${st.ok===true?'on good':''}" onclick="battEndOk('${bid}',true)">✓ Battery OK</button><button class="${st.ok===false?'on neg':''}" onclick="battEndOk('${bid}',false)">Problem</button></div>
+  ${st.ok===false?`<label>Battery condition</label>${segYN('batteries.'+bid+'.condition',st.condition,true)}
   ${st.condition===false?note('batteries.'+bid+'.conditionNote','What is wrong with it?'):''}
   <label>Damage / swelling</label>${segYN('batteries.'+bid+'.damage',st.damage,false)}
   ${st.damage===true?note('batteries.'+bid+'.damageNote','Describe the damage or swelling'):''}
   <label>Battery status</label><select onchange="setEnd2('batteries.${bid}.status',this.value)">${['',...BATT_STATUS].map(o=>`<option value="${esc(o)}" ${st.status===o?'selected':''}>${o||'Select…'}</option>`).join('')}</select>
-  <label>Storage / charging status</label><select onchange="setEnd2('batteries.${bid}.storage',this.value)">${['',...BATT_STORAGE].map(o=>`<option value="${esc(o)}" ${st.storage===o?'selected':''}>${o||'Select…'}</option>`).join('')}</select></div>`;
+  <div class="grid"><div><label>Temperature (°C) ${opt}</label><input type="number" step="0.1" inputmode="decimal" value="${esc(st.temp==null?'':st.temp)}" oninput="setEnd3('batteries.${bid}.temp',this.value===''?undefined:+this.value)"></div><div><label>Voltage (V) ${opt}</label><input type="number" step="0.01" inputmode="decimal" value="${esc(st.voltage==null?'':st.voltage)}" oninput="setEnd3('batteries.${bid}.voltage',this.value===''?undefined:+this.value)"></div></div>`:''}
+  ${st.ok!==undefined?`<label>Storage / charging ${opt}</label><select onchange="setEnd2('batteries.${bid}.storage',this.value)">${['',...BATT_STORAGE].map(o=>`<option value="${esc(o)}" ${st.storage===o?'selected':''}>${o||'Select…'}</option>`).join('')}</select>`:''}</div>`;
  }).join('');
  const c=s.controller,cf=ctrlFlagged(c);
  $('endFormBody').innerHTML=`<div class="card"><b>${esc(f.flightId)}</b><div class="small">${flightLine(f)}</div></div>
  <div class="card"><label style="margin-top:0">Flight time (minutes)</label><input type="number" min="0" step="0.5" inputmode="decimal" value="${esc(s.time)}" placeholder="e.g. 24" oninput="endState.time=this.value"></div>
- <div class="card ${aircraftRows.includes('NEEDS ATTENTION')?'flagcard':''}"><h3>Aircraft</h3>${aircraftRows}</div>
+ <div class="card ${aircraftRows.includes('NEEDS ATTENTION')||cf?'flagcard':''}"><h3>Aircraft & controller after the flight</h3>
+ <div class="seg"><button class="${s.acOk===true?'on good':''}" onclick="endAllOk()">✓ All OK</button><button class="${s.acOk===false?'on neg':''}" onclick="endProblem()">Problem to report</button></div>
+ ${s.acOk===true?'<div class="small" style="margin-top:8px">Recorded: all aircraft checks satisfactory, controller undamaged and serviceable.</div>':''}
+ ${s.acOk===false?'<div class="small" style="margin:10px 0 4px">Mark each item. Anything with a problem asks what needs attention.</div>'+aircraftRows:''}</div>
  ${bats.length?`<h3 style="margin:18px 4px 4px">Batteries</h3>${battCards}`:''}
  <div class="card ${cf?'flagcard':''}"><h3>Controller</h3>${cf?'<div class="row" style="margin-bottom:8px"><span class="pill bad">NEEDS INSPECTION</span></div>':''}
  <label style="margin-top:0">Final charge (%)</label><input type="number" min="0" max="100" inputmode="decimal" value="${esc(c.charge==null?'':c.charge)}" oninput="setEnd3('controller.charge',this.value===''?undefined:+this.value)">
- <label>Visual condition</label>${segYN('controller.visual',c.visual,true)}
+ ${s.acOk===false?`<label>Visual condition</label>${segYN('controller.visual',c.visual,true)}
  ${c.visual===false?note('controller.visualNote','What is wrong with it?'):''}
  <label>Damage</label>${segYN('controller.damage',c.damage,false)}
  ${c.damage===true?note('controller.damageNote','Describe the damage'):''}
  <label>Controller serviceable</label>${segYN('controller.serviceable',c.serviceable,true)}
- ${c.serviceable===false?note('controller.serviceableNote','Why is it unserviceable?'):''}</div>
+ ${c.serviceable===false?note('controller.serviceableNote','Why is it unserviceable?'):''}`:''}</div>
  ${wet?`<div class="card"><label style="margin-top:0">Rain / ice flight – any ice build-up or water ingress noticed?</label>${segYN('iw',s.iw,false,['None noticed','Yes'])}${s.iw===true?`<label>Describe what you noticed</label><textarea oninput="endState.iwNote=this.value" placeholder="Where, how much, and any action taken">${esc(s.iwNote)}</textarea>`:''}</div>`:''}
  <div class="card ${s.incYes===true?'flagcard':''}"><h3>Incident / abnormal event</h3><label style="margin-top:0">Was there an incident or abnormal event?</label>${segYN('incYes',s.incYes,false,['No','Yes – Record Incident'])}
  ${s.incYes===true?`<div class="small" style="margin:8px 0">Linked to this flight record: ${esc(f.aircraftName)}${(f.data.batteries&&Object.keys(f.data.batteries).length)?' · '+Object.values(f.data.batteries).map(b=>b.name).join(', '):''}${f.aircraft&&f.aircraft.controller?' · Controller '+f.aircraft.controller:''}</div>
@@ -1107,7 +1115,8 @@ function toggleIncType(k){endState.incTypes[k]=!endState.incTypes[k];renderEndFo
 async function completeEnd(){
  const s=endState,f=db.flights.find(x=>x.id===s.id),t=parseFloat(s.time),bats=Object.entries((f.data||{}).batteries||{}),miss=[];
  if(!(t>0))miss.push('Flight time (minutes)');
- ENDCHECKS.forEach(([k,label])=>{
+ if(s.acOk===undefined)miss.push('Aircraft & controller after the flight – All OK, or Problem to report');
+ else ENDCHECKS.forEach(([k,label])=>{
   const v=(s.checks||{})[k];
   if(v===undefined)miss.push(label);
   else if(v===false&&!(s.checks[k+'_note']||'').trim())miss.push(label+' – describe what needs attention');
@@ -1115,20 +1124,20 @@ async function completeEnd(){
  bats.forEach(([bid,b])=>{
   const st=s.batteries[bid]||{};
   if(st.charge==null)miss.push(b.name+' – final charge');
-  if(st.temp==null)miss.push(b.name+' – battery temperature');
-  if(st.voltage==null)miss.push(b.name+' – voltage');
+  if(st.ok===undefined){miss.push(b.name+' – Battery OK, or Problem');return}
   if(st.condition===undefined)miss.push(b.name+' – battery condition');
   else if(st.condition===false&&!(st.conditionNote||'').trim())miss.push(b.name+' – describe the condition issue');
   if(st.damage===undefined)miss.push(b.name+' – damage / swelling');
   else if(st.damage===true&&!(st.damageNote||'').trim())miss.push(b.name+' – describe the damage / swelling');
   if(!st.status)miss.push(b.name+' – battery status');
-  if(!st.storage)miss.push(b.name+' – storage / charging status');
  });
  const c=s.controller;
  if(c.charge==null)miss.push('Controller – final charge');
+ if(s.acOk===false){
  if(c.visual===undefined)miss.push('Controller – visual condition');else if(c.visual===false&&!(c.visualNote||'').trim())miss.push('Controller – describe the visual issue');
  if(c.damage===undefined)miss.push('Controller – damage');else if(c.damage===true&&!(c.damageNote||'').trim())miss.push('Controller – describe the damage');
  if(c.serviceable===undefined)miss.push('Controller serviceable');else if(c.serviceable===false&&!(c.serviceableNote||'').trim())miss.push('Controller – why is it unserviceable?');
+ }
  const wet=condFlags(f).amber.length>0;
  if(wet&&s.iw===null)miss.push('Ice build-up / water ingress');
  if(wet&&s.iw===true&&!s.iwNote.trim())miss.push('Describe the ice build-up or water ingress');
@@ -1278,10 +1287,11 @@ function recordModel(f){
   sa.push(['Landing area clear',tl.laClear===true?ok('Yes'):tl.laClear===false?bad('No'):'Not recorded']);
   sa.push(['Emergency landing options identified',tl.emergency===true?ok('Yes'+(tl.emergencyNote?': '+tl.emergencyNote:'')):tl.emergency===false?bad('No'+(tl.emergencyNote?' – '+tl.emergencyNote:'')):'Not recorded']);
   const hz=(v,note)=>v===true?warn('Yes – '+(note||'')):v===false?ok('None identified'):'Not recorded';
-  sa.push(['Obstacles identified',hz(tl.obstacles,tl.obstaclesNote)]);
-  sa.push(['Power lines / structures',hz(tl.power,tl.powerNote)]);
-  sa.push(['People / vehicles',hz(tl.people,tl.peopleNote)]);
-  sa.push(['Terrain considerations',hz(tl.terrain,tl.terrainNote)]);
+  // Site hazards are now covered by the risk assessment; older flights still show what they recorded
+  if(tl.obstacles!==undefined)sa.push(['Obstacles identified',hz(tl.obstacles,tl.obstaclesNote)]);
+  if(tl.power!==undefined)sa.push(['Power lines / structures',hz(tl.power,tl.powerNote)]);
+  if(tl.people!==undefined)sa.push(['People / vehicles',hz(tl.people,tl.peopleNote)]);
+  if(tl.terrain!==undefined)sa.push(['Terrain considerations',hz(tl.terrain,tl.terrainNote)]);
   if(tl.otherHazards)sa.push(['Other site hazards',tl.otherHazards]);
   ['frz','ctr'].forEach(k=>{if(t[k]){const z=as[k]||{};sa.push([k.toUpperCase(),{t:'Airport / ATC: '+(z.atc||'—')+'\nReference: '+(z.ref||'—')+'\nPermission: '+(z.perm==='granted'?'Granted':z.perm==='refused'?'NOT GRANTED – NO FLY':'Not recorded'),tone:z.perm==='refused'?'bad':z.perm==='granted'?'ok':''}])}});
   if(t.other)sa.push(['Other restricted / danger area',as.otherNotes||'—']);
