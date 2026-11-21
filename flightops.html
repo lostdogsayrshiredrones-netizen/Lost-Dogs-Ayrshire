@@ -235,8 +235,56 @@ const PRESET_CONTROLS={
  night:'Aircraft lights on and visible. Take-off and landing area lit and recce’d in daylight if possible. Use an observer. Keep a lower height and closer distance.',
  emergency:'Liaise with the police or incident commander before flying. Give way to emergency aircraft. Land immediately if asked to.'
 };
+
+/* ---- Suggested risk scores: [initial likelihood, initial severity, residual likelihood, residual severity] (5×5).
+   Filled in when a hazard is picked; the pilot changes them if this site is different. Controls mostly cut likelihood. ---- */
+const RISK_DEFAULTS={
+ people:[3,4,1,4],roads:[3,4,2,4],buildings:[3,3,2,3],power:[3,4,2,4],water:[2,3,1,3],terrain:[3,3,2,3],
+ weather:[3,3,2,3],visibility:[2,4,1,4],wildlife:[2,3,1,3],aircraft:[2,5,1,5],drones:[2,4,1,4],rf:[2,3,1,3],
+ gnss:[2,3,1,3],link:[2,4,1,4],battery:[2,4,1,4],equipment:[2,4,1,4],airspace:[2,4,1,4],night:[3,3,2,3],emergency:[2,3,1,3]
+};
+
+/* ================= Generic Risk Assessment (Operations Manual v1, Appendix F1 – Generic Operational Risk Register) =================
+   Applies to every flight. Pilots confirm it each flight; only hazards NOT covered here are assessed on the day.
+   Scored in the app's own system: likelihood (1 Rare … 5 Almost certain) × severity (1 Negligible … 5 Critical).
+   Each row: [hazard, impact, existing controls, severity, likelihood, further controls ('' if none), revised severity, revised likelihood] */
+const GRA={ref:'LDA/DSARA01',doc:'Operations Manual v1 – Appendix F1, Generic Operational Risk Register',ver:'05 Mar 2026',review:'2027-03-05',
+ groups:[
+ ['Job specific',[
+  ['Collision with persons under remote pilot control','Injury to persons. Damage to UAS.','Control briefing given to crew and client before flight. Flown only by a qualified, current remote pilot (GVC or RPC-L1).',4,1,'',0,0],
+  ['Public encroachment (breach of cordon)','Injury to persons. Damage to UAS or property.','Cordoned take-off and landing point. Observer used, or the client briefed to act as observer.',3,1,'',0,0],
+  ['Collision with members of the public','Injury to persons. Damage to UAS or property.','Cordoned take-off and landing point. Observer used, or the client briefed to act as observer. Overflight of uninvolved people kept to a minimum.',5,1,'',0,0],
+  ['Proximity to buildings outside remote pilot control','Damage to UAS. Damage to property.','Flight planned to keep a safe distance from buildings.',3,1,'',0,0]]],
+ ['General',[
+  ['Battery / power distribution board failure in flight','Injury to persons. Damage to UAS or property.','Accurate battery logs kept. Pre- and post-flight checks. Battery life monitored and batteries replaced when needed. Annual servicing of the UAS.',3,1,'',0,0],
+  ['IMU / autopilot failure','Injury to persons or damage to UAS from IMU / sensor failure.','Pre-flight checks as per the UAS user manual. Built-in test (BIT) on start-up. Annual servicing. Any fault found in BIT: aircraft returned to the manufacturer for maintenance.',3,1,'',0,0],
+  ['Motor failure in flight','Injury to persons or damage to UAS.','Overflight of uninvolved people kept to a minimum. Immediate actions as per the aircraft flight reference cards. Remote pilots practise the loss-of-motor drill.',5,1,'',0,0],
+  ['Spectrum interference / fly-away','Injury to persons or damage to UAS.','Digital signal diversity on the data link. Return-to-home on loss of control link. Pre-flight and in-flight checks of aircraft telemetry.',4,2,'Spectrum analyser used before flight to minimise the risk of interference.',4,1],
+  ['Data / control link loss','Injury to persons or damage to UAS or other air users through interference.','Digital signal diversity on the data link. Return-to-home on loss of control link. Pre-flight and in-flight checks of aircraft telemetry.',4,2,'Spectrum analyser used before flight to minimise the risk of interference.',4,1],
+  ['GPS failure','Injury to persons or damage to UAS.','UAS can fly in ATTI mode. Remote pilots practise regularly with an ATTI-capable aircraft.',2,2,'',0,0],
+  ['LiPo battery fire','Injury to persons. Damage to UAS or property.','Suitable fire-fighting equipment carried. Batteries checked for damage or swelling before and after flight.',3,1,'',0,0],
+  ['Ground / support equipment fire','Injury to persons. Damage to UAS or property.','Suitable fire-fighting equipment carried.',2,1,'',0,0],
+  ['Unable to get GPS because of the location','Aircraft navigation performance degraded.','UAS can keep controlled flight without GPS. Satellite count checked before take-off.',3,1,'',0,0],
+  ['Flying where there is known manned air activity','Collision with low-flying aircraft, particularly military.','NOTAMs, the military low-flying system and other online sources checked before flight. Observers keep a lookout. UAS kept below 400 ft and gives way to manned aircraft.',5,1,'',0,0],
+  ['Parts of the subject hidden by trees','Injury to persons. Damage to UAS.','Flight planned, with observers helping where the aircraft’s view is blocked.',2,2,'Two-way radios used within the team. Aircraft flown close to the remote pilot and take-off and landing point.',2,1],
+  ['Large search area affecting flight time','Injury to persons. Damage to UAS or property.','Telemetry shows remaining battery endurance. Area split into sectors. Spare batteries carried.',3,1,'',0,0],
+  ['Height of the subject affecting flight time','Injury to persons. Damage to UAS or property.','Telemetry shows remaining battery endurance. Flight planned with a return reserve.',3,1,'',0,0],
+  ['Line of sight limited by the shape of the subject','Injury to persons. Damage to UAS or property.','Telemetry warns when the signal is degrading.',2,2,'If the take-off and landing point is not suitable, the crew re-assess on the ground to find a better one.',2,1],
+  ['Environmental noise limiting communication','Injury to persons. Damage to UAS or property.','Crew operate close to one another and confirm messages.',2,2,'Two-way radios with earpieces used to reduce lost communication.',2,1],
+  ['Wildlife (birds) affecting the flight','Injury to persons and fouling. Damage to UAS or property.','Remote pilot keeps visual line of sight (VLOS) of the UAS at all times.',2,2,'Observers watch the full 360° around the flight and warn of any bird approach.',2,1],
+  ['Public incursion','Injury to persons. Damage to UAS or property.','Remote pilot keeps VLOS of the UAS at all times. Pre-planned UAS holding points used.',2,2,'Cordon set up and observers used.',2,1],
+  ['Vehicle incursion','Injury to persons. Damage to UAS or property.','Remote pilot keeps VLOS of the UAS at all times. Pre-planned UAS holding points used.',2,2,'Cordon set up and observers used.',2,1]]]]};
+const GRA_ROWS=GRA.groups.flatMap(([g,rows])=>rows.map(r=>[g,...r]));
+function fmtD(iso){const d=new Date(iso);return isNaN(d)?String(iso||''):d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
+function graDue(){const d=Math.ceil((new Date(GRA.review)-new Date())/864e5);return d}
+function graTableHtml(){
+ return GRA.groups.map(([g,rows])=>`<div class="small" style="margin:14px 0 6px;font-weight:800;color:var(--ink)">${esc(g)}</div>`+rows.map(r=>{
+  const sc=r[3]*r[4],b=riskBand(sc),rv=r[5]?r[6]*r[7]:null,rb=rv!==null?riskBand(rv):null;
+  return `<div class="check"><div class="row"><b>${esc(r[0])}</b><span class="pill ${(rb||b).cls}">${(rb||b).l} · ${rv!==null?rv:sc}</span></div><div class="small"><b>Impact:</b> ${esc(r[1])}<br><b>Controls:</b> ${esc(r[2])} <i>(L${r[4]} × S${r[3]} = ${sc})</i>${r[5]?`<br><b>Further controls:</b> ${esc(r[5])} <i>(L${r[7]} × S${r[6]} = ${rv})</i>`:''}</div></div>`}).join('')).join('');
+}
 const blankFlight=()=>({aircraftId:null,ops:{},checks:{},props:{},controller:{},batteries:{},rejected:[],weather:{},tolp:{},airspace:{},risk:{type:'Missing person search',hazards:{},none:false}});
 let flight=blankFlight();
+let graOpen=false;
 let endState=null,currentRecordId=null;
 
 function nextFlightId(iso){
@@ -949,23 +997,27 @@ async function goRisk(){
  show('risk');
 }
 const OPTYPES=['Missing person search','Missing dog search','Training','Other'];
-function toggleHazard(k){const r=flight.risk;if(r.hazards[k])delete r.hazards[k];else{r.hazards[k]=PRESET_CONTROLS[k]?{controls:PRESET_CONTROLS[k],preset:true}:{};r.none=false}renderRisk();updateBanners()}
+function toggleHazard(k){const r=flight.risk;if(r.hazards[k])delete r.hazards[k];else{const h=r.hazards[k]=PRESET_CONTROLS[k]?{controls:PRESET_CONTROLS[k],preset:true}:{},d=RISK_DEFAULTS[k];if(d){h.l=d[0];h.s=d[1];h.rl=d[2];h.rs=d[3];h.dflt=true}r.none=false}renderRisk();updateBanners()}
 function noHazards(){const r=flight.risk;r.none=!r.none;if(r.none)r.hazards={};renderRisk();updateBanners()}
-function setRate(k,f,v){const h=flight.risk.hazards[k];h[f]=v;if((f==='l'||f==='s')&&!h.rTouched){h.rl=h.l;h.rs=h.s}if(f==='rl'||f==='rs')h.rTouched=true;renderRisk();updateBanners()}
+function setRate(k,f,v){const h=flight.risk.hazards[k];h[f]=v;h.edited=true;
+ if((f==='l'||f==='s')&&!h.rTouched){if(h.dflt){h.rl=Math.min(h.rl||h.l,h.l);h.rs=Math.min(h.rs||h.s,h.s)}else{h.rl=h.l;h.rs=h.s}} // keep the suggested residual, but never above the initial
+ if(f==='rl'||f==='rs')h.rTouched=true;renderRisk();updateBanners()}
 const rateRow=(k,f,val)=>`<div class="seg neutral">${[1,2,3,4,5].map(n=>`<button class="${val===n?'on':''}" onclick="setRate('${k}','${f}',${n})">${n}</button>`).join('')}</div>`;
-function scoreBar(label,l,s,cfg){if(!(l&&s))return '';const sc=l*s,b=riskBand(sc,cfg);return `<div class="scorebar"><span>${label}: <b>${l} × ${s} = ${sc}</b></span><span class="pill ${b.cls}">${b.l}</span></div>`}
+function scoreBar(label,l,s,cfg){if(!(l&&s))return '';const sc=l*s,b=riskBand(sc,cfg);return `<div class="scorebar"><span>${label}: <b>L${l} × S${s} = ${sc}</b></span><span class="pill ${b.cls}">${b.l}</span></div>`}
 function hazardCard(k,n){
  const r=flight.risk,h=r.hazards[k],cfg=db.settings;
  const flag=riskFlags({data:flight}).find(x=>x.key===k);
  const init=(h.l&&h.s)?h.l*h.s:null,res=(h.rl&&h.rs)?h.rl*h.rs:null,shown=cfg.basis==='initial'?init:(res!==null?res:init),b=shown!==null?riskBand(shown,cfg):null;
  return `<div class="card ${flag?'issue':''}"><div class="row"><h3>${esc(hazardName(h,k,n))}</h3>${b?`<span class="pill ${b.cls}">${b.l} · ${shown}</span>`:''}</div>
  ${k==='other'?`<label>Describe the hazard *</label><input value="${esc(h.name||'')}" oninput="flight.risk.hazards.other.name=this.value" placeholder="What is the hazard?">`:''}
+ ${h.dflt&&!h.edited?'<div class="hint" style="margin-top:10px">Suggested scores filled in – tap a number to change any that don’t fit this site.</div>':''}
  <label>Initial likelihood ${h.l?`<span class="small">· ${LIK[h.l-1]}</span>`:''}</label>${rateRow(k,'l',h.l)}
  <div class="hint">1 Rare · 2 Unlikely · 3 Possible · 4 Likely · 5 Almost certain</div>
  <label>Initial severity ${h.s?`<span class="small">· ${SEV[h.s-1]}</span>`:''}</label>${rateRow(k,'s',h.s)}
  <div class="hint">1 Negligible · 2 Minor · 3 Moderate · 4 Major · 5 Critical</div>
  ${scoreBar('Initial risk score',h.l,h.s,cfg)}
  <label>Controls / mitigation measures *</label>${h.preset&&h.controls===PRESET_CONTROLS[k]?'<div class="hint" style="margin-top:0">Suggested wording – change it to suit this site.</div>':''}<textarea rows="7" oninput="flight.risk.hazards.${k}.controls=this.value" placeholder="What will you do to reduce this risk?">${esc(h.controls||'')}</textarea>
+ ${h.dflt&&!h.rTouched?'<div class="hint" style="margin-top:10px">Suggested score after your controls – change it if your controls do more or less than this.</div>':''}
  <label>Residual likelihood (after controls)</label>${rateRow(k,'rl',h.rl)}
  <label>Residual severity (after controls)</label>${rateRow(k,'rs',h.rs)}
  ${scoreBar('Residual risk score',h.rl,h.rs,cfg)}
@@ -978,9 +1030,12 @@ function renderRisk(){
  if(sel.length){let best=null;sel.forEach(([k,n])=>{const h=r.hazards[k],sc=cfg.basis==='initial'?((h.l&&h.s)?h.l*h.s:null):((h.rl&&h.rs)?h.rl*h.rs:((h.l&&h.s)?h.l*h.s:null));if(sc!==null&&(!best||sc>best.sc))best={sc,n:hazardName(h,k,n)}});
   if(best){const b=riskBand(best.sc,cfg);top=`<div class="card"><div class="row"><span>Highest ${cfg.basis==='initial'?'initial':'residual'} risk: <b>${esc(best.n)}</b></span><span class="pill ${b.cls}">${b.l} · ${best.sc}</span></div></div>`}}
  $('riskBody').innerHTML=`<div class="card"><label style="margin-top:0">Operation type</label><select onchange="flight.risk.type=this.value">${OPTYPES.map(o=>`<option ${r.type===o?'selected':''}>${o}</option>`).join('')}</select></div>
- <div class="card"><h3>Hazards</h3><div class="small">Tap only the hazards that apply to this operation. NO FLY when a hazard's ${cfg.basis==='initial'?'initial':'residual'} risk score reaches ${cfg.high}.</div>
+ <div class="card ${r.graOk?'':'issue'}"><h3>Generic risk assessment</h3><div class="small"><b>${GRA.ref}</b> covers every flight: ${GRA_ROWS.length} hazards with their controls, from the Operations Manual (Appendix F1).${graDue()<=60?`<br><b style="color:#b42318">${graDue()<0?'Review overdue':'Review due in '+graDue()+' days'} (${fmtD(GRA.review)})</b>`:''}</div>
+ <button class="secondary" onclick="graOpen=!graOpen;renderRisk()">${graOpen?'Hide the GRA':'📋 View the GRA'}</button>${graOpen?graTableHtml():''}
+ <button class="${r.graOk?'':'secondary'}" style="${r.graOk?'background:var(--ok)':''}" onclick="flight.risk.graOk=!flight.risk.graOk;renderRisk()">${r.graOk?'✓ GRA reviewed – controls in place':'Confirm: GRA reviewed and its controls are in place'}</button></div>
+ <div class="card"><h3>Anything else at this site?</h3><div class="small">Only add hazards for this flight that the GRA doesn’t already cover. NO FLY when a hazard's ${cfg.basis==='initial'?'initial':'after-controls'} score reaches ${cfg.high}.</div>
  <div class="chips">${HAZARDS.map(([k,n])=>`<button class="chip ${r.hazards[k]?'on':''}" onclick="toggleHazard('${k}')"><b>${r.hazards[k]?'✓ ':''}${esc(n)}</b></button>`).join('')}</div>
- <button class="${r.none?'':'secondary'}" style="${r.none?'background:var(--ok)':''}" onclick="noHazards()">${r.none?'✓ ':''}No significant hazards identified</button></div>
+ <button class="${r.none?'':'secondary'}" style="${r.none?'background:var(--ok)':''}" onclick="noHazards()">${r.none?'✓ ':''}Nothing extra at this site</button></div>
  ${sel.map(([k,n])=>hazardCard(k,n)).join('')}${top}`;
  updateBanners();
 }
@@ -988,7 +1043,8 @@ function snapshotAircraft(a){return{name:a.name,model:a.model,serial:a.serial,co
 async function goReview(){
  if(!nf()||riskReasons(liveF()).length>0){ // a NO FLY from an earlier step skips this check, but a risk-caused NO FLY must still be fully recorded
   const r=flight.risk,miss=[],keys=HAZARDS.filter(([k])=>r.hazards[k]);
-  if(!r.none&&!keys.length)miss.push('Select the hazards that apply – or “No significant hazards identified”');
+  if(!r.graOk)miss.push('Confirm the generic risk assessment (GRA) has been reviewed and its controls are in place');
+  if(!r.none&&!keys.length)miss.push('Add any extra hazards at this site – or tap “Nothing extra at this site”');
   keys.forEach(([k,n])=>{
    const h=r.hazards[k],L=hazardName(h,k,n);
    if(k==='other'&&!(h.name||'').trim())miss.push(L+' – describe the hazard');
@@ -1000,6 +1056,7 @@ async function goReview(){
   if(miss.length){await info('Please complete:\n\n'+miss.map(x=>'• '+x).join('\n'),'Risk assessment incomplete');return}
  }
  flight.pilot=db.pilot?clone(db.pilot):null;
+ if(flight.risk.graOk)flight.risk.gra={ref:GRA.ref,doc:GRA.doc,ver:GRA.ver,review:GRA.review,confirmedAt:new Date().toISOString()};
  const a=curAircraft();
  const draft={flightId:'Issued on completion',time:new Date().toISOString(),status:'draft',aircraft:snapshotAircraft(a),aircraftName:a.name,data:flight};
  $('reviewBody').innerHTML=decBannerHtml(draft)+recordHtml(recordModel(draft));
@@ -1305,9 +1362,13 @@ function recordModel(f){
  const r=d.risk||{},hz=r.hazards,rcfg=r.cfg||db.settings;
  if(hz){
   const keys=HAZARDS.filter(([k])=>hz[k]),flags=riskFlags(f),rk=[['Operation type',r.type||'—'],['NO FLY threshold','Score '+rcfg.high+' or above ('+(rcfg.basis==='initial'?'initial':'residual')+' risk)']];
-  if(!keys.length)rk.push(['Hazards',r.none?ok('No significant hazards identified'):'Not recorded']);
-  S.push({title:'Risk assessment',kv:rk});
-  if(keys.length)S.push({title:'Hazards and risk scores',head:['Hazard','Initial risk','Controls / mitigation','Residual risk'],widths:[.2,.17,.43,.20],rows:keys.map(([k,n])=>{
+  if(!keys.length)rk.push(['Extra site hazards',r.none?ok('None – covered by the GRA'):'Not recorded']);
+  if(r.gra){
+   S.push({title:'Generic risk assessment (GRA)',kv:[['Reference',r.gra.ref+' – '+r.gra.doc],['Version',r.gra.ver+' · review due '+fmtD(r.gra.review)],['Pilot confirmation',ok('GRA reviewed – controls in place')]]});
+   S.push({title:'GRA – hazards covered on every flight',head:['Hazard','Controls in place','Risk','Further controls → revised risk'],widths:[.22,.43,.11,.24],rows:GRA_ROWS.map(r2=>{const sc=r2[4]*r2[5],b=riskBand(sc),rv=r2[6]?r2[7]*r2[8]:null;return[r2[1],r2[3],{t:'L'+r2[5]+' × S'+r2[4]+' = '+sc+'\n'+b.l,tone:b.cls},r2[6]?{t:r2[6]+'\nL'+r2[8]+' × S'+r2[7]+' = '+rv+' '+riskBand(rv).l,tone:riskBand(rv).cls}:'—']})});
+  }
+  S.push({title:'Site-specific risk assessment',kv:rk});
+  if(keys.length)S.push({title:'Extra site hazards and risk scores',head:['Hazard','Risk before controls','Controls / mitigation','Risk after controls'],widths:[.2,.17,.43,.20],rows:keys.map(([k,n])=>{
    const h=hz[k],init=(h.l&&h.s)?h.l*h.s:null,res=(h.rl&&h.rs)?h.rl*h.rs:null,fg=flags.find(x=>x.key===k);
    const cell=(l,s,sc,stop)=>{if(sc===null)return 'Not recorded';const b=riskBand(sc,rcfg);return{t:'L'+l+' × S'+s+' = '+sc+'\n'+b.l+(stop?'\nNO FLY':''),tone:stop?'bad':b.cls}};
    return[hazardName(h,k,n),cell(h.l,h.s,init,fg&&fg.basis==='initial'),h.controls||'—',cell(h.rl,h.rs,res,fg&&fg.basis==='residual')];
