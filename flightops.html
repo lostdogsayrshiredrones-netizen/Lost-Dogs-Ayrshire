@@ -126,8 +126,10 @@ html{min-height:100%}body{min-height:100vh;min-height:100dvh}
 <p id="cloudState" class="small"></p>
 <div class="card" id="moveCard" style="display:none"><h3>Moving from the old FlightOps?</h3><div class="small">1. Open the old FlightOps and press <b>Save my records to a file</b>.<br>2. Come back here and press the button below, then pick that file.</div><label class="filebtn" style="background:var(--accent,#4E1FBF);color:#fff">📂 Bring in my records<input type="file" accept=".json,application/json,text/plain" onchange="loadRecordsFile(this)" hidden></label></div>
 <div class="card"><h2>Ready for a flight?</h2><div class="grid"><div class="stat"><span class="small">Aircraft</span><b id="aircraftCount">0</b></div><div class="stat"><span class="small">Flights</span><b id="flightCount">0</b></div></div><button onclick="newFlight()">＋ New Flight</button></div>
+<div id="homeAlerts"></div>
 <div class="card" id="openCard" style="display:none"><h3>Awaiting end of flight</h3><div class="small">Landed? Select the flight to record flight time and aircraft condition.</div><div id="openFlights"></div></div>
-<div class="card"><h3>Equipment</h3><div class="small">Manage aircraft, controllers and battery kits.</div><button class="secondary" onclick="show('equipment')">Open Equipment</button></div>
+<div class="card"><h3>Equipment</h3><div class="small" id="equipSummary">Manage aircraft, controllers and battery kits.</div><button class="secondary" onclick="show('equipment')">Open Equipment</button></div>
+<div class="card"><h3>Incident log</h3><div class="small" id="incSummary"></div><button class="secondary" onclick="show('incidents')">Open Incident log</button></div>
 <div class="card"><h3>Recent flights</h3><div id="recent"></div></div>
 </section>
 
@@ -148,7 +150,7 @@ html{min-height:100%}body{min-height:100vh;min-height:100dvh}
 <div id="flightSetup"></div>
 </section>
 
-<section id="checks" class="screen"><button class="back" onclick="show('new')">‹ Aircraft</button><h2>Aircraft & propellers</h2><div class="nfb"></div><div id="checksList"></div><button onclick="goController()">Continue</button></section>
+<section id="checks" class="screen"><button class="back" onclick="show('new')">‹ Aircraft</button><h2>Aircraft checks</h2><div class="nfb"></div><div id="checksList"></div><button onclick="goController()">Continue</button></section>
 <section id="props" class="screen"><button class="back" onclick="show('checks')">‹ Inspection</button><h2>Propellers</h2><div class="nfb"></div><div id="propsList"></div><button onclick="goController()">Continue</button></section>
 <section id="controller" class="screen"><button class="back" onclick="show('checks')">‹ Inspection</button><h2>Controller</h2><div class="nfb"></div><div id="controllerBody"></div><button onclick="goBatteries()">Continue</button></section>
 <section id="batteries" class="screen"><button class="back" onclick="show('controller')">‹ Controller</button><h2>Batteries</h2><div class="nfb"></div><div id="batteryBody"></div><button onclick="goWeather()">Continue</button></section>
@@ -166,6 +168,9 @@ html{min-height:100%}body{min-height:100vh;min-height:100dvh}
 <section id="endlist" class="screen"><h2>End flight</h2><div id="endListBody"></div></section>
 <section id="endform" class="screen"><button class="back" onclick="show('endlist')">‹ Flights</button><h2>End flight</h2><div id="endFormBody"></div></section>
 
+<section id="pilot" class="screen"><button class="back" onclick="show('equipment')">‹ Equipment</button><h2>Pilot & training</h2><div id="pilotBody"></div></section>
+<section id="incidents" class="screen"><button class="back" onclick="show('home')">‹ Home</button><h2>Incident log</h2><div id="incidentsBody"></div></section>
+<section id="incident" class="screen"><button class="back" onclick="show('incidents')">‹ Incident log</button><h2>Incident</h2><div id="incidentBody"></div></section>
 <section id="batterylog" class="screen"><button class="back" onclick="show('equipment')">‹ Equipment</button><h2>Battery log</h2>
 <div class="card"><label style="margin-top:0">Battery</label><select id="battLogFilter" onchange="renderBatteryLog()"></select>
 <button class="secondary" onclick="printBatteryLogPdf()">🖨 Print / export battery log PDF</button></div>
@@ -196,8 +201,36 @@ const LIK=['Rare','Unlikely','Possible','Likely','Almost certain'],SEV=['Negligi
 const ENDCHECKS=[['insp','Aircraft inspected'],['props','Propellers inspected'],['motors','Motors inspected'],['frame','Frame / arms inspected'],['gear','Landing gear inspected'],['gimbal','Gimbal / cameras inspected'],['sensors','Sensors inspected'],['serviceable','Aircraft serviceable']];
 const BATT_STATUS=['Good – return to service','Needs inspection','Retire / do not use'];
 const BATT_STORAGE=['Being charged','In storage','Awaiting inspection','Faulty – quarantined'];
-const INCIDENT_TYPES=['Loss of signal','Emergency landing','Flyaway','Collision','Near miss','Airspace issue','Battery issue','GNSS issue','Equipment failure','Weather issue','Injury','Property damage','Other'];
-const CHECKS=['Arms / frame','Motors','Landing gear','Gimbal','Cameras','Sensors','Obstacle avoidance','SD card','Firmware / aircraft status','Remote ID broadcasting (operator ID set)'];
+const INCIDENT_TYPES=['Loss of signal','Emergency landing','Flyaway','Collision','Near miss','Airprox','Airspace issue','Remote ID failure','Repeated public incursion','Battery issue','GNSS issue','Equipment failure','Weather issue','Injury','Property damage','Other'];
+const INSPECT=['Arms / frame','Motors','Landing gear','Gimbal','Cameras','Sensors','Obstacle avoidance','SD card','Firmware / aircraft status'];
+const SETTINGS=['Lost link set to RTH','Low battery warning 30%','Height & distance limits set','GEO zone data updated','Remote ID broadcasting (operator ID set)','Beacons & obstacle sensing on'];
+const SHORT={'Remote ID broadcasting (operator ID set)':'Remote ID broadcasting'};
+const CHECKS=INSPECT.concat(SETTINGS);
+/* ---- v2: flight types, IMSAFE, currency, qualifications ---- */
+const KINDS=[{v:'Missing person search',sub:'Live task'},{v:'Missing dog search',sub:'Live task'},{v:'Emergency service support',sub:'Live task'},{v:'Training / currency flight',sub:'Not a live task – counts to your hours'},{v:'Return-to-service test flight',sub:'After repair or firmware'}];
+const isLive=k=>['Missing person search','Missing dog search','Emergency service support'].includes(k);
+const IS_RTS='Return-to-service test flight';
+const is4T=m=>/matrice\s*4(?!\d)|\bm4t\b/i.test(m||'');
+const IMSAFE=[['I','Illness','Do you feel ill or unwell?'],['M','Medication','Taking anything that could affect you?'],['S','Stress','Under stress that could affect your flying?'],['A','Alcohol','Any alcohol in the last 12 hours?'],['F','Fatigue','Tired or not rested?'],['E','Eating','Hungry, thirsty or dehydrated?'],['D','Distraction','Anything distracting you?']];
+const QUALS=['GVC','RPC-L1','A2 CofC','Other'];
+const TRAIN_TYPES=['Annual safety refresher','Emergency-procedure practice','Observer training','Operations Manual briefing','Other training'];
+const MAINT_TYPES=['Inspection','Repair','Firmware update','Propeller change','Sent to DJI for repair','Returned from DJI','Other'];
+const CURRENCY_MIN=120;
+const daysTo=iso=>{if(!iso)return null;const d=new Date(iso+'T00:00:00');const t=new Date();t.setHours(0,0,0,0);return Math.round((d-t)/864e5)};
+const monthsAgo=n=>{const d=new Date();d.setMonth(d.getMonth()-n);return d};
+function currencyMins(){const cut=monthsAgo(3);return Math.round(db.flights.filter(f=>f.status==='ended'&&f.end&&new Date(f.time)>=cut).reduce((s,f)=>s+(+f.end.flightTime||0),0)*10)/10}
+function currencyText(m){m=m==null?currencyMins():m;return m>=CURRENCY_MIN?`${fmtDur(m)} in the last 3 months – current`:`${fmtDur(m)} in the last 3 months – ${fmtDur(CURRENCY_MIN-m)} more needed before a live task`}
+function qualList(p){p=p||db.pilot||{};const q=p.quals||{},out=[];
+ if(p.flyerExpiry)out.push({label:'Flyer ID',expiry:p.flyerExpiry});
+ QUALS.forEach(k=>{const x=q[k];if(x&&x.on)out.push({label:k==='Other'?(x.name||'Other qualification'):k,expiry:x.expiry||'',op:k==='GVC'||k==='RPC-L1'})});
+ out.forEach(x=>{x.days=daysTo(x.expiry);x.cls=x.days===null?'gray':x.days<0?'bad':x.days<=30?'bad':x.days<=60?'warn':'ok';x.text=x.days===null?'no expiry date entered':x.days<0?'EXPIRED '+fmtDate(x.expiry):x.days===0?'expires today':(x.days<=60?'expires in '+x.days+' day'+(x.days===1?'':'s')+' ('+fmtDate(x.expiry)+')':'valid to '+fmtDate(x.expiry))});
+ return out}
+function qualOk(p){return qualList(p).some(x=>x.op&&x.days!==null&&x.days>=0)}
+function newJobNo(){const d=new Date(),p=n=>String(n).padStart(2,'0');return 'DSRA-'+p(d.getDate())+p(d.getMonth()+1)+String(d.getFullYear()).slice(2)+'-'+p(d.getHours())+p(d.getMinutes())}
+function recentJobs(){const cut=Date.now()-24*36e5,seen=[];db.flights.slice().reverse().forEach(f=>{const j=f.data&&f.data.ops&&f.data.ops.jobNo;if(j&&new Date(f.time)>=cut&&!seen.includes(j))seen.push(j)});return seen.slice(0,4)}
+function lastUsedOf(b){let t=null;db.flights.forEach(f=>{if(f.status!=='ended')return;const bs=(f.data||{}).batteries||{};if(Object.values(bs).some(x=>x.serial===b.serial)){if(!t||f.time>t)t=f.time}});return t?t.slice(0,10):null}
+function storageInfo(b){if(isRetired(b))return null;const last=(b.storageLog||[]).slice(-1)[0];const dates=[lastUsedOf(b),last&&last.date,b.dateInService].filter(Boolean).sort();const base=dates[dates.length-1];if(!base)return null;const days=-daysTo(base);return{base,days,due:days>30,last}}
+function cycleInfo(b){const c=cycleOf(b),L=+b.cycleLimit||0;if(!L||c===null)return null;const left=L-c;return{c,L,left,cls:left<=0?'bad':c>=0.9*L?'warn':'ok',text:left<=0?`Cycle limit reached (${c} of ${L}) – retire this battery`:`${c} of ${L} cycles${c>=0.9*L?' – '+left+' left, plan a replacement':''}`}}
 const $=id=>document.getElementById(id);
 const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -286,7 +319,7 @@ function graTableHtml(){
   const sc=r[3]*r[4],b=riskBand(sc),rv=r[5]?r[6]*r[7]:null,rb=rv!==null?riskBand(rv):null;
   return `<div class="check"><div class="row"><b>${esc(r[0])}</b><span class="pill ${(rb||b).cls}">${(rb||b).l} · ${rv!==null?rv:sc}</span></div><div class="small"><b>Impact:</b> ${esc(r[1])}<br><b>Controls:</b> ${esc(r[2])} <i>(L${r[4]} × S${r[3]} = ${sc})</i>${r[5]?`<br><b>Further controls:</b> ${esc(r[5])} <i>(L${r[7]} × S${r[6]} = ${rv})</i>`:''}</div></div>`}).join('')).join('');
 }
-const blankFlight=()=>({aircraftId:null,ops:{},checks:{},props:{},controller:{},batteries:{},rejected:[],weather:{},tolp:{},airspace:{},risk:{type:'Missing person search',hazards:{},none:false}});
+const blankFlight=()=>({aircraftId:null,ops:{v2:true},checks:{},props:{},controller:{},batteries:{},rejected:[],weather:{},tolp:{},airspace:{},risk:{type:'',hazards:{},none:false}});
 let flight=blankFlight();
 let graOpen=false;
 let endState=null,currentRecordId=null;
@@ -311,6 +344,8 @@ function migrate(){ // upgrade v3 data: battery names/ids, flight IDs, status, s
   const bs=f.data&&f.data.batteries;
   if(bs)Object.keys(bs).forEach(k=>{const d=bs[k];if(!d.serial){d.serial=k;let kb=null;db.aircraft.forEach(a=>a.batteries.forEach(b=>{if(b.serial===k)kb=b}));d.name=kb?kb.name:''}});
  });
+ db.aircraft.forEach(a=>{if(is4T(a.model)){a.rainOk=false;a.batteries.forEach(b=>{if(b.cycleLimit===undefined)b.cycleLimit=200})}});
+ db.incidents=db.incidents||[];db.maintainers=db.maintainers||[];
  db.v=7;save();
 }
 migrate();
@@ -362,7 +397,23 @@ function condFlags(f){
  if(ops.fit===false)nofly.push({item:'Pilot',text:'Pilot not fit to fly'});
  if(w.dn==='Night'&&w.lights===false)nofly.push({item:'Night flight',text:'Anti-collision lights not confirmed for night flight'});
  if(w.vis==='Unacceptable')nofly.push({item:'Visibility',text:'Visibility unacceptable'});
- if(w.cond==='Rain'){if(ac.rainOk)amber.push({item:'Rain',text:`Rain – increased risk for ${ac.name}`});else nofly.push({item:'Rain',text:`Rain – ${ac.name} is not rated for rain`})}
+ if(w.cond==='Rain'||w.cond==='Light rain'){if(is4T(ac.model))nofly.push({item:w.cond,text:`${w.cond} – ${ac.name} (Matrice 4T) has no water rating and never flies in rain`});else if(ac.rainOk)amber.push({item:w.cond,text:`${w.cond} – increased risk for ${ac.name}`});else nofly.push({item:w.cond,text:`${w.cond} – ${ac.name} is not rated for rain`})}
+ if(w.cond==='Heavier rain')nofly.push({item:'Heavier rain',text:'Heavier rain – no aircraft flies in more than light rain'});
+ if(w.cond==='Snow, sleet or hail')nofly.push({item:'Snow, sleet or hail',text:'Snow, sleet or hail – no flying'});
+ if(w.kp!=null&&w.kp>=5){if(w.kpOk===false)nofly.push({item:'Space weather',text:`Kp ${w.kp} (solar storm) and on-site checks not normal`});else if(w.kpOk===true)amber.push({item:'Space weather',text:`Kp ${w.kp} (solar storm) – on-site satellite, positioning and compass checks normal`})}
+ if(w.dn==='Night'&&w.toLit===false)nofly.push({item:'Night flight',text:'Take-off and landing area not lit for a night flight'});
+ if(w.dn==='Night'&&w.daySurvey===false)amber.push({item:'Night – no daylight survey',text:'Night flight without a daylight survey of the site'});
+ if(d.noGo)nofly.push({item:'GO / NO GO',text:'Pilot decision: NO GO – '+d.noGo.why});
+ if(ops.v2){
+  const sn=ops.snap||{};
+  if(ops.imsafeDec==='fit')amber.push({item:'Fitness to fly',text:'IMSAFE – pilot answered Yes to an item and assessed themselves fit: '+(ops.imsafeNote||'')});
+  if(sn.away)nofly.push({item:'Aircraft',text:'Aircraft is away for repair'});
+  if(sn.needsTest&&ops.kind!==IS_RTS)nofly.push({item:'Aircraft',text:'Aircraft needs a return-to-service test flight before any other flight'+(sn.needsTestReason?' ('+sn.needsTestReason+')':'')});
+  if(sn.qualOk===false)nofly.push({item:'Qualification',text:'No valid GVC or RPC-L1 recorded for the pilot'});
+  if(isLive(ops.kind)&&sn.currency!=null&&sn.currency<CURRENCY_MIN)nofly.push({item:'Currency',text:`Currency – ${fmtDur(sn.currency)} flown in the last 3 months; ${fmtDur(CURRENCY_MIN-sn.currency)} more needed before a live task (Section 2.5)`});
+  if(as.geoUnlock===true&&as.geoVerified===false)nofly.push({item:'GEO zone',text:'GEO zone unlock not applied and verified'});
+ }
+ Object.values(d.batteries||{}).forEach(b=>{if(b.limit&&Number.isInteger(b.cycle)&&b.cycle>=b.limit)nofly.push({item:'Battery',text:`${b.name} (${b.serial}) has reached its cycle limit of ${b.limit}`})});
  if(w.cond==='Icy conditions'){if(ac.iceOk)amber.push({item:'Icy conditions',text:`Icy conditions – increased risk for ${ac.name} (ice can form on the props)`});else nofly.push({item:'Icy conditions',text:`Icy conditions – ${ac.name} is not rated for icing`})}
  if(tl.status==='bad')nofly.push({item:'TOLP',text:'Insecure take-off and landing point (TOLP unsatisfactory)'});
  if(as.status==='temp'&&as.temp&&as.temp.restriction===true)nofly.push({item:'Airspace',text:'NO FLY – Airspace restriction identified'+(as.temp.note?': '+as.temp.note:'')});
@@ -393,7 +444,7 @@ function decInfo(f){
  const dc=collectDefects(f).some(x=>x.dec==='continue'),am=condFlags(f).amber.length>0;
  if(dc&&am)return{t:'FLYING WITH RECORDED DEFECT(S) AND INCREASED RISK',tone:'warn',banner:'DEFECT(S) AND INCREASED RISK – PILOT DECISION TO CONTINUE'};
  if(dc)return{t:'FLYING WITH RECORDED DEFECT(S)',tone:'warn',banner:'FLYING WITH RECORDED DEFECT(S) – PILOT DECISION TO CONTINUE'};
- if(am)return{t:'INCREASED RISK – MITIGATION RECORDED',tone:'warn',banner:'INCREASED RISK (RAIN / ICE) – PILOT DECISION TO CONTINUE, SEE MITIGATION'};
+ if(am)return{t:'INCREASED RISK – MITIGATION RECORDED',tone:'warn',banner:'INCREASED RISK – PILOT DECISION TO CONTINUE, SEE MITIGATION'};
  return{t:'CLEARED TO FLY',tone:'ok'};
 }
 function decBannerHtml(f){const d=decInfo(f);if(d.tone==='ok')return '';return `<div class="decbanner ${d.tone}"><b>${esc(d.banner)}</b>${d.reasons?`<div>${d.reasons.map(esc).join('<br>')}</div>`:''}</div>`}
@@ -464,25 +515,104 @@ async function confirmDlg(title,text,ok,danger){return !!(await dlg({title,text,
 let _tt;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2600)}
 
 /* ================= Navigation ================= */
-const TAB={home:'navHome',equipment:'navEquip',batterylog:'navEquip',new:'navNew',checks:'navNew',props:'navNew',controller:'navNew',batteries:'navNew',weather:'navNew',airspace:'navNew',risk:'navNew',review:'navNew',endlist:'navEnd',endform:'navEnd',history:'navHist',record:'navHist'};
+const TAB={home:'navHome',incidents:'navHome',incident:'navHome',pilot:'navEquip',equipment:'navEquip',batterylog:'navEquip',new:'navNew',checks:'navNew',props:'navNew',controller:'navNew',batteries:'navNew',weather:'navNew',airspace:'navNew',risk:'navNew',review:'navNew',endlist:'navEnd',endform:'navEnd',history:'navHist',record:'navHist'};
 function show(id){
  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');
  document.querySelectorAll('.bottom button').forEach(b=>b.classList.remove('active'));if(TAB[id])$(TAB[id]).classList.add('active');
  updateHome();
- if(id==='equipment')renderEquipment();if(id==='home')renderHome();if(id==='history')renderHistory();if(id==='endlist')renderEndList();if(id==='batterylog')renderBatteryLog();
+ if(id==='equipment')renderEquipment();if(id==='home')renderHome();if(id==='history')renderHistory();if(id==='endlist')renderEndList();if(id==='batterylog')renderBatteryLog();if(id==='pilot')renderPilot();if(id==='incidents')renderIncidents();
  if(id==='weather')renderWeather();if(id==='airspace')renderSite();if(id==='risk')renderRisk();
  updateBanners();
  window.scrollTo(0,0);
 }
 function updateHome(){$('aircraftCount').textContent=db.aircraft.length;$('flightCount').textContent=db.flights.length;$('moveCard').style.display=db.flights.length?'none':''}
-function flightLine(f){return `${esc(f.aircraftName)} · ${fmtDT(f.time)}${f.location?' · '+esc(f.location):''}`}
+function flightLine(f){const k=(f.data&&f.data.ops&&f.data.ops.kind)||'';return `${esc(f.aircraftName)} · ${fmtDT(f.time)}${f.location?' · '+esc(f.location):''}${k?'<br>'+esc(k)+(f.jobNo?' · '+esc(f.jobNo):''):''}`}
 function renderHome(){
+ renderHomeAlerts();
  const open=db.flights.filter(f=>f.status==='open').slice().reverse();
  $('openCard').style.display=open.length?'block':'none';
  $('openFlights').innerHTML=open.map(f=>`<div class="item"><div class="row"><div><b>${esc(f.flightId)}</b><div class="small">${flightLine(f)}</div></div><button class="mini redsolid" onclick="startEnd('${f.id}')">End flight</button></div></div>`).join('');
  $('recent').innerHTML=db.flights.slice(-3).reverse().map(f=>{return `<div class="item flightcard" onclick="viewFlight('${f.id}')"><div class="row"><b>${esc(f.flightId)}</b>${pillsHtml(f)}</div><div class="small">${flightLine(f)}</div></div>`}).join('')||'<div class="small">No flights recorded yet.</div>';
 }
 
+function equipIssues(){const out=[];db.aircraft.filter(a=>!isRetired(a)).forEach(a=>{if(a.awayForRepair)out.push(a.name+': away for repair');else if(a.needsTest)out.push(a.name+': needs a return-to-service test flight');a.batteries.forEach(b=>{const n=a.name+' '+b.name,ci=cycleInfo(b),si=storageInfo(b);if(ci&&ci.cls!=='ok')out.push(n+': '+ci.text);if(si&&si.due)out.push(n+': monthly storage check due');if(isRetired(b)&&!b.disposal)out.push(n+': retired – disposal approval needed')})});return out}
+function incDue(x){const t=new Date(x.at).getTime(),now=Date.now(),out=[];const h=v=>{const d=Math.round(v/36e5);return Math.abs(d)>=96?Math.round(d/24)+' days':d+' h'};
+ if((x.mor==='yes'||x.mor==='unsure')&&!x.morRef){const left=t+72*36e5-now;out.push({cls:left<0?'bad':'warn',text:left<0?'MOR overdue by '+h(-left):'MOR due in '+h(left)})}
+ if(x.airprox==='yes'&&!x.airproxRef){const left=t+7*864e5-now;out.push({cls:left<0?'bad':'warn',text:left<0?'Airprox report overdue by '+h(-left):'Airprox report due in '+h(left)})}
+ return out}
+function renderHomeAlerts(){
+ const ql=qualList(),cur=currencyMins(),pct=Math.min(100,Math.round(cur/CURRENCY_MIN*100)),warnQ=ql.filter(x=>x.cls==='bad'||x.cls==='warn');
+ const openInc=db.incidents.filter(x=>x.status!=='closed'),dues=[].concat(...openInc.map(incDue));
+ let h=`<div class="card"><div class="row"><h3>My currency</h3><span class="pill ${cur>=CURRENCY_MIN?'ok':'bad'}">${cur>=CURRENCY_MIN?'CURRENT':'NOT CURRENT'}</span></div><div style="height:10px;border-radius:6px;background:#e9e4f7;overflow:hidden;margin:6px 0 8px"><div style="height:100%;width:${pct}%;background:${cur>=CURRENCY_MIN?'var(--ok)':'#f79009'}"></div></div><div class="small">${esc(currencyText(cur))}. Minimum 2 hours in every rolling 3 months (Section 2.5).</div>`;
+ if(!db.pilot||!qualOk())h+=`<div class="defnote" style="margin-top:10px"><b>No valid GVC or RPC-L1 recorded</b><br>Add it under Pilot & training – flights show NO FLY until it is.</div>`;
+ warnQ.forEach(x=>{h+=`<div class="${x.cls==='bad'?'defnote':'notice'}" style="margin-top:10px"><b>${esc(x.label)}</b> ${esc(x.text)}</div>`});
+ h+=`<button class="secondary" onclick="show('pilot')">Pilot & training</button></div>`;
+ $('homeAlerts').innerHTML=h;
+ const iss=equipIssues();$('equipSummary').innerHTML=iss.length?`<b style="color:var(--warn)">${iss.length} item${iss.length>1?'s':''} need attention:</b><br>`+iss.slice(0,4).map(esc).join('<br>')+(iss.length>4?'<br>…':''):'Manage aircraft, controllers and battery kits. Nothing needs attention.';
+ $('incSummary').innerHTML=openInc.length?`<b style="color:var(--bad)">${openInc.length} open</b>${dues.length?'<br>'+dues.map(d=>`<span class="t-${d.cls}">${esc(d.text)}</span>`).join('<br>'):''}`:'No open incidents.';
+}
+/* ================= Pilot & training ================= */
+function pset(k,v){db.pilot=db.pilot||{};db.pilot[k]=v;save()}
+function qset(q,k,v,rr){db.pilot=db.pilot||{};const Q=db.pilot.quals=db.pilot.quals||{};Q[q]=Q[q]||{};Q[q][k]=v;save();if(rr)renderPilot()}
+function refresherInfo(){const t=((db.pilot||{}).training||[]).filter(x=>x.type==='Annual safety refresher').map(x=>x.date).sort();if(!t.length)return{cls:'warn',text:'No annual safety refresher recorded yet'};const last=t[t.length-1],d=new Date(last+'T00:00:00');d.setFullYear(d.getFullYear()+1);const due=d.toISOString().slice(0,10),days=daysTo(due);return{cls:days<0?'bad':days<=60?'warn':'ok',text:'Last refresher '+fmtDate(last)+' · next due '+fmtDate(due)+(days<0?' (overdue)':'')}}
+function renderPilot(){
+ const p=db.pilot||{},Q=p.quals||{},ql=qualList(),tr=(p.training||[]).slice().sort((a,b)=>b.date<a.date?-1:1),rf=refresherInfo();
+ $('pilotBody').innerHTML=`<div class="card"><h3>Pilot</h3><label style="margin-top:0">Name *</label><input value="${esc(p.name||'')}" onchange="pset('name',this.value.trim())">
+ <label>Flyer ID *</label><input value="${esc(p.operatorId||'')}" autocapitalize="characters" onchange="pset('operatorId',this.value.trim().toUpperCase())" placeholder="e.g. GBR-RP-XXXXXXXXXXXX"><div class="hint">Your GVC is held against this number.</div>
+ <label>Flyer ID expiry</label><input type="date" value="${esc(p.flyerExpiry||'')}" onchange="pset('flyerExpiry',this.value);renderPilot()"></div>
+ <div class="card"><h3>Qualifications</h3><div class="small">Tick each one you hold and add its expiry date. You are warned 60 and 30 days before anything expires.</div>
+ ${QUALS.map(k=>{const x=Q[k]||{};return `<div class="check"><button class="chip ${x.on?'on':''}" style="width:100%" onclick="qset('${k}','on',${!x.on},true)"><b>${x.on?'✓ ':''}${k==='GVC'?'GVC – General VLOS Certificate':k==='RPC-L1'?'RPC-L1 – Remote Pilot Certificate':k==='A2 CofC'?'A2 CofC':'Other qualification'}</b></button>
+ ${x.on?`${k==='Other'?`<label>Name *</label><input value="${esc(x.name||'')}" onchange="qset('Other','name',this.value.trim(),true)">`:''}<label>Expiry date</label><input type="date" value="${esc(x.expiry||'')}" onchange="qset('${k}','expiry',this.value,true)"><label>Certificate number <span class="small">optional</span></label><input value="${esc(x.cert||'')}" onchange="qset('${k}','cert',this.value.trim())">`:''}</div>`}).join('')}
+ ${ql.length?ql.map(x=>`<div class="kvr"><div class="k">${esc(x.label)}</div><div class="v"><span class="t-${x.cls==='gray'?'warn':x.cls}">${esc(x.text)}</span></div></div>`).join(''):''}</div>
+ <div class="card"><h3>Currency</h3><div class="small">${esc(currencyText())}</div></div>
+ <div class="card"><h3>Training log</h3><div class="small"><span class="t-${rf.cls}">${esc(rf.text)}</span></div>
+ ${tr.map(x=>`<div class="item"><b>${esc(x.type)}</b> · ${fmtDate(x.date)}<div class="small">${esc(x.person||'')}${x.note?' – '+esc(x.note):''}</div></div>`).join('')||'<div class="small" style="margin-top:8px">Nothing recorded yet.</div>'}
+ <button onclick="addTraining()">＋ Add training</button></div>`;
+}
+async function addTraining(){
+ const v=await dlg({title:'Add training',ok:'Save',fields:[{key:'date',label:'Date',type:'date',value:todayStr(),required:true},{key:'person',label:'Who',value:(db.pilot&&db.pilot.name)||'',required:true},{key:'type',label:'Type',type:'select',options:TRAIN_TYPES,value:TRAIN_TYPES[0]},{key:'note',label:'Notes',type:'textarea',placeholder:'e.g. pilot incapacitation drill, fire drill, observer lookout and cordon'}]});
+ if(!v)return;db.pilot=db.pilot||{};(db.pilot.training=db.pilot.training||[]).push({date:v.date,person:v.person,type:v.type,note:v.note,at:new Date().toISOString()});save();renderPilot();toast('Training recorded');
+}
+/* ================= Incident log ================= */
+function incStatus(x){return x.status==='closed'?{l:'CLOSED',c:'ok'}:{l:'OPEN',c:'bad'}}
+function renderIncidents(){
+ const list=db.incidents.slice().sort((a,b)=>(b.at||'')<(a.at||'')?-1:1);
+ $('incidentsBody').innerHTML=`<div class="small" style="margin:0 4px 6px">Kept for at least 5 years. Incidents recorded at End flight appear here automatically.</div><button onclick="newIncident()">＋ Record an incident</button>`+
+ (list.map(x=>{const s=incStatus(x),d=incDue(x);return `<div class="card flightcard" onclick="openIncident('${x.id}')"><div class="row"><b>${esc((x.types||[]).join(', ')||'Incident')}</b><span class="pill ${s.c}">${s.l}</span></div><div class="small">${x.at?fmtDT(new Date(x.at).toISOString()):'—'}${x.flightId?' · '+esc(x.flightId):''}${x.aircraft?' · '+esc(x.aircraft):''}</div>${d.map(z=>`<div class="small t-${z.cls}">${esc(z.text)}</div>`).join('')}</div>`}).join('')||'<div class="card"><div class="small">No incidents recorded.</div></div>');
+}
+let incCur=null;
+function newIncident(){const d=new Date(),p=n=>String(n).padStart(2,'0');const x={id:uid('i'),at:`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`,types:[],created:new Date().toISOString(),status:'open',isNew:true};incCur=x;renderIncident();show('incident')}
+function openIncident(id){incCur=db.incidents.find(x=>x.id===id);if(!incCur)return;renderIncident();show('incident')}
+function iset(k,v,rr){incCur[k]=v;if(rr)renderIncident()}
+function itype(t){const a=incCur.types=incCur.types||[];const i=a.indexOf(t);if(i>=0)a.splice(i,1);else a.push(t);if(t==='Airprox'&&i<0)incCur.airprox='yes';renderIncident()}
+function iseg(k,val,opts){return `<div class="seg">${opts.map(o=>`<button class="${val===o.v?(o.neg?'on neg':'on'):''}" onclick="iset('${k}','${o.v}',true)">${esc(o.l)}</button>`).join('')}</div>`}
+function renderIncident(){
+ const x=incCur,closed=x.status==='closed',due=incDue(x),acs=db.aircraft;
+ const ta=(k,l,ph)=>`<label>${l}</label><textarea oninput="incCur.${k}=this.value" placeholder="${ph||''}">${esc(x[k]||'')}</textarea>`;
+ $('incidentBody').innerHTML=`${due.map(d=>`<div class="decbanner ${d.cls}"><b>${esc(d.text)}</b>${/MOR/.test(d.text)?'<div class="small">Report online through ECCAIRS2 (e2.aviationreporting.eu). Accidents and serious incidents also go to the AAIB.</div>':'<div class="small">Report to the UK Airprox Board (airproxboard.org.uk) and as an MOR.</div>'}</div>`).join('')}
+ <div class="card"><div class="row"><h3>What happened</h3><span class="pill ${incStatus(x).c}">${incStatus(x).l}</span></div>${x.flightId?`<div class="small">Linked to flight <b>${esc(x.flightId)}</b></div>`:''}
+ <label>Date and time *</label><input type="datetime-local" value="${esc(x.at||'')}" onchange="iset('at',this.value,true)">
+ <label>Aircraft *</label><select onchange="const a=db.aircraft.find(z=>z.serial===this.value);iset('aircraftSerial',this.value);iset('aircraft',a?a.name:'')"><option value="">Select…</option>${acs.map(a=>`<option value="${esc(a.serial)}" ${x.aircraftSerial===a.serial?'selected':''}>${esc(a.name)} · ${esc(a.serial)}</option>`).join('')}</select>
+ <label>Type – select all that apply *</label><div class="chips">${INCIDENT_TYPES.map(t=>`<button class="chip ${(x.types||[]).includes(t)?'on':''}" onclick="itype('${t}')"><b>${(x.types||[]).includes(t)?'✓ ':''}${esc(t)}</b></button>`).join('')}</div>
+ ${ta('what','What happened *','What happened, when and where')}${ta('injury','Injuries or damage *','None, or describe')}${ta('actions','Action taken *','What was done at the time and straight after')}</div>
+ <div class="card"><h3>Reporting</h3>
+ <label style="margin-top:0">Reportable to the CAA (MOR)?</label>${iseg('mor',x.mor,[{l:'Yes',v:'yes'},{l:'No',v:'no'},{l:'Not sure yet',v:'unsure'}])}<div class="hint">Due within 72 hours. See Part A Section 17. If unsure, report.</div>
+ ${x.mor==='yes'?`<label>MOR reference (ECCAIRS2)</label><input value="${esc(x.morRef||'')}" oninput="incCur.morRef=this.value" onchange="renderIncident()"><label>Date reported</label><input type="date" value="${esc(x.morDate||'')}" onchange="iset('morDate',this.value)">`:''}
+ <label>Airprox?</label>${iseg('airprox',x.airprox,[{l:'Yes',v:'yes'},{l:'No',v:'no'}])}<div class="hint">Another aircraft came close enough that safety may have been affected. Due within 7 days.</div>
+ ${x.airprox==='yes'?`<label>UK Airprox Board reference</label><input value="${esc(x.airproxRef||'')}" oninput="incCur.airproxRef=this.value" onchange="renderIncident()"><label>Date reported</label><input type="date" value="${esc(x.airproxDate||'')}" onchange="iset('airproxDate',this.value)">`:''}</div>
+ <div class="card"><h3>Investigation</h3>${ta('outcome','Investigation outcome','What was found – the cause, if known')}${ta('corrective','Corrective action','What changes, and who does it')}
+ <label>Crew briefed on any changes?</label>${iseg('briefed',x.briefed,[{l:'Yes',v:'yes'},{l:'Not yet',v:'no'},{l:'Nothing to brief',v:'na'}])}</div>
+ <button onclick="saveIncident(false)">Save</button>${closed?`<button class="secondary" onclick="iset('status','open');saveIncident(false)">Reopen</button>`:`<button class="secondary" onclick="saveIncident(true)">✓ Close incident</button>`}`;
+}
+async function saveIncident(close){
+ const x=incCur,miss=[];
+ if(!x.at)miss.push('Date and time');if(!x.aircraftSerial)miss.push('Aircraft');if(!(x.types||[]).length)miss.push('Type');if(!(x.what||'').trim())miss.push('What happened');if(!(x.injury||'').trim())miss.push('Injuries or damage');if(!(x.actions||'').trim())miss.push('Action taken');
+ if(close){if(!x.mor||x.mor==='unsure')miss.push('MOR – Yes or No');else if(x.mor==='yes'&&!(x.morRef||'').trim())miss.push('MOR reference');if(!x.airprox)miss.push('Airprox – Yes or No');else if(x.airprox==='yes'&&!(x.airproxRef||'').trim())miss.push('Airprox reference');if(!(x.outcome||'').trim())miss.push('Investigation outcome');if(!(x.corrective||'').trim())miss.push('Corrective action');if(!x.briefed||x.briefed==='no')miss.push('Crew briefed (or nothing to brief)')}
+ if(miss.length){await info('Please complete:\n\n'+miss.map(m=>'• '+m).join('\n'),close?'Before closing':'Incident incomplete');return}
+ if(x.isNew){delete x.isNew;db.incidents.push(x)}
+ if(close){x.status='closed';x.closedAt=new Date().toISOString()}
+ x.updated=new Date().toISOString();save();toast(close?'Incident closed':'Incident saved');show('incidents');
+}
 /* ================= Equipment / kit ================= */
 function cycleLine(b){
  const c=cycleOf(b);if(c===null)return 'Charge cycle: <b>not set</b> – enter it at the next flight check';
@@ -497,21 +627,37 @@ function batteryCycles(aid,bid){
 function renderEquipment(){
  const cfg=db.settings;
  const riskCard=`<div class="card"><div class="row"><h3>Risk settings</h3><button class="secondary mini" onclick="riskSettings()">Edit</button></div><div class="small">NO FLY when a hazard's <b>${cfg.basis==='initial'?'initial':'residual'}</b> risk score is <b>${cfg.high}</b> or above.<br>Scale (likelihood × severity): Low 1–4 · Medium 5–12 · High 15–20 · Intolerable 25</div></div>`;
- $('pilotCard').innerHTML=riskCard+`<div class="card"><div class="row"><h3>Pilot</h3><button class="secondary mini" onclick="pilotDialog()">${db.pilot?'Edit':'Add pilot'}</button></div>${db.pilot?`<div class="small"><b style="color:var(--ink);font-size:15px">${esc(db.pilot.name)}</b><br>Flyer ID: ${db.pilot.operatorId?esc(db.pilot.operatorId):'<b style="color:var(--bad)">required – tap Edit</b>'}<br>Qualification: ${esc(db.pilot.qual||'—')}</div>`:'<div class="small">Add your name once – it is printed on every flight record.</div>'}</div>`;
+ const ql=qualList();
+ $('pilotCard').innerHTML=riskCard+`<div class="card"><div class="row"><h3>Pilot</h3></div>${db.pilot?`<div class="small"><b style="color:var(--ink);font-size:15px">${esc(db.pilot.name)}</b><br>Flyer ID: ${db.pilot.operatorId?esc(db.pilot.operatorId):'<b style="color:var(--bad)">required</b>'}${ql.map(x=>`<br>${esc(x.label)}: <span class="t-${x.cls==='gray'?'warn':x.cls}">${esc(x.text)}</span>`).join('')}</div>`:'<div class="small">Add your name once – it is printed on every flight record.</div>'}<button class="secondary" onclick="show('pilot')">Pilot & training</button></div>
+ <div class="card"><h3>Approved for maintenance</h3><div class="small">Only these people can be recorded as doing maintenance or repairs (Section 15).</div>${db.maintainers.map((m,i)=>`<div class="item row"><b>${esc(m)}</b><button class="danger mini" onclick="removeMaintainer(${i})">Remove</button></div>`).join('')||'<div class="small" style="margin-top:8px"><b style="color:var(--bad)">Nobody added yet</b> – add the approved people before logging maintenance.</div>'}<button class="secondary" onclick="addMaintainer()">＋ Add person</button></div>`;
  $('equipmentList').innerHTML=db.aircraft.map(a=>{
   const act=a.batteries.filter(b=>b.active).length,ret=isRetired(a);
   return `<div class="card"><div class="row"><h3>${esc(a.name)}</h3><span class="pill ${ret?'bad':'ok'}">${ret?'RETIRED':esc(a.model)}</span></div>
   ${ret?`<div class="small">${esc(a.model)}</div>`:''}
-  <div class="small">Aircraft S/N: ${esc(a.serial)}<br>${serviceLine(a)}<br>Total flight time: <b>${totalOf(a)===null?'not set – enter it in Edit aircraft':fmtTotal(totalOf(a))}</b><br>Controller S/N: ${esc(a.controller||'—')}<br>Batteries required per flight: <b>${reqOf(a)}</b><br>Max wind speed: <b>${a.maxWind?a.maxWind+' m/s':'not set'}</b><br>Rain: <b>${a.rainOk?'Suitable (amber)':'Not suitable (NO FLY)'}</b> · Icing: <b>${a.iceOk?'Suitable (amber)':'Not suitable (NO FLY)'}</b></div>
+  <div class="small">Aircraft S/N: ${esc(a.serial)}<br>${serviceLine(a)}<br>Total flight time: <b>${totalOf(a)===null?'not set – enter it in Edit aircraft':fmtTotal(totalOf(a))}</b><br>Controller S/N: ${esc(a.controller||'—')}<br>Batteries required per flight: <b>${reqOf(a)}</b><br>Max wind speed: <b>${a.maxWind?a.maxWind+' m/s':'not set'}</b><br>Rain: <b>${is4T(a.model)?'Never – no water rating':a.rainOk?'Light rain only (amber)':'Not suitable (NO FLY)'}</b> · Icing: <b>${a.iceOk?'Suitable (amber)':'Not suitable (NO FLY)'}</b></div>
+  ${a.awayForRepair?`<div class="defnote"><b>Away for repair at DJI</b>${a.awayForRepair.ref?' – ref '+esc(a.awayForRepair.ref):''}<br>Sent ${fmtDate(a.awayForRepair.date)}<br><button class="secondary mini" style="margin-top:8px" onclick="returnedFromDji('${a.id}')">Returned from DJI</button></div>`:''}
+  ${a.needsTest&&!a.awayForRepair?`<div class="notice" style="margin-top:10px;background:#fffaeb;color:#93370d"><b>Needs a return-to-service test flight</b><br>${esc(a.needsTest.reason)}<br>Choose “Return-to-service test flight” as the type of flight.</div>`:''}
   ${a.needsInspection?`<div class="defnote"><b>Aircraft needs inspection</b> (${esc(a.needsInspection.fid)})<br>${esc(a.needsInspection.reason)}<br><button class="secondary mini" style="margin-top:8px" onclick="clearFlag('aircraft','${a.id}')">Mark as resolved</button></div>`:''}
   ${a.controllerFlag?`<div class="defnote"><b>Controller needs inspection</b> (${esc(a.controllerFlag.fid)})<br>${esc(a.controllerFlag.reason)}<br><button class="secondary mini" style="margin-top:8px" onclick="clearFlag('controller','${a.id}')">Mark as resolved</button></div>`:''}
   <div class="small" style="margin-top:8px">${maintLine(a)}</div>
   <div class="actions"><button class="secondary mini" onclick="editAircraft('${a.id}')">Edit aircraft</button><button class="secondary mini" onclick="logMaintenance('${a.id}')">Log maintenance</button>${(a.maintenanceLog&&a.maintenanceLog.length)?`<button class="secondary mini" onclick="maintenanceHistory('${a.id}')">Maintenance history</button>`:``}<button class="secondary mini" onclick="aircraftTimeLog('${a.id}')">Flight time history</button><button class="secondary mini" onclick="toggleAircraftRetire('${a.id}')">${ret?'Reinstate':'Retire aircraft'}</button><button class="danger mini" onclick="removeAircraft('${a.id}')">Remove</button></div>
   <h3 style="margin-top:18px">Battery kit <span class="small">· ${act} in service of ${a.batteries.length}</span></h3>
-  ${a.batteries.map(b=>{const bret=isRetired(b);return `<div class="item"><div class="row"><div><b>🔋 ${esc(b.name)}</b> ${bret?'<span class="pill bad">RETIRED</span>':'<span class="pill ok">IN SERVICE</span>'}<div class="small">S/N ${esc(b.serial)}<br>${cycleLine(b)}<br>${serviceLine(b)}</div>${b.flag?`<div class="defnote"><b>Needs inspection</b> (${esc(b.flag.fid)})<br>${esc(b.flag.reason)}<br><button class="secondary mini" style="margin-top:8px" onclick="clearFlag('battery','${a.id}','${b.id}')">Mark as resolved</button></div>`:''}</div></div><div class="actions"><button class="secondary mini" onclick="editBattery('${a.id}','${b.id}')">Edit</button><button class="secondary mini" onclick="batteryCycles('${a.id}','${b.id}')">Cycle history</button><button class="secondary mini" onclick="toggleRetire('${a.id}','${b.id}')">${bret?'Reinstate':'Retire'}</button><button class="danger mini" onclick="removeBattery('${a.id}','${b.id}')">Remove</button></div></div>`}).join('')||'<div class="small" style="padding:8px 0">No batteries in this kit yet.</div>'}
+  ${a.batteries.map(b=>{const bret=isRetired(b);return `<div class="item"><div class="row"><div><b>🔋 ${esc(b.name)}</b> ${bret?'<span class="pill bad">RETIRED</span>':'<span class="pill ok">IN SERVICE</span>'}<div class="small">S/N ${esc(b.serial)}<br>${cycleLine(b)}${(()=>{const ci=cycleInfo(b);return ci?(ci.cls==='ok'?`<br>Cycle limit: ${ci.L} (${ci.left} left)`:`<br><span class="t-${ci.cls}">${esc(ci.text)}</span>`):b.cycleLimit?'':'<br>Cycle limit: not set – tap Edit'})()}<br>${serviceLine(b)}${(()=>{const si=storageInfo(b);if(!si)return '';return `<br>${si.due?`<span class="t-warn">Monthly storage check due – ${si.days} days since last use or check</span>`:'Last used or checked: '+fmtDate(si.base)}`})()}${isRetired(b)?(b.disposal?`<br>Disposal approved ${fmtDate(b.disposal.date)} – ${esc(b.disposal.how)}`:'<br><span class="t-warn">Disposal not yet approved</span>'):''}</div>${b.flag?`<div class="defnote"><b>Needs inspection</b> (${esc(b.flag.fid)})<br>${esc(b.flag.reason)}<br><button class="secondary mini" style="margin-top:8px" onclick="clearFlag('battery','${a.id}','${b.id}')">Mark as resolved</button></div>`:''}</div></div><div class="actions"><button class="secondary mini" onclick="editBattery('${a.id}','${b.id}')">Edit</button><button class="secondary mini" onclick="batteryCycles('${a.id}','${b.id}')">Cycle history</button>${bret?(b.disposal?'':`<button class="secondary mini" onclick="approveDisposal('${a.id}','${b.id}')">Approve disposal</button>`):`<button class="secondary mini" onclick="storageCheck('${a.id}','${b.id}')">Storage check</button>`}<button class="secondary mini" onclick="toggleRetire('${a.id}','${b.id}')">${bret?'Reinstate':'Retire'}</button><button class="danger mini" onclick="removeBattery('${a.id}','${b.id}')">Remove</button></div></div>`}).join('')||'<div class="small" style="padding:8px 0">No batteries in this kit yet.</div>'}
   <button class="secondary" onclick="addBattery('${a.id}')">＋ Add battery</button></div>`;
  }).join('')||'<div class="card">No aircraft registered.</div>';
 }
+async function addMaintainer(){const v=await dlg({title:'Approved for maintenance',ok:'Add',fields:[{key:'n',label:'Name',required:true}]});if(!v)return;db.maintainers.push(v.n);save();renderEquipment()}
+async function removeMaintainer(i){if(!await confirmDlg('Remove person?',db.maintainers[i]+' will no longer be offered for maintenance entries. Past entries keep their name.','Remove',true))return;db.maintainers.splice(i,1);save();renderEquipment()}
+async function returnedFromDji(id){const a=db.aircraft.find(x=>x.id===id);const v=await dlg({title:'Returned from DJI',text:a.name+' · '+a.serial,ok:'Save',fields:[{key:'date',label:'Date returned',type:'date',value:todayStr(),required:true},{key:'desc',label:'What DJI did',type:'textarea',required:true,placeholder:'e.g. gimbal replaced, firmware updated'}]});if(!v)return;
+ (a.maintenanceLog=a.maintenanceLog||[]).push({date:v.date,type:'Returned from DJI',desc:v.desc,ref:a.awayForRepair?a.awayForRepair.ref:'',by:'DJI',at:new Date().toISOString()});delete a.awayForRepair;a.needsTest={reason:'Returned from DJI repair – '+v.desc,at:new Date().toISOString()};save();renderEquipment();toast('Back in the kit – needs a test flight')}
+async function storageCheck(aid,bid){const a=db.aircraft.find(x=>x.id===aid),b=a.batteries.find(x=>x.id===bid);
+ const v=await dlg({title:'Monthly storage check',text:b.name+' · '+b.serial,ok:'Save',fields:[{key:'date',label:'Date',type:'date',value:todayStr(),required:true},{key:'charge',label:'Charge (%) or voltage',placeholder:'e.g. 55% or 15.4 V'},{key:'cond',label:'Condition',type:'select',options:['Good – no swelling, corrosion or damage','Swelling, corrosion or damage – quarantine'],value:'Good – no swelling, corrosion or damage'},{key:'note',label:'Notes',type:'textarea'}]});
+ if(!v)return;(b.storageLog=b.storageLog||[]).push({date:v.date,charge:v.charge,cond:v.cond,note:v.note,by:(db.pilot&&db.pilot.name)||'',at:new Date().toISOString()});
+ if(/quarantine/.test(v.cond))b.flag={reason:'Storage check '+fmtDate(v.date)+': '+v.cond+(v.note?' – '+v.note:''),at:new Date().toISOString(),fid:'storage check'};
+ save();renderEquipment();toast('Storage check recorded')}
+async function approveDisposal(aid,bid){const b=db.aircraft.find(x=>x.id===aid).batteries.find(x=>x.id===bid);
+ const v=await dlg({title:'Battery disposal',text:b.name+' · '+b.serial+'\n\nThe UAS Operator approves disposal (Section 15.1.7).',ok:'Save',fields:[{key:'date',label:'Date approved',type:'date',value:todayStr(),required:true},{key:'how',label:'Disposal method',value:'Certified recycling facility',required:true}]});
+ if(!v)return;b.disposal={date:v.date,how:v.how,by:'UAS Operator',at:new Date().toISOString()};save();renderEquipment();toast('Disposal approval recorded')}
 async function aircraftDialog(a){
  const v=await dlg({title:a?'Edit aircraft':'Add aircraft',ok:'Save',text:a?'Total flight time updates automatically after every flight – only change it here to correct a mistake.':'Enter the flight time already logged on this aircraft. The app adds each completed flight to it automatically.',fields:[
   {key:'name',label:'Aircraft name / identifier',value:a?a.name:'',required:true,placeholder:'e.g. M30T-01'},
@@ -531,6 +677,7 @@ async function aircraftDialog(a){
    const tt=Number(v.totalTime);if(!(isFinite(tt)&&tt>=0))return 'Total flight time must be 0 or more minutes.';
    if(!v.dateInService)return 'Date added to service is required.';
    if(v.dateRetired&&v.dateRetired<v.dateInService)return 'Retired from service date cannot be before the date added to service.';
+   if(is4T(v.model)&&v.rainOk==='Suitable')return 'The Matrice 4T has no water rating – set Rain operation to Not suitable.';
    return '';
   }});
  if(!v)return;
@@ -551,17 +698,25 @@ function maintLine(a){
 }
 async function logMaintenance(id){
  const a=db.aircraft.find(x=>x.id===id);
- const v=await dlg({title:'Log maintenance',text:`${a.name} · ${a.serial}`,ok:'Save',fields:[
+ if(!db.maintainers.length){await info('Add the people approved for maintenance first (Equipment › Approved for maintenance).','Who can do maintenance?');return}
+ const v=await dlg({title:'Log maintenance',text:`${a.name} · ${a.serial}\n\nA repair, firmware update or return from DJI means the aircraft needs a test flight (and a Remote ID check) before it flies again.`,ok:'Save',fields:[
   {key:'date',label:'Date',type:'date',value:todayStr(),required:true},
-  {key:'desc',label:'What was done',type:'textarea',required:true,placeholder:'e.g. Drone and remote control firmware updated · New propellers fitted, full set'}]});
+  {key:'type',label:'Type',type:'select',options:MAINT_TYPES,value:'Inspection'},
+  {key:'by',label:'Done by',type:'select',options:db.maintainers,value:db.maintainers[0]},
+  {key:'desc',label:'What was done',type:'textarea',required:true,placeholder:'e.g. Drone and remote control firmware updated · New propellers fitted, full set'},
+  {key:'ref',label:'DJI case reference (if sent to DJI)',placeholder:'e.g. CAS-1234567'}],
+  validate:v=>v.type==='Sent to DJI for repair'&&!v.ref?'Enter the DJI case reference.':''});
  if(!v)return;
+ const now=new Date().toISOString();
  a.maintenanceLog=a.maintenanceLog||[];
- a.maintenanceLog.push({date:v.date,desc:v.desc.trim(),by:(db.pilot&&db.pilot.name)||'',at:new Date().toISOString()});
- save();renderEquipment();toast('Maintenance logged');
+ a.maintenanceLog.push({date:v.date,type:v.type,desc:v.desc.trim(),by:v.by,ref:v.ref||'',at:now});
+ if(v.type==='Sent to DJI for repair')a.awayForRepair={date:v.date,ref:v.ref,at:now};
+ if(['Repair','Firmware update','Returned from DJI'].includes(v.type)){if(v.type==='Returned from DJI')delete a.awayForRepair;a.needsTest={reason:v.type+' '+fmtDate(v.date)+' – '+v.desc.trim(),at:now}}
+ save();renderEquipment();toast(a.needsTest&&!a.awayForRepair?'Logged – aircraft needs a test flight':'Maintenance logged');
 }
 function maintenanceHistory(id){
  const a=db.aircraft.find(x=>x.id===id),log=(a.maintenanceLog||[]).slice().reverse();
- const line=e=>`${fmtDate(e.date)}${e.by?' · '+e.by:''}\n${e.desc}`;
+ const line=e=>`${fmtDate(e.date)}${e.type?' · '+e.type:''}${e.by?' · '+e.by:''}${e.ref?' · ref '+e.ref:''}\n${e.desc}`;
  info(`${a.name} · ${a.serial}\n\n${log.length?log.map(line).join('\n\n'):'No maintenance logged yet.'}`,'Maintenance history');
 }
 function aircraftTimeLog(id){
@@ -583,9 +738,9 @@ async function pilotDialog(){
  const v=await dlg({title:db.pilot?'Edit pilot':'Pilot details',text:!db.pilot?'Enter your details once – they are added to every flight record.':!p.operatorId?'Your Flyer ID is now required. Please add it – it is printed on every flight record.':'',ok:'Save',fields:[
   {key:'name',label:'Pilot name',value:p.name||'',required:true,placeholder:'e.g. Jane Smith'},
   {key:'operatorId',label:'Flyer ID',value:p.operatorId||'',required:true,caps:'characters',placeholder:'e.g. GBR-RP-XXXXXXXXXXXX'},
-  {key:'qual',label:'Qualification (optional)',value:p.qual||'',placeholder:'e.g. A2 CofC'}]});
+  ]});
  if(!v)return false;
- db.pilot=v;save();if($('equipment').classList.contains('active'))renderEquipment();return true;
+ db.pilot=Object.assign(db.pilot||{},v);save();if($('equipment').classList.contains('active'))renderEquipment();return true;
 }
 const addAircraft=()=>aircraftDialog(null);
 const editAircraft=id=>aircraftDialog(db.aircraft.find(x=>x.id===id));
@@ -599,10 +754,12 @@ async function batteryDialog(a,b){
   {key:'name',label:'Battery name',value:b?b.name:'',required:true,placeholder:'e.g. Battery C'},
   {key:'serial',label:'Serial number',value:b?b.serial:'',required:true,caps:'characters',placeholder:'e.g. TB30-1234567'},
   {key:'cycles',label:'Current charge cycle',type:'number',inputmode:'numeric',value:b&&cycleOf(b)!==null?cycleOf(b):'',required:true,placeholder:'e.g. 2 – as shown on the battery or DJI app'},
+  {key:'cycleLimit',label:'Manufacturer cycle limit',type:'number',inputmode:'numeric',value:b&&b.cycleLimit?b.cycleLimit:(is4T(a.model)?200:''),placeholder:'e.g. 200 for the Matrice 4T – from DJI'},
    {key:'dateInService',label:'Date added to service',type:'date',value:b?(b.dateInService||''):todayStr(),required:true},
    {key:'dateRetired',label:'Retired from service date (leave blank while in service)',type:'date',value:b?(b.dateRetired||''):''}],
   validate:v=>{
    const cn=Number(v.cycles);if(!(Number.isInteger(cn)&&cn>=0&&cn<=99999))return 'Charge cycle must be a whole number (0 or more).';
+   if(v.cycleLimit!==''&&!(Number.isInteger(+v.cycleLimit)&&+v.cycleLimit>0))return 'Cycle limit must be a whole number, or left blank.';
    if(a.batteries.some(x=>x!==b&&x.name.toLowerCase()===v.name.toLowerCase()))return 'A battery in this kit is already called "'+v.name+'".';
    let dup=false;db.aircraft.forEach(x=>x.batteries.forEach(y=>{if(y!==b&&y.serial.toLowerCase()===v.serial.toLowerCase())dup=true}));
    if(dup)return 'That serial number is already registered.';
@@ -613,8 +770,9 @@ async function batteryDialog(a,b){
  if(!v)return;
  const cn=parseInt(v.cycles,10),now=new Date().toISOString();
  const retiredNote=v.dateRetired?(b&&b.dateRetired===v.dateRetired?b.retiredNote:'Manually entered via Equipment'):'';
- if(b){b.name=v.name;b.serial=v.serial;b.dateInService=v.dateInService;b.dateRetired=v.dateRetired||'';b.retiredNote=retiredNote;b.active=!v.dateRetired;if(cycleOf(b)!==cn){b.cycles=cn;(b.cycleLog=b.cycleLog||[]).push({c:cn,at:now,src:'edited'})}}
- else a.batteries.push({id:uid('b'),name:v.name,serial:v.serial,active:!v.dateRetired,dateInService:v.dateInService,dateRetired:v.dateRetired||'',retiredNote,cycles:cn,cycleLog:[{c:cn,at:now,src:'added'}]});
+ const lim=v.cycleLimit===''?undefined:+v.cycleLimit;
+ if(b){b.cycleLimit=lim;b.name=v.name;b.serial=v.serial;b.dateInService=v.dateInService;b.dateRetired=v.dateRetired||'';b.retiredNote=retiredNote;b.active=!v.dateRetired;if(cycleOf(b)!==cn){b.cycles=cn;(b.cycleLog=b.cycleLog||[]).push({c:cn,at:now,src:'edited'})}}
+ else a.batteries.push({id:uid('b'),cycleLimit:lim,name:v.name,serial:v.serial,active:!v.dateRetired,dateInService:v.dateInService,dateRetired:v.dateRetired||'',retiredNote,cycles:cn,cycleLog:[{c:cn,at:now,src:'added'}]});
  save();renderEquipment();toast(b?'Battery updated':'Battery added to kit');
 }
 const addBattery=aid=>batteryDialog(db.aircraft.find(x=>x.id===aid),null);
@@ -622,7 +780,7 @@ const editBattery=(aid,bid)=>{const a=db.aircraft.find(x=>x.id===aid);batteryDia
 function toggleRetire(aid,bid){
  const b=db.aircraft.find(x=>x.id===aid).batteries.find(x=>x.id===bid);
  if(isRetired(b)){b.dateRetired='';b.retiredNote='';b.active=true;save();renderEquipment();toast('Battery reinstated')}
- else{b.dateRetired=todayStr();b.retiredNote='Manually retired via Equipment';b.active=false;save();renderEquipment();toast('Battery retired')}
+ else{b.dateRetired=todayStr();b.retiredNote='Manually retired via Equipment';b.active=false;save();renderEquipment();toast('Battery retired – disposal needs the UAS Operator’s approval')}
 }
 function toggleAircraftRetire(aid){
  const a=db.aircraft.find(x=>x.id===aid);
@@ -641,26 +799,65 @@ async function newFlight(){
  if(!db.pilot||!db.pilot.name||!db.pilot.operatorId){if(!await pilotDialog())return}
  flight=blankFlight();resetFormFields();renderAircraftSelect();show('new');
 }
-function renderAircraftSelect(){const s=$('aircraftSelect'),avail=db.aircraft.filter(a=>!isRetired(a));s.innerHTML='<option value="">Select aircraft…</option>'+avail.map(a=>`<option value="${a.id}">${esc(a.name)} · ${esc(a.model)} · ${esc(a.serial)}</option>`).join('')+(db.aircraft.length>avail.length?`<option value="" disabled>— ${db.aircraft.length-avail.length} retired aircraft not shown —</option>`:'');s.value='';$('flightSetup').innerHTML='';updateBanners()}
+function renderAircraftSelect(){const s=$('aircraftSelect'),avail=db.aircraft.filter(a=>!isRetired(a));s.innerHTML='<option value="">Select aircraft…</option>'+avail.map(a=>`<option value="${a.id}">${esc(a.name)} · ${esc(a.model)} · ${esc(a.serial)}${a.awayForRepair?' (away for repair)':a.needsTest?' (needs test flight)':''}</option>`).join('')+(db.aircraft.length>avail.length?`<option value="" disabled>— ${db.aircraft.length-avail.length} retired aircraft not shown —</option>`:'');s.value='';$('flightSetup').innerHTML='';updateBanners()}
 /* generic helpers for state-driven controls */
 function sf(path,v,fn){const p=path.split('.');let o=flight;for(let i=0;i<p.length-1;i++){o[p[i]]=o[p[i]]||{};o=o[p[i]]}o[p[p.length-1]]=v;if(fn&&window[fn])window[fn]();updateBanners()}
 function segF(path,val,opts,fn,neutral){return `<div class="seg ${neutral?'neutral':''}">${opts.map(o=>`<button class="${val===o.v?(o.neg?'on neg':'on'):''}" onclick="sf('${path}',${esc(JSON.stringify(o.v))},'${fn}')">${esc(o.l)}</button>`).join('')}</div>`}
 function chipsF(path,val,opts,fn){return `<div class="chips">${opts.map(o=>`<button class="chip ${val===o.v?'on '+(o.cls||''):''}" onclick="sf('${path}',${esc(JSON.stringify(o.v))},'${fn}')"><b>${esc(o.l)}</b>${o.sub?`<span>${esc(o.sub)}</span>`:''}</button>`).join('')}</div>`}
+function imsafeFit(ops){const im=ops.imsafe||{};if(!IMSAFE.every(([k])=>im[k]!==undefined))return undefined;if(!IMSAFE.some(([k])=>im[k]===true))return true;return ops.imsafeDec==='fit'?true:ops.imsafeDec==='nofly'?false:undefined}
+function setKind(v){const o=flight.ops;o.kind=v;flight.risk.type=v;if(isLive(v)){if(!o.jobNo)o.jobNo=newJobNo()}renderFlightSetup()}
+function setJob(j){flight.ops.jobNo=j||newJobNo();renderFlightSetup()}
+function imsafeAllNo(){const o=flight.ops;o.imsafe={};IMSAFE.forEach(([k])=>o.imsafe[k]=false);delete o.imsafeDec;delete o.imsafeNote;renderFlightSetup()}
+function togglePrac(k){const o=flight.ops;o.prac=o.prac||{};o.prac[k]=!o.prac[k];renderFlightSetup()}
+function setupCards(a){
+ const o=flight.ops,p=db.pilot||{},live=isLive(o.kind),im=o.imsafe||{},anyYes=IMSAFE.some(([k])=>im[k]===true);
+ o.v2=true;
+ const ql=qualList(),cur=currencyMins();
+ o.snap={currency:cur,qualOk:qualOk(),quals:ql.map(x=>x.label+': '+x.text),needsTest:!!a.needsTest,needsTestReason:a.needsTest?a.needsTest.reason:'',away:!!a.awayForRepair};
+ o.fit=imsafeFit(o);
+ const jobs=recentJobs().filter(j=>j!==o.jobNo);
+ const stat=[];
+ stat.push(`<div class="kvr"><div class="k">Qualification</div><div class="v">${o.snap.qualOk?'<span class="t-ok">Valid GVC / RPC-L1</span>':'<span class="t-bad">No valid GVC or RPC-L1 – NO FLY. Add it under Pilot & training.</span>'}</div></div>`);
+ stat.push(`<div class="kvr"><div class="k">Currency</div><div class="v"><span class="${cur>=CURRENCY_MIN?'t-ok':live?'t-bad':'t-warn'}">${esc(currencyText(cur))}</span>${cur<CURRENCY_MIN&&live?'<br><b class="t-bad">NO FLY for a live task</b> – fly a currency flight first':''}</div></div>`);
+ if(a.awayForRepair)stat.push(`<div class="kvr"><div class="k">Aircraft</div><div class="v t-bad">Away for repair${a.awayForRepair.ref?' – DJI ref '+esc(a.awayForRepair.ref):''} – NO FLY</div></div>`);
+ else if(a.needsTest)stat.push(`<div class="kvr"><div class="k">Aircraft</div><div class="v"><span class="${o.kind===IS_RTS?'t-warn':'t-bad'}">Needs a return-to-service test flight</span><br><span class="small">${esc(a.needsTest.reason)}</span></div></div>`);
+ return `<div class="card"><h3>Type of flight</h3><div class="chips">${KINDS.map(k=>`<button class="chip ${o.kind===k.v?'on':''}" onclick="setKind('${k.v}')"><b>${o.kind===k.v?'✓ ':''}${esc(k.v)}</b><span>${esc(k.sub)}</span></button>`).join('')}</div>
+ ${live?`<div class="serial" style="margin-top:12px">Job number<b>${esc(o.jobNo)}</b></div>${jobs.length?`<div class="small" style="margin-top:10px">Same task as an earlier flight? Tap its job number:</div><div class="chips">${jobs.map(j=>`<button class="chip" onclick="setJob('${j}')"><b>${esc(j)}</b></button>`).join('')}<button class="chip" onclick="setJob('')"><b>New number</b></button></div>`:''}
+ <label>Police / requester reference (optional)</label><input value="${esc(o.jobRef||'')}" oninput="flight.ops.jobRef=this.value" placeholder="e.g. police log number">`:''}
+ ${/Training|Currency/.test(o.kind||'')?`<label>Practised on this flight</label><div class="chips">${[['manoeuvres','PDRA01 manoeuvres'],['emergency','Emergency procedures'],['atti','Flying without GPS (ATTI)']].map(([k,l])=>`<button class="chip ${(o.prac||{})[k]?'on':''}" onclick="togglePrac('${k}')"><b>${(o.prac||{})[k]?'✓ ':''}${l}</b></button>`).join('')}</div><div class="hint">Currency flying must include all three over time (Section 2.5). Every flight here is a real flight – nothing simulated counts.</div>`:''}
+ ${o.kind===IS_RTS?`<div class="notice" style="margin-top:12px">${a.needsTest?'Test flight in an open area after: '+esc(a.needsTest.reason)+'. You confirm the result, Remote ID and the UAS Operator’s approval at End flight.':'This aircraft has no maintenance waiting for a test flight.'}</div>`:''}</div>
+ <div class="card"><h3>Your status</h3>${stat.join('')}</div>
+ <div class="card ${o.fit===false?'issue':''}"><h3>Fitness to fly – IMSAFE</h3><div class="small">Pilot in command: <b style="color:var(--ink)">${esc(p.name||'')}</b>${p.operatorId?' · '+esc(p.operatorId):''}<br>The expected answer to each is <b>No</b>.</div>
+ <button class="${IMSAFE.every(([k])=>im[k]===false)?'secondary':''}" style="${IMSAFE.every(([k])=>im[k]===false)?'':'background:var(--ok)'}" onclick="imsafeAllNo()">${IMSAFE.every(([k])=>im[k]===false)?'✓ No to all – fit to fly':'✓ No to all – I am fit to fly'}</button>
+ <div style="margin-top:6px">${IMSAFE.map(([k,l,q])=>`<div class="item row" style="padding:8px 0"><span style="min-width:0"><b>${k} · ${l}</b><span class="small" style="display:block">${q}</span></span><span class="seg" style="flex:none;gap:6px"><button class="mini ${im[k]===false?'on good':''}" style="padding:9px 14px" onclick="sf('ops.imsafe.${k}',false,'renderFlightSetup')">No</button><button class="mini ${im[k]===true?'on amb':''}" style="padding:9px 14px" onclick="sf('ops.imsafe.${k}',true,'renderFlightSetup')">Yes</button></span></div>`).join('')}</div>
+ ${anyYes?`<label>What is it, and can you still fly safely? *</label><textarea oninput="flight.ops.imsafeNote=this.value" placeholder="e.g. slight cold, no medication – alert and well">${esc(o.imsafeNote||'')}</textarea>
+ <label>Your decision *</label>${segF('ops.imsafeDec',o.imsafeDec,[{l:'Fit to fly',v:'fit'},{l:'Not fit – NO FLY',v:'nofly',neg:true}],'renderFlightSetup')}`:''}</div>
+ <div class="card"><h3>Crew</h3><label style="margin-top:0">Observer on this flight?</label>${segF('ops.hasObs',o.hasObs,[{l:'No',v:false},{l:'Yes',v:true}],'renderFlightSetup',true)}
+ ${o.hasObs?`<label>Observer name(s) *</label><input value="${esc(o.observer||'')}" oninput="flight.ops.observer=this.value" placeholder="Name">
+ <label>Observer has done the IMSAFE check (all No)? *</label>${segF('ops.obsFit',o.obsFit,[{l:'Yes – fit',v:true},{l:'No – not taking part',v:false,neg:true}],'renderFlightSetup')}
+ ${o.obsFit===false?'<div class="hint" style="color:var(--bad);font-weight:650">The observer must not take part. Find another observer or fly without one.</div>':''}`:''}</div>
+ `;
+}
 function renderFlightSetup(){
  const a=db.aircraft.find(x=>x.id===$('aircraftSelect').value);if(!a){$('flightSetup').innerHTML='';flight.aircraftId=null;updateBanners();return}
  if(flight.aircraftId!==a.id)flight.batteries={};
  flight.aircraftId=a.id;const act=a.batteries.filter(b=>b.active).length,p=db.pilot||{},ops=flight.ops;
- $('flightSetup').innerHTML=`<div class="card"><b>${esc(a.name)}</b><div class="small">${esc(a.model)}<br>Aircraft S/N: ${esc(a.serial)}<br>Controller S/N: ${esc(a.controller||'—')}<br>${act} active ${act===1?'battery':'batteries'} in kit · <b>${reqOf(a)} required per flight</b><br>Max wind speed: <b>${a.maxWind?a.maxWind+' m/s':'not set'}</b><br>Rain: <b>${a.rainOk?'suitable (amber)':'not suitable (NO FLY)'}</b> · Icing: <b>${a.iceOk?'suitable (amber)':'not suitable (NO FLY)'}</b></div></div>${act>=reqOf(a)?'':`<div class="notice" style="background:#fef3f2;color:#b42318">${esc(a.name)} needs ${reqOf(a)} batteries to fly but the kit only has ${act} active. Add batteries under Equipment before you can complete the battery check.</div>`}
- <div class="card"><h3>Pilot & crew</h3><div class="small">Pilot in command: <b style="color:var(--ink)">${esc(p.name||'')}</b>${p.operatorId?' · '+esc(p.operatorId):''}</div>
- <label>Pilot fit to fly?</label>${segF('ops.fit',ops.fit,[{l:'Yes – fit to fly',v:true},{l:'No',v:false,neg:true}],'renderFlightSetup')}
- <label>Observer / second crew (optional)</label><input value="${esc(ops.observer||'')}" oninput="flight.ops.observer=this.value" placeholder="Name">
- <label>Job / incident reference (optional)</label><input value="${esc(ops.jobRef||'')}" oninput="flight.ops.jobRef=this.value" placeholder="e.g. police log or job number"></div>
+ $('flightSetup').innerHTML=`<div class="card"><b>${esc(a.name)}</b><div class="small">${esc(a.model)}<br>Aircraft S/N: ${esc(a.serial)}<br>Controller S/N: ${esc(a.controller||'—')}<br>${act} active ${act===1?'battery':'batteries'} in kit · <b>${reqOf(a)} required per flight</b><br>Max wind speed: <b>${a.maxWind?a.maxWind+' m/s':'not set'}</b><br>Rain: <b>${is4T(a.model)?'never – no water rating':a.rainOk?'light rain only (amber)':'not suitable (NO FLY)'}</b> · Icing: <b>${a.iceOk?'suitable (amber)':'not suitable (NO FLY)'}</b></div></div>${act>=reqOf(a)?'':`<div class="notice" style="background:#fef3f2;color:#b42318">${esc(a.name)} needs ${reqOf(a)} batteries to fly but the kit only has ${act} active. Add batteries under Equipment before you can complete the battery check.</div>`}
+ ${setupCards(a)}
  <button onclick="goChecks()">Start pre-flight checks</button>`;
  updateBanners();
 }
 async function goChecks(){
  if(!flight.aircraftId){await info('Select an aircraft first.');return}
- if(!nf()&&flight.ops.fit===undefined){await info('Confirm whether you are fit to fly.');return}
+ const o=flight.ops,miss=[];
+ if(!o.kind)miss.push('Type of flight');
+ if(isLive(o.kind)&&!o.jobNo)miss.push('Job number');
+ const im=o.imsafe||{};
+ if(!IMSAFE.every(([k])=>im[k]!==undefined))miss.push('IMSAFE – answer every item, or tap “No to all”');
+ else if(IMSAFE.some(([k])=>im[k]===true)){if(!(o.imsafeNote||'').trim())miss.push('IMSAFE – what is it, and can you still fly safely?');if(!o.imsafeDec)miss.push('IMSAFE – your decision')}
+ if(o.hasObs===undefined)miss.push('Observer on this flight?');
+ else if(o.hasObs){if(!(o.observer||'').trim())miss.push('Observer name(s)');if(o.obsFit===undefined)miss.push('Observer IMSAFE check')}
+ if(miss.length&&o.fit!==false){await info('Please complete:\n\n'+miss.map(x=>'• '+x).join('\n'),'Before the checks');return}
  renderChecks();show('checks');
 }
 
@@ -669,11 +866,9 @@ const LABEL={checks:k=>'Aircraft – '+k,props:k=>'Propeller '+k,controller:k=>(
 function clearDefect(st,key){st[key]=true;['_note','_dec','_mit','_at'].forEach(x=>delete st[key+x])}
 function checkCard(title,scope,key){
  const st=flight[scope],v=st[key],dec=st[key+'_dec'],note=st[key+'_note'],mit=st[key+'_mit'];
- const nofly=v===false&&dec==='nofly',cont=v===false&&!nofly;
- const pill=v===true?'<span class="pill ok">OK</span>':nofly?'<span class="pill bad">DEFECT – NO FLY</span>':cont?'<span class="pill warn">DEFECT – CONTINUING</span>':'';
- const sub=v===true?'Inspection completed':v===false?`<b>Defect:</b> ${esc(note)}<br>${nofly?'Pilot decision: no fly':'Pilot chose to continue with flight'}${mit?' – '+esc(mit):''}`:'Inspection required';
- const k=esc(key);
- return `<div class="check ${nofly?'issue':cont?'amber':''}"><div class="row"><b>${esc(title)}</b>${pill}</div><div class="small">${sub}</div><button class="${v===true?'secondary':''}" onclick="okItem('${scope}','${k}')">${v===true?'✓ No defects found':'No defects found'}</button><button class="danger" onclick="defectItem('${scope}','${k}')">Defect found</button></div>`;
+ const nofly=v===false&&dec==='nofly',cont=v===false&&!nofly,k=esc(key);
+ const sub=v===false?`<span class="small" style="display:block;color:${nofly?'var(--bad)':'#93370d'};font-weight:650">Defect: ${esc(note)} – ${nofly?'NO FLY':'continuing'}${mit?' ('+esc(mit)+')':''}</span>`:'';
+ return `<div class="item row" style="padding:8px 0${v===false?';background:'+(nofly?'#fef3f2':'#fffaeb')+';margin:0 -10px;padding:8px 10px;border-radius:10px':''}"><span style="min-width:0"><b>${esc(title)}</b>${sub}</span><span class="seg" style="flex:none;gap:6px"><button class="mini ${v===true?'on good':''}" style="padding:9px 14px" onclick="okItem('${scope}','${k}')">OK</button><button class="mini ${v===false?'on neg':''}" style="padding:9px 12px" onclick="defectItem('${scope}','${k}')">Defect</button></span></div>`;
 }
 function okItem(scope,key){clearDefect(flight[scope],key);RENDER[scope]();updateBanners()}
 async function defectItem(scope,key){
@@ -694,9 +889,12 @@ function allChecksOk(){ // one tap marks every unanswered item OK; any defect al
  renderChecks();updateBanners();toast('All checks marked OK');
 }
 function renderChecks(){
+ if(flight.ops.rth===undefined)flight.ops.rth=60;
  const done=CHECKS.every(c=>flight.checks[c]!==undefined)&&[1,2,3,4].every(n=>flight.props[n]!==undefined);
- $('checksList').innerHTML=`<div class="card"><div class="small" style="margin-bottom:10px">Inspect the aircraft and propellers. If everything is fine, tap below. If something isn’t, tap that item and choose <b>Defect found</b>.</div><button class="${done?'secondary':''}" style="${done?'':'background:var(--ok)'}" onclick="allChecksOk()">${done?'✓ All checks recorded':'✓ All checks OK – no defects'}</button></div>`
-  +CHECKS.map(c=>checkCard(c,'checks',c)).join('')+'<h3 style="margin:18px 4px 6px">Propellers</h3>'+[1,2,3,4].map(n=>checkCard('Propeller '+n,'props',n)).join('');
+ $('checksList').innerHTML=`<div class="card"><div class="small" style="margin-bottom:6px">Inspect the aircraft and propellers, and check the settings in DJI Pilot 2. If something isn’t right, tap <b>Defect</b> on that item.</div><button class="${done?'secondary':''}" style="${done?'':'background:var(--ok)'}" onclick="allChecksOk()">${done?'✓ All checks recorded':'✓ All checks OK – no defects'}</button></div>`
+  +`<div class="card"><h3>Aircraft</h3>${INSPECT.map(c=>checkCard(c,'checks',c)).join('')}</div>`
+  +`<div class="card"><h3>Propellers</h3>${[1,2,3,4].map(n=>checkCard('Propeller '+n,'props',n)).join('')}</div>`
+  +`<div class="card"><h3>Settings in DJI Pilot 2</h3><div class="item row" style="padding:8px 0"><span style="min-width:0"><b>RTH altitude (m)</b><span class="small" style="display:block">Default 60 m – above the highest obstacle on the return route, 120 m max</span></span><input type="number" inputmode="numeric" style="width:84px;flex:none;text-align:center;padding:10px" value="${esc(flight.ops.rth==null?'':flight.ops.rth)}" oninput="flight.ops.rth=this.value===''?undefined:+this.value"></div>${SETTINGS.map(c=>checkCard(SHORT[c]||c,'checks',c)).join('')}</div>`;
 }
 async function goProps(){
  if(!nf()&&!CHECKS.every(c=>flight.checks[c]!==undefined)){await info('Complete all aircraft checks before continuing.');return}
@@ -706,11 +904,12 @@ function renderProps(){$('propsList').innerHTML=[1,2,3,4].map(n=>checkCard('Prop
 async function goController(){
  if(!nf()&&!CHECKS.every(c=>flight.checks[c]!==undefined)){await info('Complete all aircraft checks before continuing.');return}
  if(!nf()&&![1,2,3,4].every(n=>flight.props[n]!==undefined)){await info('Complete all propeller checks first.');return}
+ if(!nf()&&!(flight.ops.rth>=20&&flight.ops.rth<=120)){await info('Enter the RTH altitude set in DJI Pilot 2 (20–120 m).');return}
  renderController();show('controller');
 }
 function renderController(){
  const a=curAircraft();
- $('controllerBody').innerHTML=`<div class="card"><div class="small">Registered controller</div><h3>${esc(a.controller||'—')}</h3><label>Controller charge (%)</label><input id="rcCharge" type="number" min="0" max="100" inputmode="numeric" value="${esc(flight.controller.charge==null?'':flight.controller.charge)}" oninput="flight.controller.charge=this.value===''?undefined:+this.value"></div><div class="card">${checkCard('Visual condition','controller','visual')}${checkCard('Connection / controls','controller','controls')}</div>`;
+ $('controllerBody').innerHTML=`<div class="card"><div class="small">Registered controller</div><h3>${esc(a.controller||'—')}</h3><label>Controller charge (%)</label><input id="rcCharge" type="number" min="0" max="100" inputmode="numeric" value="${esc(flight.controller.charge==null?'':flight.controller.charge)}" oninput="flight.controller.charge=this.value===''?undefined:+this.value"></div><div class="card"><h3>Checks</h3>${checkCard('Visual condition','controller','visual')}${checkCard('Connection / controls','controller','controls')}</div>`;
 }
 async function goBatteries(){
  const c=flight.controller;
@@ -729,6 +928,7 @@ function batState(d){
  if(d.djiGreen!==true&&(d.voltage===undefined||d.voltage===null||isNaN(d.voltage)))return{ok:false,cls:'bad',label:'REVIEW',reason:'Enter the battery voltage'};
  if(d.cycle===undefined||d.cycle===null)return{ok:false,cls:'bad',label:'REVIEW',reason:'Enter the current charge cycle'};
  if(!Number.isInteger(d.cycle)||d.cycle<0)return{ok:false,cls:'bad',label:'REVIEW',reason:'Charge cycle must be a whole number'};
+ if(d.limit&&d.cycle>=d.limit)return{ok:false,cls:'bad',label:'RETIRE',reason:`Cycle limit of ${d.limit} reached – remove this battery and retire it in Equipment`};
  if(d.prev!==undefined&&d.cycle<d.prev)return{ok:false,cls:'bad',label:'REVIEW',reason:`Cycle ${d.cycle} is lower than the ${d.prev} recorded in Equipment – check the serial number, or correct it in Equipment`};
  return{ok:true,cls:'ok',label:'GOOD TO FLY',reason:'All checks pass'};
 }
@@ -761,6 +961,7 @@ function batCard(b){
  <label>Voltage (V)${d.djiGreen===true?' <span class="small">optional</span>':''}</label>
  <input type="number" step="0.01" min="0" inputmode="decimal" placeholder="${d.djiGreen===true?'Optional when DJI shows green':'Voltage (V)'}" value="${esc(d.voltage==null?'':d.voltage)}" oninput="battInput('${b.id}','voltage',this.value)">
  <label style="margin-bottom:0">4 · Charge cycle</label>
+ ${d.limit?`<div class="small" style="margin:4px 0 0">Cycle limit: <b>${d.limit}</b>${d.prev!==undefined?' · '+Math.max(0,d.limit-d.prev)+' left':''}</div>`:''}
  <div class="small" style="margin:4px 0 8px">${d.prev!==undefined?`Recorded in Equipment: <b>${d.prev}</b>. Enter the current cycle after charging – Equipment updates automatically.`:'No cycle recorded yet – enter the battery’s current charge cycle. Equipment updates automatically.'}</div>
  <input type="number" min="0" step="1" inputmode="numeric" placeholder="Current charge cycle" value="${esc(d.cycle==null?'':d.cycle)}" oninput="battInput('${b.id}','cycle',this.value)">
  <div class="small" id="br_${b.id}" style="margin-top:10px;${s.ok?'':'color:#b42318;font-weight:650'}">${s.reason}</div>
@@ -776,7 +977,7 @@ function toggleBattery(id){
  else{
   const req=reqOf(a);
   if(a.batteries.filter(x=>flight.batteries[x.id]).length>=req){toast(`${a.name} takes ${req} ${req===1?'battery':'batteries'} – remove one first`);return}
-  const b=a.batteries.find(x=>x.id===id);flight.batteries[id]={name:b.name,serial:b.serial,prev:cycleOf(b)===null?undefined:cycleOf(b)};
+  const b=a.batteries.find(x=>x.id===id);flight.batteries[id]={name:b.name,serial:b.serial,prev:cycleOf(b)===null?undefined:cycleOf(b),limit:+b.cycleLimit||undefined,visual:true};
  }
  renderBatteries();
 }
@@ -820,7 +1021,7 @@ async function goWeather(){
 }
 
 /* ================= Weather / site / airspace / risk / review ================= */
-const CONDS=['Dry – clear','Dry – cloudy','Rain','Icy conditions'];
+const CONDS=['Dry – clear','Dry – cloudy','Light rain','Heavier rain','Snow, sleet or hail','Icy conditions'];
 const VIS=['Excellent','Good','Fair','Poor','Unacceptable'];
 const DIRS=['','N','NE','E','SE','S','SW','W','NW'];
 function checkWind(){
@@ -840,8 +1041,12 @@ function checkWind(){
 function weatherMissing(){
  const w=flight.weather,m=[];
  if(!w.dn)m.push(['dn','Day or night']);
- if(w.dn==='Night'&&w.lights===undefined)m.push(['lights','Anti-collision lights']);
+ if(w.dn==='Night'&&w.lights===undefined)m.push(['lights','Beacons / anti-collision lights']);
+ if(w.dn==='Night'&&w.daySurvey===undefined)m.push(['daySurvey','Daylight survey']);
+ if(w.dn==='Night'&&w.toLit===undefined)m.push(['toLit','Take-off and landing area lit']);
  if(!w.cond)m.push(['cond','Weather conditions']);
+ if(w.kp==null||isNaN(w.kp))m.push(['kp','Space weather – Kp index']);
+ else if(w.kp>=5&&w.kpOk===undefined)m.push(['kpOk','Kp 5 or above – on-site checks']);
  if(condFlags(liveF()).amber.length&&!(w.mitigation||'').trim())m.push(['mitigation','Mitigation / limits']);
  if(!w.vis)m.push(['vis','Visibility']);
  if(w.temp===undefined||isNaN(w.temp))m.push(['temp','Temperature']);
@@ -851,17 +1056,22 @@ function weatherMissing(){
 function renderWeather(){
  const a=curAircraft();if(!a)return;
  const w=flight.weather,am=condFlags(liveF()).amber;
- const conds=CONDS.map(c=>({l:c,v:c,cls:c==='Rain'?(a.rainOk?'amb':'neg'):c==='Icy conditions'?(a.iceOk?'amb':'neg'):'',sub:c==='Rain'?(a.rainOk?'Increased risk':'NO FLY – not rated'):c==='Icy conditions'?(a.iceOk?'Increased risk':'NO FLY – not rated'):''}));
+ const rainOk=a.rainOk&&!is4T(a.model);
+ const conds=CONDS.map(c=>({l:c,v:c,cls:c==='Light rain'?(rainOk?'amb':'neg'):c==='Icy conditions'?(a.iceOk?'amb':'neg'):(c==='Heavier rain'||c==='Snow, sleet or hail')?'neg':'',sub:c==='Light rain'?(rainOk?'Increased risk':is4T(a.model)?'NO FLY – Matrice 4T':'NO FLY – not rated'):c==='Icy conditions'?(a.iceOk?'Increased risk':'NO FLY – not rated'):(c==='Heavier rain'||c==='Snow, sleet or hail')?'NO FLY':''}));
  const vis=VIS.map(v=>({l:v,v,cls:v==='Unacceptable'?'neg':'',sub:v==='Unacceptable'?'NO FLY':''}));
  const val=k=>esc(w[k]==null?'':w[k]),miss=w.liveAt?weatherMissing():[],mk=new Set(miss.map(x=>x[0]));
  const need=k=>mk.has(k)?' class="needs" id="need_'+k+'"':'',tag=k=>mk.has(k)?' <span class="needtag">👉 Your answer needed</span>':'';
  $('weatherBody').innerHTML=`<div class="card" id="weatherCard">
  <div class="livewx"><b>Live weather</b><div class="small">${w.liveAt?'Filled from the live forecast at '+esc(w.liveAt)+'. Check it matches what you can see.'+(miss.length?`<div class="needbox">👉 <b>Still needs you:</b> ${miss.map(x=>esc(x[1])).join(', ')}</div>`:'<div class="small" style="color:var(--ok);font-weight:700;margin-top:6px">✓ Everything on this page is filled in</div>'):'Fill the boxes below from the live forecast for where you are standing. You can change anything afterwards.'}</div><button type="button" id="liveWxBtn" onclick="fillLiveWeather()">${w.liveAt?'Refresh live weather':'Fill from live weather'}</button></div>
  <label style="margin-top:0"${need('dn')}>Day or night?${tag('dn')}</label>${segF('weather.dn',w.dn,[{l:'Day',v:'Day'},{l:'Night',v:'Night'}],'renderWeather',true)}
- ${w.dn==='Night'?`<label${need('lights')}>Anti-collision lights fitted and on?${tag('lights')}</label>${segF('weather.lights',w.lights,[{l:'Yes',v:true},{l:'No',v:false,neg:true}],'renderWeather')}`:''}
+ ${w.dn==='Night'?`<label${need('lights')}>Beacons / anti-collision lights on?${tag('lights')}</label>${segF('weather.lights',w.lights,[{l:'Yes',v:true},{l:'No',v:false,neg:true}],'renderWeather')}
+ <label${need('daySurvey')}>Site surveyed in daylight?${tag('daySurvey')}</label>${segF('weather.daySurvey',w.daySurvey,[{l:'Yes',v:true},{l:'No',v:false,neg:true}],'renderWeather')}
+ <label${need('toLit')}>Take-off and landing area lit?${tag('toLit')}</label>${segF('weather.toLit',w.toLit,[{l:'Yes',v:true},{l:'No',v:false,neg:true}],'renderWeather')}`:''}
  <label${need('cond')}>Weather conditions${tag('cond')}</label>${chipsF('weather.cond',w.cond,conds,'renderWeather')}
  ${am.length?`<label${need('mitigation')}>Mitigation / limits *${tag('mitigation')}</label><div class="hint" style="margin:0 0 6px">Required because of the increased risk. Say how you will manage it.</div><textarea oninput="flight.weather.mitigation=this.value" placeholder="e.g. short area check only – land immediately if ice forms on the props">${esc(w.mitigation||'')}</textarea>`:''}
  <label${need('vis')}>Visibility${tag('vis')}</label>${chipsF('weather.vis',w.vis,vis,'renderWeather')}
+ <label${need('kp')}>Space weather – Kp index${tag('kp')}</label><input type="number" step="0.1" min="0" max="9" inputmode="decimal" value="${val('kp')}" oninput="flight.weather.kp=this.value===''?undefined:+this.value" onchange="renderWeather()"><div class="hint">From the Met Office Space Weather forecast (filled in by live weather). Kp 5 or above is a solar storm.</div>
+ ${w.kp>=5?`<label${need('kpOk')}>Kp ${esc(w.kp)} – are satellite count, positioning and compass normal on site?${tag('kpOk')}</label>${segF('weather.kpOk',w.kpOk,[{l:'Yes – all normal',v:true},{l:'No',v:false,neg:true}],'renderWeather')}`:''}
  <label${need('temp')}>Temperature (°C)${tag('temp')}</label><input type="number" step="0.1" inputmode="decimal" value="${val('temp')}" oninput="flight.weather.temp=this.value===''?undefined:+this.value" onchange="if(flight.weather.liveAt)renderWeather()">
  <div class="small" id="windLimit" style="margin-top:14px"></div>
  <label style="margin-top:6px"${need('wind')}>Wind speed (m/s)${tag('wind')}</label><input id="wind" type="number" step="0.1" inputmode="decimal" value="${val('wind')}" oninput="checkWind()" onchange="if(flight.weather.liveAt)renderWeather()">
@@ -919,9 +1129,12 @@ async function fillLiveWeather(){
   w.dn=h.is_day[i]?'Day':'Night';
   w.temp=r1(temp);w.wind=r1(h.wind_speed_10m[i]);w.gust=r1(h.wind_gusts_10m[i]);
   const deg=h.wind_direction_10m[i];if(deg!=null)w.windDir=['N','NE','E','SE','S','SW','W','NW'][Math.round(deg/45)%8];
-  const icy=(h.snowfall[i]>0)||[56,57,66,67,71,73,75,77,85,86].includes(code)||(temp<=1&&(h.precipitation[i]>0||h.relative_humidity_2m[i]>=95||[48].includes(code)));
-  const wet=h.precipitation[i]>0||(code>=51&&code<=82)||code>=95;
-  w.cond=icy?'Icy conditions':wet?'Rain':code<=1?'Dry – clear':'Dry – cloudy';
+  const pr=h.precipitation[i]||0,snowy=(h.snowfall[i]>0)||[71,73,75,77,85,86,96,99].includes(code);
+  const icy=[56,57,66,67].includes(code)||(temp<=1&&(pr>0||h.relative_humidity_2m[i]>=95||[48].includes(code)));
+  const heavy=[55,63,65,81,82,95].includes(code)||pr>=1;
+  const wet=pr>0||(code>=51&&code<=82);
+  w.cond=snowy?'Snow, sleet or hail':icy?'Icy conditions':heavy?'Heavier rain':wet?'Light rain':code<=1?'Dry – clear':'Dry – cloudy';
+  try{const kr=await fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json');const kj=await kr.json();const last=kj[kj.length-1];const kv=Array.isArray(last)?parseFloat(last[1]):parseFloat(last.Kp!=null?last.Kp:last.kp_index);if(isFinite(kv))w.kp=Math.round(kv*10)/10}catch(e){}
   const v=h.visibility[i];if(v!=null)w.vis=v>=10000?'Excellent':v>=5000?'Good':v>=3000?'Fair':v>=1000?'Poor':'Unacceptable';
   w.liveAt=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' ('+lat+', '+lon+')';
   const note='Live forecast (Open-Meteo) at '+w.liveAt+(code>=95?'. Thunderstorm in the forecast.':'');
@@ -938,8 +1151,12 @@ async function goAirspace(){
   if(noTemp.length){await info(`It’s ${wt} °C, so battery temperature matters. Enter the temperature for:\n\n${noTemp.map(d=>'• '+d.name).join('\n')}`,'Cold weather – battery temperature');renderBatteries();show('batteries');return}
   const w=flight.weather,miss=[];
   if(!w.dn)miss.push('Day or night');
-  if(w.dn==='Night'&&w.lights===undefined)miss.push('Anti-collision lights (night)');
+  if(w.dn==='Night'&&w.lights===undefined)miss.push('Beacons / anti-collision lights (night)');
+  if(w.dn==='Night'&&w.daySurvey===undefined)miss.push('Site surveyed in daylight? (night)');
+  if(w.dn==='Night'&&w.toLit===undefined)miss.push('Take-off and landing area lit? (night)');
   if(!w.cond)miss.push('Weather conditions');
+  if(w.kp==null||isNaN(w.kp))miss.push('Space weather – Kp index');
+  else if(w.kp>=5&&w.kpOk===undefined)miss.push('Kp 5 or above – on-site checks normal?');
   if(!w.vis)miss.push('Visibility');
   if(w.temp===undefined||isNaN(w.temp))miss.push('Temperature');
   if(w.wind===undefined||isNaN(w.wind))miss.push('Wind speed');
@@ -948,6 +1165,10 @@ async function goAirspace(){
  }
  show('airspace');
 }
+const AIRPORTS=['Prestwick Airport','Glasgow Airport'];
+function authPick(z,ph){const o=flight.airspace[z]||{},sel=o.sel||(o.authority?(AIRPORTS.includes(o.authority)?o.authority:'Other'):'');
+ return `<select onchange="const a=flight.airspace;a.${z}=a.${z}||{};a.${z}.sel=this.value;a.${z}.authority=this.value==='Other'?'':this.value;renderSite()"><option value="" ${sel?'':'selected'}>Select…</option>${AIRPORTS.concat('Other').map(x=>`<option ${sel===x?'selected':''}>${x}</option>`).join('')}</select>`
+ +(sel==='Other'?`<label>Type the airport or authority *</label><input value="${esc(o.authority||'')}" oninput="flight.airspace.${z}.authority=this.value" placeholder="${ph}">`:'')}
 function setAirspace(status){flight.airspace.status=status;renderSite();updateBanners()}
 function toggleTempChecked(){const as=flight.airspace;as.temp=as.temp||{};as.temp.checked=!as.temp.checked;renderSite();updateBanners()}
 function hazBtns(field,val){return `<div class="seg"><button class="${val===false?'on':''}" onclick="setSiteHazard('${field}',false)">No</button><button class="${val===true?'on amb':''}" onclick="setSiteHazard('${field}',true)">Yes</button></div>`}
@@ -964,6 +1185,10 @@ function renderSite(){
  <label>Emergency landing options identified</label>${segF('tolp.emergency',tl.emergency,[{l:'Yes',v:true},{l:'No',v:false,neg:true}],'renderSite')}
  ${tl.emergency===false?`<label>Why not, or what is the plan instead? *</label><textarea oninput="flight.tolp.emergencyNote=this.value" placeholder="Explain">${esc(tl.emergencyNote||'')}</textarea>`:tl.emergency===true?`<label>Describe the options (optional)</label><textarea oninput="flight.tolp.emergencyNote=this.value" placeholder="Where could you land if needed?">${esc(tl.emergencyNote||'')}</textarea>`:''}
  <label>TOLP notes (optional)</label><textarea oninput="flight.tolp.notes=this.value" placeholder="Grid reference, surface, hazards nearby…">${esc(tl.notes||'')}</textarea></div>
+ <div class="card"><h3>GEO zones</h3>
+ <label style="margin-top:0">Does this flight need a GEO zone unlock?</label>${segF('airspace.geoUnlock',as.geoUnlock,[{l:'No',v:false},{l:'Yes',v:true}],'renderSite',true)}
+ ${as.geoUnlock?`<label>Unlock / permission reference *</label><input value="${esc(as.geoRef||'')}" oninput="flight.airspace.geoRef=this.value" placeholder="DJI unlock licence and permission from the airspace manager">
+ <label>Unlock applied and verified in DJI Pilot 2? *</label>${segF('airspace.geoVerified',as.geoVerified,[{l:'Yes',v:true},{l:'No',v:false,neg:true}],'renderSite')}`:''}</div>
  <div class="card"><h3>Airspace check</h3><div class="small">Select the option that applies.</div>
  <div class="chips">
  <button class="chip ${as.status==='frz'?'on':''}" onclick="setAirspace('frz')"><b>FRZ</b><span>Flight restriction zone</span></button>
@@ -973,10 +1198,10 @@ function renderSite(){
  </div>
  <button class="${as.status==='none'?'':'secondary'}" style="${as.status==='none'?'background:var(--ok)':''}" onclick="setAirspace('none')">${as.status==='none'?'✓ ':''}NO ISSUES IDENTIFIED</button></div>
  ${as.status==='frz'?`<div class="card zone"><h3>FRZ – flight restriction zone</h3>
- <label style="margin-top:0">Relevant airport or authority *</label><input value="${esc((as.frz||{}).authority||'')}" oninput="flight.airspace.frz=flight.airspace.frz||{};flight.airspace.frz.authority=this.value" placeholder="e.g. Prestwick Airport">
+ <label style="margin-top:0">Relevant airport or authority *</label>${authPick('frz','e.g. Edinburgh Airport')}
  <label>Permission / action *</label><textarea oninput="flight.airspace.frz=flight.airspace.frz||{};flight.airspace.frz.action=this.value" placeholder="What permission or action was required, and what was done?">${esc((as.frz||{}).action||'')}</textarea></div>`:''}
  ${as.status==='ctr'?`<div class="card zone"><h3>CTR – controlled airspace</h3>
- <label style="margin-top:0">Controlling airport or authority *</label><input value="${esc((as.ctr||{}).authority||'')}" oninput="flight.airspace.ctr=flight.airspace.ctr||{};flight.airspace.ctr.authority=this.value" placeholder="e.g. Prestwick Airport, Glasgow Airport, or other authority"></div>`:''}
+ <label style="margin-top:0">Controlling airport or authority *</label>${authPick('ctr','e.g. Edinburgh Airport')}</div>`:''}
  ${as.status==='temp'?`<div class="card zone"><h3>Temporary / other restriction</h3>
  <button class="${(as.temp||{}).checked?'':'secondary'}" style="${(as.temp||{}).checked?'background:var(--ok)':''}" onclick="toggleTempChecked()">${(as.temp||{}).checked?'✓ ':''}NOTAMs / temporary restrictions checked</button>
  ${(as.temp||{}).checked?`<label>Does anything prevent this operation?</label>${segF('airspace.temp.restriction',(as.temp||{}).restriction,[{l:'No',v:false},{l:'Yes',v:true,neg:true}],'renderSite')}
@@ -996,6 +1221,8 @@ async function goRisk(){
   if(tl.laClear===undefined)miss.push('Landing area clear');
   if(tl.emergency===undefined)miss.push('Emergency landing options identified');
   else if(tl.emergency===false&&!(tl.emergencyNote||'').trim())miss.push('Emergency landing options – explain the plan');
+  if(as.geoUnlock===undefined)miss.push('GEO zone unlock needed?');
+  else if(as.geoUnlock){if(!(as.geoRef||'').trim())miss.push('GEO zone – unlock / permission reference');if(as.geoVerified===undefined)miss.push('GEO zone – unlock applied and verified?')}
   if(!as.status)miss.push('Airspace check – select an option, or "No issues identified"');
   else if(as.status==='frz'){
    if(!((as.frz||{}).authority||'').trim())miss.push('FRZ – relevant airport or authority');
@@ -1047,8 +1274,8 @@ function renderRisk(){
  let top='';
  if(sel.length){let best=null;sel.forEach(([k,n])=>{const h=r.hazards[k],sc=cfg.basis==='initial'?((h.l&&h.s)?h.l*h.s:null):((h.rl&&h.rs)?h.rl*h.rs:((h.l&&h.s)?h.l*h.s:null));if(sc!==null&&(!best||sc>best.sc))best={sc,n:hazardName(h,k,n)}});
   if(best){const b=riskBand(best.sc,cfg);top=`<div class="card"><div class="row"><span>Highest ${cfg.basis==='initial'?'initial':'residual'} risk: <b>${esc(best.n)}</b></span><span class="pill ${b.cls}">${b.l} · ${best.sc}</span></div></div>`}}
- $('riskBody').innerHTML=`<div class="card"><label style="margin-top:0">Operation type</label><select onchange="flight.risk.type=this.value">${OPTYPES.map(o=>`<option ${r.type===o?'selected':''}>${o}</option>`).join('')}</select></div>
- <div class="card ${r.graOk?'':'issue'}"><h3>Generic risk assessment</h3><div class="small"><b>${GRA.ref}</b> covers every flight: ${GRA_ROWS.length} hazards with their controls, from the Operations Manual (Appendix F1).${graDue()<=60?`<br><b style="color:#b42318">${graDue()<0?'Review overdue':'Review due in '+graDue()+' days'} (${fmtD(GRA.review)})</b>`:''}</div>
+ $('riskBody').innerHTML=`<div class="card"><div class="small">Type of flight: <b style="color:var(--ink)">${esc(r.type||'—')}</b>${flight.ops.jobNo&&isLive(flight.ops.kind)?' · Job '+esc(flight.ops.jobNo):''}</div></div>
+ <div class="card ${r.graOk?'':'issue'}"><h3>Generic risk assessment</h3><div class="small"><b>${GRA.ref}</b> covers every flight: ${GRA_ROWS.length} hazards with their controls, from the Operations Manual (Appendix H).${graDue()<=60?`<br><b style="color:#b42318">${graDue()<0?'Review overdue':'Review due in '+graDue()+' days'} (${fmtD(GRA.review)})</b>`:''}</div>
  <button class="secondary" onclick="graOpen=!graOpen;renderRisk()">${graOpen?'Hide the GRA':'📋 View the GRA'}</button>${graOpen?graTableHtml():''}
  <button class="${r.graOk?'':'secondary'}" style="${r.graOk?'background:var(--ok)':''}" onclick="flight.risk.graOk=!flight.risk.graOk;renderRisk()">${r.graOk?'✓ GRA reviewed – controls in place':'Confirm: GRA reviewed and its controls are in place'}</button></div>
  <div class="card"><h3>Anything else at this site?</h3><div class="small">Only add hazards for this flight that the GRA doesn’t already cover. NO FLY when a hazard's ${cfg.basis==='initial'?'initial':'after-controls'} score reaches ${cfg.high}.</div>
@@ -1077,7 +1304,7 @@ async function goReview(){
  if(flight.risk.graOk)flight.risk.gra={ref:GRA.ref,doc:GRA.doc,ver:GRA.ver,review:GRA.review,confirmedAt:new Date().toISOString()};
  const a=curAircraft();
  const draft={flightId:'Issued on completion',time:new Date().toISOString(),status:'draft',aircraft:snapshotAircraft(a),aircraftName:a.name,data:flight};
- $('reviewBody').innerHTML=decBannerHtml(draft)+recordHtml(recordModel(draft));
+ flight.go=false;reviewOpen=false;reviewDraft=draft;renderReview();
  $('completeBtn').textContent=nf()?'✓ Save NO FLY pre-flight record':'✓ Complete pre-flight record';
  show('review');
 }
@@ -1091,11 +1318,33 @@ function pdfName(f){
 function offerSave(f,title,text){
  return dlg({title,text,hideCancel:true,choices:[{label:'⬇ Save PDF to Files',value:'save',run:()=>savePdf(f.id)},{label:'Not now',value:'skip',cls:'secondary'}]});
 }
+let reviewOpen=false,reviewDraft=null;
+function renderReview(){
+ const draft=reviewDraft,dec=decInfo(draft),o=flight.ops,w=flight.weather,a=curAircraft(),stop=nf();
+ const bats=Object.values(flight.batteries).map(b=>b.name+(b.charge?' '+b.charge+'%':'')).join(', ')||'—';
+ const rows=[['Aircraft',a.name+' · '+a.serial],['Type of flight',o.kind||'—']];
+ if(isLive(o.kind))rows.push(['Job number',o.jobNo]);
+ rows.push(['Batteries',bats],['Weather',[w.cond,w.wind!=null?'wind '+w.wind+' m/s'+(w.gust?' gust '+w.gust:''):'',w.kp!=null?'Kp '+w.kp:''].filter(Boolean).join(' · ')||'—'],['Location',flight.airspace.location||'—']);
+ const head=stop?`<div class="decbanner bad"><b>NO FLY</b><div>${dec.reasons.map(esc).join('<br>')}</div></div>`:dec.tone==='warn'?`<div class="decbanner warn"><b>${esc(dec.t)}</b><div>${collectDefects(draft).filter(x=>x.dec==='continue').map(x=>esc(x.item+': '+x.note)).concat(condFlags(draft).amber.map(x=>esc(x.text))).join('<br>')}</div></div>`:`<div class="decbanner" style="background:#ecfdf3;border:1.5px solid #17b26a;color:#067647"><b>CLEARED TO FLY</b><div>All checks complete – no defects or increased risks recorded.</div></div>`;
+ $('reviewBody').innerHTML=head+`<div class="card">${rows.map(r=>`<div class="kvr"><div class="k">${esc(r[0])}</div><div class="v">${esc(r[1])}</div></div>`).join('')}
+ <button class="secondary" onclick="reviewOpen=!reviewOpen;renderReview()">${reviewOpen?'Hide full flight record':'📋 Review full flight record'}</button></div>`
+ +(reviewOpen?recordHtml(recordModel(draft)):'')
+ +(stop?'':`<div class="card" id="goCard"><h3>Your decision</h3><div class="small">Is the aircraft safe to fly and is everything within limits?</div><button style="background:var(--ok);font-size:19px;padding:17px" onclick="goFly()">✓ GO</button><button class="danger" onclick="standDown()">NO GO – stand down</button></div>`);
+ $('completeBtn').style.display=stop?'':'none';document.querySelector('#review .notice').style.display=stop?'':'none';
+}
+function goFly(){flight.go=true;completeFlight()}
+function toggleGo(){flight.go=!flight.go;const b=$('goBtn');b.className=flight.go?'':'secondary';b.style.background=flight.go?'var(--ok)':'';b.textContent=flight.go?'✓ GO – safe to fly, everything within limits':'Tap to confirm GO'}
+async function standDown(){
+ const v=await dlg({title:'NO GO – stand down',text:'Say why you are not flying. This is saved as a NO FLY pre-flight record.',ok:'Save NO FLY record',danger:true,fields:[{key:'why',label:'Reason',type:'textarea',required:true}]});
+ if(!v)return;flight.noGo={why:v.why,at:new Date().toISOString()};completeFlight();
+}
 async function completeFlight(){
+ if(!nf()&&!flight.noGo&&!flight.go){await info('Confirm GO (or choose NO GO) at the bottom of the review before saving.','GO / NO GO');const g=$('goCard');if(g)g.scrollIntoView({behavior:'smooth',block:'center'});return}
+ if(flight.go)flight.goAt=new Date().toISOString();
  const a=curAircraft(),iso=new Date().toISOString(),data=clone(flight),snap=snapshotAircraft(a);
  data.pilot=db.pilot?clone(db.pilot):null;data.risk.cfg=clone(db.settings);
  const reasons=noFlyReasons({data,aircraft:snap}),noFly=reasons.length>0;
- const f={id:uid('f'),flightId:nextFlightId(iso),time:iso,status:noFly?'nofly':'open',aircraftId:a.id,aircraftName:a.name,aircraftSerial:a.serial,aircraft:snap,location:(flight.airspace.location||'').trim(),data};
+ const f={id:uid('f'),flightId:nextFlightId(iso),time:iso,jobNo:isLive((data.ops||{}).kind)?data.ops.jobNo:'',status:noFly?'nofly':'open',aircraftId:a.id,aircraftName:a.name,aircraftSerial:a.serial,aircraft:snap,location:(flight.airspace.location||'').trim(),data};
  f.decision={result:noFly?'NO FLY':'CLEARED TO FLY',label:decInfo({data,aircraft:snap,status:'open'}).t,at:iso,flightId:f.flightId,pilot:data.pilot?{name:data.pilot.name,operatorId:data.pilot.operatorId||'',qual:data.pilot.qual||''}:null,reasons};
  a.batteries.forEach(b=>{ // each battery keeps its own cycle count, linked to its serial number
   const d=data.batteries[b.id];
@@ -1118,7 +1367,7 @@ function renderEndList(){
 }
 function startEnd(id){
  const d=new Date(),p=n=>String(n).padStart(2,'0'),nowLocal=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
- endState={id,time:'',checks:{},batteries:{},controller:{},iw:null,iwNote:'',incYes:null,incTypes:{},incAt:nowLocal,incDesc:'',incActions:'',incSupport:'',incPhotos:'',notes:''};renderEndForm();show('endform');
+ endState={id,time:'',checks:{},batteries:{},controller:{},iw:null,iwNote:'',incYes:null,incTypes:{},incAt:nowLocal,incDesc:'',incInjury:'',incActions:'',incSupport:'',incPhotos:'',notes:'',rts:{}};Object.keys(((db.flights.find(x=>x.id===id)||{}).data||{}).batteries||{}).forEach(bid=>{endState.batteries[bid]={ok:true,condition:true,damage:false,status:BATT_STATUS[0]}});renderEndForm();show('endform');
 }
 function segYN(path,val,yesGood,labels){
  const L=labels||['Satisfactory','Defect found'],goodLabel=L[0],badLabel=L[1];
@@ -1138,7 +1387,7 @@ function battEndOk(bid,ok){const st=endState.batteries[bid]=endState.batteries[b
 function battFlagged(st){if(!st)return false;return st.condition===false||st.damage===true||(st.status&&st.status!==BATT_STATUS[0])||(st.temp!=null&&(st.temp<-20||st.temp>60))}
 function ctrlFlagged(st){if(!st)return false;return st.visual===false||st.damage===true||st.serviceable===false}
 function renderEndForm(){
- const f=db.flights.find(x=>x.id===endState.id),s=endState,bats=Object.entries((f.data||{}).batteries||{}),wet=condFlags(f).amber.length>0;
+ const f=db.flights.find(x=>x.id===endState.id),s=endState,bats=Object.entries((f.data||{}).batteries||{}),wet=condFlags(f).amber.some(x=>/rain|icy/i.test(x.item));
  const note=(path,ph)=>`<label>What needs attention? *</label><textarea oninput="setEnd3('${path}',this.value)" placeholder="${ph}">${esc(eval2(path)||'')}</textarea>`;
  const aircraftRows=ENDCHECKS.map(([k,label])=>{
   const val=(s.checks||{})[k];
@@ -1179,9 +1428,15 @@ function renderEndForm(){
  <label>Incident type – select all that apply *</label><div class="chips">${INCIDENT_TYPES.map(t=>`<button class="chip ${s.incTypes[t]?'on':''}" onclick="toggleIncType('${t}')"><b>${s.incTypes[t]?'✓ ':''}${esc(t)}</b></button>`).join('')}</div>
  <label>Date / time of incident *</label><input type="datetime-local" value="${esc(s.incAt)}" oninput="endState.incAt=this.value">
  <label>Description / additional notes *</label><textarea oninput="endState.incDesc=this.value" placeholder="What happened, when and where">${esc(s.incDesc)}</textarea>
+ <label>Injuries or damage *</label><textarea oninput="endState.incInjury=this.value" placeholder="None, or describe">${esc(s.incInjury)}</textarea>
  <label>Actions taken *</label><textarea oninput="endState.incActions=this.value" placeholder="What was done at the time and immediately after">${esc(s.incActions)}</textarea>
  <label>Supporting information (optional)</label><textarea oninput="endState.incSupport=this.value" placeholder="Witnesses, ATC contact, anything else relevant">${esc(s.incSupport)}</textarea>
  <label>Photos / documents (optional)</label><textarea oninput="endState.incPhotos=this.value" placeholder="Describe or reference any photos or documents kept separately, e.g. filenames or where saved">${esc(s.incPhotos)}</textarea>`:''}</div>
+ ${(f.data.ops||{}).kind===IS_RTS?`<div class="card"><h3>Return-to-service test</h3>
+ <label style="margin-top:0">Aircraft flew normally?</label>${segYN('rts.flew',s.rts.flew,true,['Yes','No'])}
+ <label>Remote ID tested and broadcasting?</label>${segYN('rts.rid',s.rts.rid,true,['Yes','No'])}
+ <label>Return to service approved by the UAS Operator?</label>${segYN('rts.ok',s.rts.ok,true,['Yes','Not yet'])}
+ <div class="hint">All three Yes returns the aircraft to service and adds it to the maintenance log.</div></div>`:''}
  <div class="card"><label style="margin-top:0">Post-flight notes (optional)</label><textarea oninput="endState.notes=this.value" placeholder="Anything else worth recording…">${esc(s.notes)}</textarea></div>
  <button onclick="completeEnd()">✓ Complete end of flight</button>`;
 }
@@ -1213,7 +1468,7 @@ async function completeEnd(){
  if(c.damage===undefined)miss.push('Controller – damage');else if(c.damage===true&&!(c.damageNote||'').trim())miss.push('Controller – describe the damage');
  if(c.serviceable===undefined)miss.push('Controller serviceable');else if(c.serviceable===false&&!(c.serviceableNote||'').trim())miss.push('Controller – why is it unserviceable?');
  }
- const wet=condFlags(f).amber.length>0;
+ const wet=condFlags(f).amber.some(x=>/rain|icy/i.test(x.item));
  if(wet&&s.iw===null)miss.push('Ice build-up / water ingress');
  if(wet&&s.iw===true&&!s.iwNote.trim())miss.push('Describe the ice build-up or water ingress');
  if(s.incYes===null)miss.push('Was there an incident or abnormal event?');
@@ -1221,8 +1476,10 @@ async function completeEnd(){
   if(!Object.values(s.incTypes).some(Boolean))miss.push('Incident type – select at least one');
   if(!s.incAt)miss.push('Date / time of incident');
   if(!s.incDesc.trim())miss.push('Incident description / additional notes');
+  if(!s.incInjury.trim())miss.push('Incident – injuries or damage');
   if(!s.incActions.trim())miss.push('Incident – actions taken');
  }
+ if((f.data.ops||{}).kind===IS_RTS)[['flew','Return-to-service – aircraft flew normally?'],['rid','Return-to-service – Remote ID tested?'],['ok','Return-to-service – approved by the UAS Operator?']].forEach(([k,l])=>{if(s.rts[k]===undefined)miss.push(l)});
  if(miss.length){await info('Please complete:\n\n'+miss.map(x=>'• '+x).join('\n'),'End-of-flight checks incomplete');return}
  const ac=db.aircraft.find(x=>x.id===f.aircraftId)||db.aircraft.find(x=>x.serial===f.aircraftSerial);
  let before=null;
@@ -1238,7 +1495,7 @@ async function completeEnd(){
  if(wet)f.end.iceWater={seen:s.iw,note:s.iw?s.iwNote.trim():''};
  f.end.incident={occurred:s.incYes};
  if(s.incYes){
-  f.end.incident={occurred:true,types:Object.keys(s.incTypes).filter(k=>s.incTypes[k]),at:s.incAt,description:s.incDesc.trim(),actions:s.incActions.trim(),supporting:s.incSupport.trim(),photos:s.incPhotos.trim(),
+  f.end.incident={occurred:true,types:Object.keys(s.incTypes).filter(k=>s.incTypes[k]),at:s.incAt,description:s.incDesc.trim(),injury:s.incInjury.trim(),actions:s.incActions.trim(),supporting:s.incSupport.trim(),photos:s.incPhotos.trim(),
    linked:{aircraft:ac?ac.name:f.aircraftName,aircraftSerial:ac?ac.serial:f.aircraftSerial,controller:ac?ac.controller:'',batteries:Object.values(f.data.batteries||{}).map(b=>b.name+' · '+b.serial)},recordedAt:now};
  }
  if(ac){ // previous total + this flight = new total, linked to this aircraft
@@ -1268,8 +1525,13 @@ async function completeEnd(){
   const rq=await dlg({title:'Aircraft marked unserviceable',text:`${ac.name} was recorded as not serviceable at the end of this flight.\n\nRetire this aircraft from service now? The retirement date will be recorded automatically. You can reinstate it later from Equipment if needed.`,hideCancel:true,choices:[{label:'Retire this aircraft',value:'retire',cls:'dangerSolid'},{label:'Keep in service (needs inspection)',value:'keep',cls:'secondary'}]});
   if(rq==='retire'){ac.dateRetired=now.slice(0,10);ac.retiredNote='Retired automatically – marked unserviceable at end of flight '+f.flightId}
  }
+ if((f.data.ops||{}).kind===IS_RTS){f.end.rts=clone(s.rts);
+  if(ac&&s.rts.flew&&s.rts.rid&&s.rts.ok){(ac.maintenanceLog=ac.maintenanceLog||[]).push({date:now.slice(0,10),type:'Return to service',desc:`Test flight ${f.flightId}: flew normally, Remote ID tested. Return to service approved by the UAS Operator.`+(ac.needsTest?' (after: '+ac.needsTest.reason+')':''),by:(db.pilot&&db.pilot.name)||'',at:now});delete ac.needsTest}}
+ let incId=null;
+ if(s.incYes){const inc=f.end.incident;incId=uid('i');db.incidents.push({id:incId,flightId:f.flightId,fid:f.id,at:inc.at,types:inc.types,aircraft:inc.linked.aircraft,aircraftSerial:inc.linked.aircraftSerial,what:inc.description,injury:inc.injury,actions:inc.actions,created:now,status:'open'})}
  f.status='ended';save();viewFlight(f.id);
  await offerSave(f,'Flight closed',`Flight ID\n${f.flightId}\n\nSave the completed record to Files so you always have a printable copy.`);
+ if(incId){const go=await dlg({title:'Incident added to the Incident log',text:'Open it now to record whether it is reportable (MOR within 72 hours, airprox within 7 days), the investigation outcome and the corrective action.',hideCancel:true,choices:[{label:'Open the incident',value:'open'},{label:'Later',value:'later',cls:'secondary'}]});if(go==='open')openIncident(incId)}
 }
 
 /* ================= History / record ================= */
@@ -1304,15 +1566,33 @@ function recordModel(f){
  const ops=d.ops||{},pl=d.pilot,w=d.weather||{},mw=ac.maxWind;
  const sum=[['Flight ID',f.flightId],['Pre-flight completed',f.status==='draft'?'On completion':fmtDT(f.time)]];
  if(pl&&pl.name)sum.push(['Pilot in command',pl.name+(pl.operatorId?'\nFlyer ID: '+pl.operatorId:'')+(pl.qual?'\n'+pl.qual:'')]);
+ if(ops.v2){
+  if(ops.kind)sum.push(['Type of flight',ops.kind]);
+  if(isLive(ops.kind)&&ops.jobNo)sum.push(['Job number',ops.jobNo]);
+  if(ops.jobRef)sum.push(['Police / requester ref',ops.jobRef]);
+  if(ops.fit!==undefined)sum.push(['Fit to fly (IMSAFE)',ops.fit?(ops.imsafeDec==='fit'?warn('Yes – after assessment'):ok('Yes – No to all')):bad('No – NO FLY')]);
+  sum.push(['Observer',ops.hasObs?(ops.observer||'—')+'\n'+(ops.obsFit?'IMSAFE confirmed':'Not fit – did not take part'):'None']);
+ }else{
  if(ops.fit!==undefined)sum.push(['Pilot fit to fly',ops.fit?ok('Yes'):bad('No – NO FLY')]);
  if(ops.observer)sum.push(['Observer / second crew',ops.observer]);
  if(ops.jobRef)sum.push(['Job / incident ref',ops.jobRef]);
+ }
  sum.push(['Aircraft',(ac.name||'—')+(ac.model?' · '+ac.model:'')],['Aircraft S/N',ac.serial||'—'],['Controller S/N',ac.controller||'—'],
   ['Operation',(d.risk||{}).type||'—'],['Location',(d.airspace||{}).location||'—'],['Status',{t:st.label,tone:st.cls}],['Decision',{t:dec.t,tone:dec.tone}]);
  S.push({title:'Flight summary',kv:sum});
+ if(ops.v2){
+  const im=ops.imsafe||{},sn=ops.snap||{};
+  const fk=IMSAFE.map(([k,l,q])=>[k+' · '+l,im[k]===true?warn('Yes'):im[k]===false?ok('No'):'Not recorded']);
+  if(IMSAFE.some(([k])=>im[k]===true))fk.push(['Pilot assessment',ops.imsafeNote||'—'],['Decision',ops.imsafeDec==='fit'?warn('Fit to fly'):bad('Not fit – NO FLY')]);
+  S.push({title:'Fitness to fly – IMSAFE',kv:fk});
+  const ps=[['Qualifications',(sn.quals&&sn.quals.length?sn.quals.join('\n'):'None recorded')],['GVC / RPC-L1 valid',sn.qualOk?ok('Yes'):bad('No')],['Currency at the time',sn.currency!=null?{t:currencyText(sn.currency),tone:sn.currency>=CURRENCY_MIN?'ok':'warn'}:'—']];
+  if(ops.prac)ps.push(['Practised on this flight',[['manoeuvres','PDRA01 manoeuvres'],['emergency','Emergency procedures'],['atti','Flying without GPS (ATTI)']].filter(([k])=>ops.prac[k]).map(x=>x[1]).join('\n')||'—']);
+  S.push({title:'Pilot status',kv:ps});
+ }
  {const dcs=f.decision,rs=noFlyReasons(f),pl2=(dcs&&dcs.pilot)||pl;
   const dk=[['Decision',dec.tone==='bad'?bad('NO FLY'):dec.tone==='warn'?warn('CLEARED TO FLY – with recorded defect(s) / increased risk (pilot decision to continue)'):ok('CLEARED TO FLY')],
-   ['Decided',f.status==='draft'?'On completion':fmtDT((dcs&&dcs.at)||f.time)],['Pilot',pl2&&pl2.name?pl2.name+(pl2.operatorId?' · '+pl2.operatorId:''):'—'],['Flight ID',f.flightId]];
+   ['Decided',f.status==='draft'?'On completion':fmtDT((dcs&&dcs.at)||f.time)],
+   ...(d.goAt?[['GO / NO GO',ok('GO – confirmed by the remote pilot '+fmtDT(d.goAt))]]:d.noGo?[['GO / NO GO',bad('NO GO – '+d.noGo.why)]]:[]),['Pilot',pl2&&pl2.name?pl2.name+(pl2.operatorId?' · '+pl2.operatorId:''):'—'],['Flight ID',f.flightId]];
   if(rs.length)dk.push(['Reason(s) for NO FLY',bad(rs.join('\n'))]);
   S.push({title:'Pre-flight decision',kv:dk});}
  const defs=collectDefects(f),wr=windReasons(f),mit=(w.mitigation||'').trim()||'—';
@@ -1323,7 +1603,11 @@ function recordModel(f){
   .concat(riskFlags(f).map(x=>['Risk – '+x.name,`${x.basis} risk ${x.score} (L${x.l} × S${x.s}) – at or above the threshold of ${x.cfg.high}`,bad('NO FLY (automatic)')]));
  if(rows.length)S.push({title:'Defects, risks and decisions',head:['Item','Defect / issue','Pilot decision'],widths:[.27,.37,.36],rows});
  const item=(label,st,key)=>{const v=(st||{})[key];if(v===true)return[label,ok('No defects found')];if(v===false)return[label,{t:'DEFECT: '+(st[key+'_note']||''),tone:st[key+'_dec']==='continue'?'warn':'bad'}];return[label,'Not recorded']};
- S.push({title:'Aircraft inspection',kv:CHECKS.map(c=>item(c,d.checks,c))});
+ const hasK=c=>ops.v2||(d.checks||{})[c]!==undefined;
+ S.push({title:'Aircraft inspection',kv:INSPECT.filter(hasK).map(c=>item(c,d.checks,c))});
+ const setK=SETTINGS.filter(hasK).map(c=>item(c,d.checks,c));
+ if(ops.rth!=null)setK.unshift(['RTH altitude',ops.rth+' m']);
+ if(setK.length)S.push({title:'Aircraft settings (DJI Pilot 2)',kv:setK});
  S.push({title:'Propellers',kv:[1,2,3,4].map(n=>item('Propeller '+n,d.props,n))});
  const c=d.controller||{};
  S.push({title:'Controller',kv:[['Registered controller S/N',ac.controller||'—'],['Charge',c.charge!=null?c.charge+'%':'—'],item('Visual condition',c,'visual'),item('Connection / controls',c,'controls')]});
@@ -1332,10 +1616,13 @@ function recordModel(f){
  else S.push({title:'Batteries used',kv:[['Batteries','None recorded']]});
  const wx=[];
  if(w.dn)wx.push(['Time of day',w.dn==='Night'?(w.lights===false?bad('Night – anti-collision lights NOT confirmed'):w.lights?ok('Night – anti-collision lights on'):'Night'):w.dn]);
+ if(w.dn==='Night'&&w.daySurvey!==undefined)wx.push(['Daylight survey of the site',w.daySurvey?ok('Yes'):warn('No')]);
+ if(w.dn==='Night'&&w.toLit!==undefined)wx.push(['Take-off and landing area lit',w.toLit?ok('Yes'):bad('No – NO FLY')]);
  if(w.cond){const rn=fl.amber.find(x=>x.item===w.cond),nfx=fl.nofly.find(x=>x.item===w.cond);wx.push(['Conditions',rn?warn(w.cond+' – increased risk'):nfx?bad(w.cond+' – not rated for this aircraft'):w.cond])}
  if(w.vis)wx.push(['Visibility',w.vis==='Unacceptable'?bad('Unacceptable – NO FLY'):w.vis]);
  else if(w.visibility)wx.push(['Visibility',w.visibility+' m']);
  if(w.temp!=null)wx.push(['Temperature',w.temp+' °C']);
+ if(w.kp!=null)wx.push(['Space weather (Kp)',w.kp>=5?(w.kpOk?warn('Kp '+w.kp+' – solar storm; on-site checks normal'):bad('Kp '+w.kp+' – solar storm; on-site checks not normal')):ok('Kp '+w.kp)]);
  wx.push(['Aircraft wind limit',mw?mw+' m/s':'Not set'],
   ['Wind speed',w.wind==null?'—':(mw&&w.wind>mw)?bad(w.wind+' m/s – exceeds limit'):w.wind+' m/s'],
   ['Maximum gust',!w.gust?'—':(mw&&w.gust>mw)?bad(w.gust+' m/s – exceeds limit'):w.gust+' m/s']);
@@ -1346,6 +1633,8 @@ function recordModel(f){
  const as=d.airspace||{},tl=d.tolp||{},t=as.types;
  const sa=[['Location / area',as.location||'—'],['Take-off / landing point (TOLP)',tl.status==='ok'?ok('Satisfactory'):tl.status==='bad'?bad('Unsatisfactory – insecure TOLP, NO FLY'):'Not recorded']];
  if(tl.notes)sa.push(['TOLP notes',tl.notes]);
+ if(tl.margin!=null)sa.push(['Contingency margin',tl.margin+' m']);
+ if(as.geoUnlock!==undefined)sa.push(['GEO zone unlock',as.geoUnlock?{t:'Yes – '+(as.geoRef||'')+'\n'+(as.geoVerified?'Applied and verified':'NOT verified – NO FLY'),tone:as.geoVerified?'':'bad'}:'Not needed']);
  if(as.status!==undefined){ // v8+ simplified airspace check
   if(as.status==='frz')sa.push(['FRZ – flight restriction zone',{t:'Airport / authority: '+((as.frz||{}).authority||'—')+'\nPermission / action: '+((as.frz||{}).action||'—'),tone:''}]);
   else if(as.status==='ctr')sa.push(['CTR – controlled airspace','Controlling authority: '+((as.ctr||{}).authority||'—')]);
@@ -1416,9 +1705,10 @@ function recordModel(f){
    if(e.incident){
     if(e.incident.occurred){
      const inc=e.incident,fmtWhen=v=>{if(!v)return '—';const d=new Date(v);return isNaN(d)?v:fmtDT(d.toISOString())};
-     S.push({title:'Incident / abnormal event',kv:[['Occurred',bad('Yes – incident recorded')],['Incident type',(inc.types||[]).join(', ')||'—'],['Date / time',fmtWhen(inc.at)],['Description / additional notes',inc.description||'—'],['Actions taken',inc.actions||'—'],['Supporting information',inc.supporting||'—'],['Photos / documents',inc.photos||'—'],['Linked aircraft',(inc.linked&&inc.linked.aircraft)?inc.linked.aircraft+' · '+inc.linked.aircraftSerial:'—'],['Linked controller',(inc.linked&&inc.linked.controller)||'—'],['Linked batteries',(inc.linked&&inc.linked.batteries&&inc.linked.batteries.join('\n'))||'—'],['Recorded',inc.recordedAt?fmtDT(inc.recordedAt):'—']]});
+     S.push({title:'Incident / abnormal event',kv:[['Occurred',bad('Yes – incident recorded')],['Incident type',(inc.types||[]).join(', ')||'—'],['Date / time',fmtWhen(inc.at)],['Description / additional notes',inc.description||'—'],...(inc.injury?[['Injuries or damage',inc.injury]]:[]),['Actions taken',inc.actions||'—'],['Supporting information',inc.supporting||'—'],['Photos / documents',inc.photos||'—'],['Linked aircraft',(inc.linked&&inc.linked.aircraft)?inc.linked.aircraft+' · '+inc.linked.aircraftSerial:'—'],['Linked controller',(inc.linked&&inc.linked.controller)||'—'],['Linked batteries',(inc.linked&&inc.linked.batteries&&inc.linked.batteries.join('\n'))||'—'],['Recorded',inc.recordedAt?fmtDT(inc.recordedAt):'—']]});
     }else S.push({title:'Incident / abnormal event',kv:[['Occurred',ok('No')]]});
    }
+   if(e.rts){const yn2=v=>v?ok('Yes'):bad('No');S.push({title:'Return-to-service test',kv:[['Aircraft flew normally',yn2(e.rts.flew)],['Remote ID tested',yn2(e.rts.rid)],['Approved by the UAS Operator',e.rts.ok?ok('Yes – returned to service'):warn('Not yet – aircraft stays flagged')]]})}
    S.push({title:'Post-flight notes',kv:[['Notes',e.notes||'—']]});
    const issues=endIssues(f);
    if(issues.length)S.push({title:'Follow-up required',head:['Area','Item','Note'],widths:[.18,.32,.5],rows:issues.map(x=>[x.area,x.item,bad(x.note||'—')])});
