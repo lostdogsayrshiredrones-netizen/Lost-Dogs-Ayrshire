@@ -117,6 +117,8 @@ body.typing .bottom{display:none}
 html{min-height:100%}body{min-height:100vh;min-height:100dvh}
 #locBtn{margin-top:10px}
 .needs{background:#fff7b8;border-left:4px solid #e0b400;border-radius:8px;padding:8px 10px;margin-left:-10px;margin-right:-10px}.needtag{display:inline-block;margin-left:6px;font-size:13px;font-weight:800;color:#7a5a00}.needbox{margin-top:8px;background:#fff7b8;border:2px solid #e0b400;border-radius:10px;padding:8px 10px;color:#3d2e00;font-size:15px}.linkbtn{background:none;border:0;color:#667085;font-weight:600;padding:4px 0;margin:2px 0 6px;text-align:left;width:auto;font-size:14px;box-shadow:none;text-decoration:underline}
+input[type=date],input[type=datetime-local]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;width:100%;min-height:50px;text-align:left;line-height:1.2}
+input[type=date]::-webkit-date-and-time-value,input[type=datetime-local]::-webkit-date-and-time-value{text-align:left}
 </style>
 </head>
 <body>
@@ -559,10 +561,10 @@ function renderPilot(){
  const p=db.pilot||{},Q=p.quals||{},ql=qualList(),tr=(p.training||[]).slice().sort((a,b)=>b.date<a.date?-1:1),rf=refresherInfo();
  $('pilotBody').innerHTML=`<div class="card"><h3>Pilot</h3><label style="margin-top:0">Name *</label><input value="${esc(p.name||'')}" onchange="pset('name',this.value.trim())">
  <label>Flyer ID *</label><input value="${esc(p.operatorId||'')}" autocapitalize="characters" onchange="pset('operatorId',this.value.trim().toUpperCase())" placeholder="e.g. GBR-RP-XXXXXXXXXXXX"><div class="hint">Your GVC is held against this number.</div>
- <label>Flyer ID expiry</label><input type="date" value="${esc(p.flyerExpiry||'')}" onchange="pset('flyerExpiry',this.value);renderPilot()"></div>
+ <label>Flyer ID expiry</label><input type="date" value="${esc(p.flyerExpiry||'')}" onchange="pset('flyerExpiry',this.value)" onblur="if(this.value!==this.defaultValue)renderPilot()"></div>
  <div class="card"><h3>Qualifications</h3><div class="small">Tick each one you hold and add its expiry date. You are warned 60 and 30 days before anything expires.</div>
  ${QUALS.map(k=>{const x=Q[k]||{};return `<div class="check"><button class="chip ${x.on?'on':''}" style="width:100%" onclick="qset('${k}','on',${!x.on},true)"><b>${x.on?'✓ ':''}${k==='GVC'?'GVC – General VLOS Certificate':k==='RPC-L1'?'RPC-L1 – Remote Pilot Certificate':k==='A2 CofC'?'A2 CofC':'Other qualification'}</b></button>
- ${x.on?`${k==='Other'?`<label>Name *</label><input value="${esc(x.name||'')}" onchange="qset('Other','name',this.value.trim(),true)">`:''}<label>Expiry date</label><input type="date" value="${esc(x.expiry||'')}" onchange="qset('${k}','expiry',this.value,true)"><label>Certificate number <span class="small">optional</span></label><input value="${esc(x.cert||'')}" onchange="qset('${k}','cert',this.value.trim())">`:''}</div>`}).join('')}
+ ${x.on?`${k==='Other'?`<label>Name *</label><input value="${esc(x.name||'')}" onchange="qset('Other','name',this.value.trim(),true)">`:''}<label>Expiry date</label><input type="date" value="${esc(x.expiry||'')}" onchange="qset('${k}','expiry',this.value)" onblur="if(this.value!==this.defaultValue)renderPilot()"><label>Certificate number <span class="small">optional</span></label><input value="${esc(x.cert||'')}" onchange="qset('${k}','cert',this.value.trim())">`:''}</div>`}).join('')}
  ${ql.length?ql.map(x=>`<div class="kvr"><div class="k">${esc(x.label)}</div><div class="v"><span class="t-${x.cls==='gray'?'warn':x.cls}">${esc(x.text)}</span></div></div>`).join(''):''}</div>
  <div class="card"><h3>Currency</h3><div class="small">${esc(currencyText())}</div></div>
  <div class="card"><h3>Training log</h3><div class="small"><span class="t-${rf.cls}">${esc(rf.text)}</span></div>
@@ -591,7 +593,7 @@ function renderIncident(){
  const ta=(k,l,ph)=>`<label>${l}</label><textarea oninput="incCur.${k}=this.value" placeholder="${ph||''}">${esc(x[k]||'')}</textarea>`;
  $('incidentBody').innerHTML=`${due.map(d=>`<div class="decbanner ${d.cls}"><b>${esc(d.text)}</b>${/MOR/.test(d.text)?'<div class="small">Report online through ECCAIRS2 (e2.aviationreporting.eu). Accidents and serious incidents also go to the AAIB.</div>':'<div class="small">Report to the UK Airprox Board (airproxboard.org.uk) and as an MOR.</div>'}</div>`).join('')}
  <div class="card"><div class="row"><h3>What happened</h3><span class="pill ${incStatus(x).c}">${incStatus(x).l}</span></div>${x.flightId?`<div class="small">Linked to flight <b>${esc(x.flightId)}</b></div>`:''}
- <label>Date and time *</label><input type="datetime-local" value="${esc(x.at||'')}" onchange="iset('at',this.value,true)">
+ <label>Date and time *</label><input type="datetime-local" value="${esc(x.at||'')}" onchange="iset('at',this.value)" onblur="if(this.value!==this.defaultValue)renderIncident()">
  <label>Aircraft *</label><select onchange="const a=db.aircraft.find(z=>z.serial===this.value);iset('aircraftSerial',this.value);iset('aircraft',a?a.name:'')"><option value="">Select…</option>${acs.map(a=>`<option value="${esc(a.serial)}" ${x.aircraftSerial===a.serial?'selected':''}>${esc(a.name)} · ${esc(a.serial)}</option>`).join('')}</select>
  <label>Type – select all that apply *</label><div class="chips">${INCIDENT_TYPES.map(t=>`<button class="chip ${(x.types||[]).includes(t)?'on':''}" onclick="itype('${t}')"><b>${(x.types||[]).includes(t)?'✓ ':''}${esc(t)}</b></button>`).join('')}</div>
  ${ta('what','What happened *','What happened, when and where')}${ta('injury','Injuries or damage *','None, or describe')}${ta('actions','Action taken *','What was done at the time and straight after')}</div>
