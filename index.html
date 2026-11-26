@@ -3539,7 +3539,10 @@ function logStatusChange(dogId, from, to, where) {
   const fb = state.fb, name = s => (STATUSES[s] || { label: s || 'Unknown' }).label;
   return fb.addDoc(fb.collection(fb.db, 'dogs', dogId, 'updates'),
     { kind: 'status', from: from || '', to, text: 'Status changed from ' + name(from) + ' to ' + name(to) + (to === 'found' && where ? ' (' + where + ')' : '') + '.', byName: state.profile.name || '', byUid: state.user.uid, createdAt: fb.serverTimestamp() })
-    .catch(err => console.warn('Status change not logged:', err && err.message));
+    .catch(err => console.warn('Status change not logged:', err && err.message))
+    .finally(() => {   // a dog newly missing or loose, or home safe: the server alerts the public who follow that area
+      if (from !== to && ['missing', 'loose', 'home-safe', 'reunited'].includes(to)) sendPush({ type: 'status', dogId });
+    });
 }
 
 // New-update counts. Each dog keeps a running total of updates posted (updateCount).
