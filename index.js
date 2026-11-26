@@ -120,10 +120,18 @@ exports.notify = onCall(async request => {
     } catch (e) { console.error('ask not recorded', e); }
   };
 
+  if (type === 'status') {
+    // The app says a dog's status changed: a new missing or loose dog, or a dog home safe, alerts the public.
+    const kind = ['missing', 'loose'].includes(dog.status) ? 'missing' : SAFE_STATUS[dog.status] ? 'safe' : null;
+    return kind ? publicAlert(dogId, kind).catch(err => { console.error('Public alert failed', err); return { alerted: 0 }; }) : { alerted: 0 };
+  }
   if (type === 'dog') {
     const label = STATUS[dog.status] || 'Missing';
     if (dog.askAvailability) await recordAsk(await awayNowSet());
-    return sendTo(everyoneElse, 'New dog: ' + label, say(where, dog.askAvailability ? (neededText ? 'Can you help? Please give your availability. ' + neededText : 'Can you help? Please give your availability.') : '') || 'Open the app for details.', link, 'dog');
+    const sentToTeam = await sendTo(everyoneElse, 'New dog: ' + label, say(where, dog.askAvailability ? (neededText ? 'Can you help? Please give your availability. ' + neededText : 'Can you help? Please give your availability.') : '') || 'Open the app for details.', link, 'dog');
+    // A new missing or loose dog: alert the public who follow its area (never stops the team's alert).
+    if (['missing', 'loose'].includes(dog.status)) await publicAlert(dogId, 'missing').catch(err => console.error('Public alert failed', err));
+    return sentToTeam;
   }
   if (type === 'availability') {
     // Nobody is asked while they are on holiday or marked busy (My Availability), in UK time.
@@ -1068,3 +1076,133 @@ async function tidyReports() {
   console.log('Reports removed:', removed);
 }
 if (process.env.LDA_TEST) exports.tidyReports = tidyReports;   // for the tests only
+
+// ============================================================
+// Missing dog alerts for the public (the website's "Missing dog alerts" page)
+// People choose council areas, or a distance from their town. Nothing else about them is kept:
+// just the phone's notification address and their choices. Never the dog's name, only its breed,
+// the same as the public missing dogs list.
+// ============================================================
+const { createHash } = require('crypto');
+const WEB = 'https://lostdogsayrshire.org.uk/';
+const COUNCILS = ['North Ayrshire', 'South Ayrshire', 'East Ayrshire'];
+const ALERT_MILES = [5, 10, 15, 25];
+// Town or village: [council, latitude, longitude]. The same names are offered on the website.
+const TOWNS = {
+  'Ardrossan': ['North Ayrshire', 55.640, -4.811], 'Beith': ['North Ayrshire', 55.751, -4.634], 'Brodick (Arran)': ['North Ayrshire', 55.577, -5.150],
+  'Dalry': ['North Ayrshire', 55.711, -4.723], 'Dreghorn': ['North Ayrshire', 55.611, -4.616], 'Fairlie': ['North Ayrshire', 55.754, -4.855],
+  'Irvine': ['North Ayrshire', 55.616, -4.669], 'Kilbirnie': ['North Ayrshire', 55.755, -4.684], 'Kilwinning': ['North Ayrshire', 55.655, -4.703],
+  'Lamlash (Arran)': ['North Ayrshire', 55.534, -5.128], 'Largs': ['North Ayrshire', 55.795, -4.866], 'Millport (Cumbrae)': ['North Ayrshire', 55.755, -4.925],
+  'Saltcoats': ['North Ayrshire', 55.634, -4.786], 'Skelmorlie': ['North Ayrshire', 55.866, -4.889], 'Springside': ['North Ayrshire', 55.613, -4.590],
+  'Stevenston': ['North Ayrshire', 55.641, -4.758], 'West Kilbride': ['North Ayrshire', 55.693, -4.851],
+  'Alloway': ['South Ayrshire', 55.431, -4.632], 'Annbank': ['South Ayrshire', 55.474, -4.502], 'Ayr': ['South Ayrshire', 55.458, -4.629],
+  'Ballantrae': ['South Ayrshire', 55.101, -5.003], 'Barr': ['South Ayrshire', 55.212, -4.721], 'Colmonell': ['South Ayrshire', 55.131, -4.912],
+  'Coylton': ['South Ayrshire', 55.443, -4.519], 'Dailly': ['South Ayrshire', 55.278, -4.718], 'Dundonald': ['South Ayrshire', 55.577, -4.596],
+  'Dunure': ['South Ayrshire', 55.404, -4.758], 'Girvan': ['South Ayrshire', 55.243, -4.856], 'Kirkmichael': ['South Ayrshire', 55.355, -4.597],
+  'Maybole': ['South Ayrshire', 55.355, -4.683], 'Monkton': ['South Ayrshire', 55.509, -4.597], 'Mossblown': ['South Ayrshire', 55.487, -4.536],
+  'Prestwick': ['South Ayrshire', 55.495, -4.614], 'Straiton': ['South Ayrshire', 55.300, -4.534], 'Symington': ['South Ayrshire', 55.554, -4.567],
+  'Tarbolton': ['South Ayrshire', 55.512, -4.486], 'Troon': ['South Ayrshire', 55.543, -4.660],
+  'Auchinleck': ['East Ayrshire', 55.471, -4.295], 'Catrine': ['East Ayrshire', 55.497, -4.329], 'Crosshouse': ['East Ayrshire', 55.613, -4.556],
+  'Cumnock': ['East Ayrshire', 55.453, -4.263], 'Dalmellington': ['East Ayrshire', 55.322, -4.399], 'Dalrymple': ['East Ayrshire', 55.398, -4.594],
+  'Darvel': ['East Ayrshire', 55.611, -4.278], 'Drongan': ['East Ayrshire', 55.444, -4.446], 'Galston': ['East Ayrshire', 55.601, -4.383],
+  'Hurlford': ['East Ayrshire', 55.597, -4.459], 'Kilmarnock': ['East Ayrshire', 55.611, -4.496], 'Kilmaurs': ['East Ayrshire', 55.638, -4.530],
+  'Mauchline': ['East Ayrshire', 55.517, -4.379], 'New Cumnock': ['East Ayrshire', 55.395, -4.186], 'Newmilns': ['East Ayrshire', 55.606, -4.322],
+  'Patna': ['East Ayrshire', 55.358, -4.505], 'Stewarton': ['East Ayrshire', 55.681, -4.514]
+};
+const subId = token => createHash('sha256').update(token).digest('hex').slice(0, 40);
+const okToken = t => typeof t === 'string' && t.length >= 20 && t.length <= 4096 && /^[A-Za-z0-9_:\-]+$/.test(t);
+function milesApart(a, b) {
+  const r = x => x * Math.PI / 180, dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 3958.8 * 2 * Math.asin(Math.sqrt(h));
+}
+// Where the dog went missing: its map pin, or else a town named in "last seen (place)".
+function dogSpot(d) {
+  if (typeof d.lat === 'number' && typeof d.lng === 'number' && Math.abs(d.lat) <= 90 && Math.abs(d.lng) <= 180) return { lat: d.lat, lng: d.lng };
+  const place = String(d.lastSeenPlace || '').toLowerCase();
+  const hit = Object.keys(TOWNS).sort((a, b) => b.length - a.length).find(t => new RegExp('\\b' + t.replace(/ \(.*\)/, '').toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b').test(place));
+  return hit ? { lat: TOWNS[hit][1], lng: TOWNS[hit][2] } : null;
+}
+// The nearest town decides the council area (anywhere more than 12 miles from every town is outside Ayrshire).
+function nearestTown(spot) {
+  let best = null, bestMiles = Infinity;
+  for (const [name, [, lat, lng]] of Object.entries(TOWNS)) { const m = milesApart(spot, { lat, lng }); if (m < bestMiles) { best = name; bestMiles = m; } }
+  return { name: best, miles: bestMiles, council: bestMiles <= 12 ? TOWNS[best][0] : '' };
+}
+
+exports.alertsSave = onCall({ cors: true }, async request => {
+  const v = request.data || {};
+  if (!okToken(v.token)) throw bad('Notifications could not be set up on this phone.');
+  const mode = v.mode === 'town' ? 'town' : v.mode === 'area' ? 'area' : null;
+  if (!mode) throw bad('Choose council areas or a distance from your town.');
+  const areas = mode === 'area' ? COUNCILS.filter(c => Array.isArray(v.areas) && v.areas.includes(c)) : [];
+  if (mode === 'area' && !areas.length) throw bad('Tick at least one council area.');
+  const town = mode === 'town' ? String(v.town || '') : '';
+  if (mode === 'town' && !TOWNS[town]) throw bad('Choose your town or village from the list.');
+  const miles = mode === 'town' ? Number(v.miles) : 0;
+  if (mode === 'town' && !ALERT_MILES.includes(miles)) throw bad('Choose a distance.');
+  const FV = admin.firestore.FieldValue, ref = admin.firestore().collection('alertSubs').doc(subId(v.token));
+  const had = await ref.get();
+  await ref.set({ token: v.token, mode, areas, town, miles, safe: v.safe !== false, updatedAt: FV.serverTimestamp(), ...(had.exists ? {} : { createdAt: FV.serverTimestamp() }) }, { merge: true });
+  return { ok: true };
+});
+
+exports.alertsRemove = onCall({ cors: true }, async request => {
+  const t = request.data && request.data.token;
+  if (okToken(t)) await admin.firestore().collection('alertSubs').doc(subId(t)).delete();
+  return { ok: true };
+});
+
+// Send the public alert for one dog: 'missing' (a new missing or loose dog) or 'safe' (that dog is home safe).
+// Each dog's alerts are sent once (alertLog), and Home safe only follows a missing alert that went out.
+async function publicAlert(dogId, kind) {
+  const db = admin.firestore();
+  const dogSnap = await db.collection('dogs').doc(dogId).get();
+  if (!dogSnap.exists) return { alerted: 0, why: 'no dog' };
+  const d = dogSnap.data(), logRef = db.collection('alertLog').doc(dogId), log = (await logRef.get()).data() || {};
+  if (kind === 'missing' && !['missing', 'loose'].includes(d.status)) return { alerted: 0, why: 'not missing or loose' };
+  if (kind === 'missing' && log.missingAt && Date.now() - log.missingAt < 14 * 864e5) return { alerted: 0, why: 'already sent' };
+  if (kind === 'safe' && !SAFE_STATUS[d.status]) return { alerted: 0, why: 'not safe' };
+  if (kind === 'safe' && (!log.missingAt || log.safeAt)) return { alerted: 0, why: log.safeAt ? 'already sent' : 'no missing alert went out' };
+  const spot = dogSpot(d);
+  if (!spot) { await logRef.set({ noLocationAt: Date.now() }, { merge: true }); return { alerted: 0, why: 'no map pin or known town' }; }
+  const near = nearestTown(spot), council = near.council;
+  const breed = cleanText(d.breed, 60) || 'Dog';
+  const place = cleanText(d.lastSeenPlace, 60) || near.name;
+  const loose = d.status === 'loose' || log.wasLoose;
+  const body = kind === 'safe' ? `The ${breed.toLowerCase() === 'dog' ? 'dog' : breed} ${loose ? 'seen loose' : 'missing'} near ${place} is home safe. Thank you for sharing and looking out.`
+    : loose ? `${breed} seen loose near ${place}. Tap to tell us if you've seen it.`
+      : `${breed}, last seen near ${place}. Tap to see it and tell us if you've seen it.`;
+  const link = kind === 'safe' ? WEB : WEB + 'report.html?dog=' + encodeURIComponent(dogId);
+  const label = kind === 'safe' ? 'Home safe' : loose ? 'Loose dog' : 'Missing dog';
+
+  const subs = (await db.collection('alertSubs').get()).docs;
+  const messages = [], refs = [];
+  for (const s of subs) {
+    const x = s.data();
+    if (!okToken(x.token) || (kind === 'safe' && x.safe === false)) continue;
+    let title;
+    if (x.mode === 'area') {
+      if (!council || !(x.areas || []).includes(council)) continue;
+      title = kind === 'safe' ? label : label + ' – ' + council;
+    } else {
+      const t = TOWNS[x.town]; if (!t) continue;
+      const m = milesApart(spot, { lat: t[1], lng: t[2] });
+      if (m > (x.miles || 0)) continue;
+      title = kind === 'safe' ? label : label + ' – ' + (m < 1 ? 'under a mile' : Math.round(m) + (Math.round(m) === 1 ? ' mile' : ' miles')) + ' from ' + x.town;
+    }
+    messages.push({ token: x.token, notification: { title, body }, data: { link, kind },
+      webpush: { headers: { Urgency: 'high', TTL: '86400' }, notification: { icon: WEB + 'icon-192.png', badge: WEB + 'icon-192.png', tag: 'lda-' + dogId + '-' + kind }, fcmOptions: { link } } });
+    refs.push(s.ref);
+  }
+  let sent = 0;
+  const gone = ['messaging/registration-token-not-registered', 'messaging/invalid-registration-token', 'messaging/invalid-argument'];
+  for (let i = 0; i < messages.length; i += 500) {
+    const res = await admin.messaging().sendEach(messages.slice(i, i + 500));
+    sent += res.successCount;
+    await Promise.all(res.responses.map((r, j) => (!r.success && r.error && gone.includes(r.error.code)) ? refs[i + j].delete() : null));
+  }
+  await logRef.set(kind === 'safe' ? { safeAt: Date.now(), safeSent: sent } : { missingAt: Date.now(), missingSent: sent, council, wasLoose: d.status === 'loose' }, { merge: true });
+  return { alerted: sent, council };
+}
+if (process.env.LDA_TEST) Object.assign(exports, { _publicAlert: publicAlert, _nearestTown: nearestTown, _dogSpot: dogSpot, _TOWNS: TOWNS });
