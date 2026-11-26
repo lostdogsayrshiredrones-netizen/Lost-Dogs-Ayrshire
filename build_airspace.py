@@ -13,7 +13,10 @@ import argparse, datetime as dt, io, json, math, re, sys, urllib.error, urllib.r
 import xml.etree.ElementTree as ET
 
 PAGE = 'https://nats-uk.ead-it.com/cms-nats/opencms/en/uas-restriction-zones/'
-BASES = ['https://nats-uk.ead-it.com/cms-nats/export/sites/default/en/Publications/digital-datasets/',
+# NATS keep the files in a UAS_AREA_1 folder (seen Nov 2026); the older places are kept as fall-backs.
+BASES = ['https://nats-uk.ead-it.com/cms-nats/export/sites/default/en/Publications/digital-datasets/UAS_AREA_1/',
+         'https://nats-uk.ead-it.com/cms-nats/opencms/en/Publications/digital-datasets/UAS_AREA_1/',
+         'https://nats-uk.ead-it.com/cms-nats/export/sites/default/en/Publications/digital-datasets/',
          'https://nats-uk.ead-it.com/cms-nats/opencms/en/Publications/digital-datasets/']
 PAGES = [PAGE, 'https://nats-uk.ead-it.com/cms-nats/opencms/en/Publications/digital-datasets/']
 NAME = 'EG_UAS_FR_DS_AREA1_FULL_{}_XML.zip'
@@ -61,18 +64,24 @@ def download(today):
         except Exception as e:
             tried.append('page %s: %s' % (page.split('/en/')[-1] or page, e))
             continue
-        links = sorted(set(re.findall(r'href="([^"]*EG_UAS_FR_DS_AREA1_FULL_(\d{8})_XML\.zip)"', html)),
-                       key=lambda x: x[1], reverse=True)
+        # Any link (single or double quotes, any folder, any letter case) to a full UAS dataset zip
+        found = re.findall(r'''href\s*=\s*["']([^"']*?EG_UAS_FR_DS_AREA1_FULL_(\d{8})[^"']*?\.zip[^"']*)["']''', html, re.I)
+        links = sorted(set(found), key=lambda x: x[1], reverse=True)
         if not links:
-            tried.append('page %s: opened (%d bytes) but no dataset links found' % (page.split('/en/')[-1], len(html)))
+            zips = re.findall(r'''href\s*=\s*["']([^"']*\.zip[^"']*)["']''', html, re.I)
+            tried.append('page %s: opened (%d bytes) but no dataset links found%s' % (page.split('/en/')[-1], len(html),
+                         ('; zip links seen: ' + ', '.join(z.split('/')[-1] for z in zips[:4])) if zips else ''))
         for href, date in links:
             if dt.datetime.strptime(date, '%Y%m%d').date() <= today:
-                url = href if href.startswith('http') else 'https://nats-uk.ead-it.com' + href
+                url = href.replace('&amp;', '&')
+                url = url if url.startswith('http') else 'https://nats-uk.ead-it.com' + ('' if url.startswith('/') else '/') + url
                 try:
                     return fetch(url), date, url
                 except Exception as e:
                     tried.append('listed file %s: %s' % (date, e))
                 break
+        else:
+            if links: tried.append('page %s: only future datasets listed (%s)' % (page.split('/en/')[-1], links[0][1]))
     # 2. Build the file name from the AIRAC dates
     for d in airac_dates(today):
         if d > today:
@@ -82,8 +91,8 @@ def download(today):
             try:
                 return fetch(url), d.strftime('%Y%m%d'), url
             except Exception as e:
-                tried.append('%s (%s): %s' % (d, 'export' if '/export/' in base else 'opencms', e))
-    fail('Could not download the NATS dataset. Tried:\n' + '\n'.join(tried[:12]))
+                tried.append('%s (%s%s): %s' % (d, 'export' if '/export/' in base else 'opencms', ' UAS_AREA_1' if 'UAS_AREA_1' in base else '', e))
+    fail('Could not download the NATS dataset. Tried:\n' + '\n'.join(tried[:20]))
 
 
 # ------------------------------------------------------------------ parsing
