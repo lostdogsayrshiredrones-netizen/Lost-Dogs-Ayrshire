@@ -365,6 +365,7 @@ function endIssues(f){ // every aircraft check, controller check or battery mark
  return out;
 }
 function statusInfo(f){
+ if(f.past)return{label:'PAST FLIGHT – LIMITED RECORD',cls:'gray'};
  if(f.status==='nofly')return{label:'NO FLY',cls:'bad'};
  if(f.status==='draft')return{label:'DRAFT',cls:'warn'};
  if(f.status!=='ended')return{label:'AWAITING END',cls:'warn'};
@@ -443,6 +444,7 @@ function noFlyReasons(f){
  return collectDefects(f).filter(x=>x.dec==='nofly').map(x=>x.item+': '+x.note).concat(windReasons(f)).concat(condFlags(f).nofly.map(x=>x.text)).concat(riskReasons(f));
 }
 function decInfo(f){
+ if(f.past)return{t:'PAST FLIGHT – LIMITED RECORD',tone:'warn',banner:'PAST FLIGHT – ORIGINAL RECORD LOST',reasons:[f.past.note]};
  const r=noFlyReasons(f);
  if(r.length)return{t:'NO FLY',tone:'bad',banner:'NO FLY – AIRCRAFT NOT FLOWN',reasons:r};
  const dc=collectDefects(f).some(x=>x.dec==='continue'),am=condFlags(f).amber.length>0;
@@ -530,7 +532,7 @@ function show(id){
  window.scrollTo(0,0);
 }
 function updateHome(){$('aircraftCount').textContent=db.aircraft.length;$('flightCount').textContent=db.flights.length;$('moveCard').style.display=db.flights.length?'none':''}
-function flightLine(f){const k=(f.data&&f.data.ops&&f.data.ops.kind)||'';return `${esc(f.aircraftName)} · ${fmtDT(f.time)}${f.location?' · '+esc(f.location):''}${k?'<br>'+esc(k)+(f.jobNo?' · '+esc(f.jobNo):''):''}`}
+function flightLine(f){const k=(f.data&&f.data.ops&&f.data.ops.kind)||'';return `${esc(f.aircraftName)} · ${f.past?fmtDate(String(f.time).slice(0,10)):fmtDT(f.time)}${f.location?' · '+esc(f.location):''}${k?'<br>'+esc(k)+(f.jobNo?' · '+esc(f.jobNo):''):''}`}
 function renderHome(){
  renderHomeAlerts();
  const open=db.flights.filter(f=>f.status==='open').slice().reverse();
@@ -1372,7 +1374,7 @@ const SWAP_HOURS=2;
 const SWAP_Q=[['props','Propellers','No chips, cracks or looseness'],['arms','Arms and body','Locked, no damage'],['gimbal','Gimbal and camera','Moves freely, lens clean']];
 function swapInfo(f){ // can this ended flight be followed by a battery swap? {ok} or {ok:false,why}
  const d=f.data||{},ops=d.ops||{},e=f.end||{};
- if(f.status!=='ended'||!isLive(ops.kind))return null; // only offered for live tasks that have landed
+ if(f.past||f.status!=='ended'||!isLive(ops.kind))return null; // only offered for live tasks that have landed
  const at=new Date(e.endedAt||f.time).getTime(),mins=(Date.now()-at)/6e4;
  if(mins>SWAP_HOURS*60)return null; // old flights: say nothing
  const why=[];
@@ -1641,17 +1643,43 @@ async function completeEnd(){
 }
 
 /* ================= History / record ================= */
+const PAST_NOTE='Original flight data was lost due to a technical issue. Only the date and flight time were kept, and this record was added afterwards.';
+async function addPastFlight(){
+ const acs=db.aircraft;if(!acs.length){await info('Add the aircraft under Equipment first.');return}
+ const label=a=>a.name+' · '+a.serial+(isRetired(a)?' (retired)':'');
+ const v=await dlg({title:'Add a past flight',text:'For older flights where only the date and flight time were kept. The record will say:\n\n“'+PAST_NOTE+'”\n\nIt counts towards your currency. Aircraft totals are not changed – they already include these flights.',ok:'Add flight',
+  fields:[{key:'date',label:'Date flown',type:'date',required:true},{key:'mins',label:'Flight time (minutes)',type:'number',inputmode:'decimal',required:true},
+   {key:'ac',label:'Aircraft',type:'select',options:acs.map(label),value:label(acs.find(a=>!isRetired(a))||acs[0])},
+   {key:'kind',label:'Type of flight',type:'select',options:['Not recorded'].concat(KINDS.map(k=>k.v)),value:'Not recorded'},
+   {key:'note',label:'Anything else you remember (optional)',type:'textarea',placeholder:'e.g. location, job, observer'}],
+  validate:x=>{const n=Number(x.mins);if(!(isFinite(n)&&n>0&&n<=600))return 'Enter the flight time in minutes, for example 25.';if(x.date>todayStr())return 'The date cannot be in the future.';return ''}});
+ if(!v)return;
+ const a=acs[acs.map(label).indexOf(v.ac)]||acs[0],iso=new Date(v.date+'T12:00:00').toISOString(),now=new Date().toISOString(),mins=Math.round(parseFloat(v.mins)*100)/100;
+ const kind=v.kind==='Not recorded'?'':v.kind;
+ const f={id:uid('f'),flightId:nextFlightId(iso),time:iso,jobNo:'',status:'ended',past:{note:PAST_NOTE,extra:v.note||'',addedAt:now,by:(db.pilot&&db.pilot.name)||''},
+  aircraftId:a.id,aircraftName:a.name,aircraftSerial:a.serial,aircraft:snapshotAircraft(a),location:'',
+  data:{aircraftId:a.id,ops:{v2:true,kind},pilot:db.pilot?clone(db.pilot):null,checks:{},props:{},controller:{},batteries:{},rejected:[],weather:{},tolp:{},airspace:{},risk:{type:kind,hazards:{},none:false}},
+  decision:{result:'NOT RECORDED',label:'Past flight – limited record',at:now,reasons:[]},
+  end:{flightTime:mins,checks:{},batteries:{},controller:{},notes:[PAST_NOTE,v.note].filter(Boolean).join('\n'),endedAt:iso,incident:{occurred:false}}};
+ db.flights.push(f);db.flights.sort((x,y)=>new Date(x.time)-new Date(y.time));save();renderHistory();
+ toast(f.flightId+' added – '+fmtDur(mins));
+}
+async function removePastFlight(id){
+ const f=db.flights.find(x=>x.id===id);if(!f||!f.past)return;
+ if(!await confirmDlg('Remove past flight?',`${f.flightId} · ${fmtDur(f.end.flightTime)}\n\nUse this only if it was added by mistake. It will no longer count towards your currency.`,'Remove',true))return;
+ db.flights=db.flights.filter(x=>x!==f);save();show('history');toast(f.flightId+' removed');
+}
 function renderHistory(){
- $('historyBody').innerHTML=db.flights.slice().reverse().map(f=>{
+ $('historyBody').innerHTML=`<button class="secondary" onclick="addPastFlight()">＋ Add a past flight (date and time only)</button>`+db.flights.slice().sort((x,y)=>new Date(y.time)-new Date(x.time)).map(f=>{
   return `<div class="card"><div class="row"><b>${esc(f.flightId)}</b>${pillsHtml(f)}</div><div class="small">${flightLine(f)}${f.end?'<br>Flight time: '+fmtDur(f.end.flightTime):''}</div><div class="actions"><button class="secondary mini" onclick="viewFlight('${f.id}')">View record / PDF</button>${f.status==='open'?`<button class="mini" onclick="startEnd('${f.id}')">End flight</button>`:''}</div></div>`;
- }).join('')||'<div class="card">No flight records yet.</div>';
+ }).join('')+(db.flights.length?'':'<div class="card">No flight records yet.</div>');
 }
 function viewFlight(id){
  const f=db.flights.find(x=>x.id===id);if(!f)return;currentRecordId=id;
  const s=statusInfo(f);
  $('recordHead').innerHTML=`<div class="card idbanner"><div class="small">Flight ID</div><div class="fid">${esc(f.flightId)}</div><span class="pill ${s.cls}">${s.label}</span></div>${decBannerHtml(f)}${swapCardHtml(f)}`;
  $('recordBody').innerHTML=recordHtml(recordModel(f));
- $('recordActions').innerHTML=`${f.status==='open'?`<button onclick="startEnd('${f.id}')">End flight</button>`:''}<button class="${f.status==='open'?'secondary':''}" onclick="savePdf('${f.id}')">⬇ Save PDF to Files</button><button class="secondary" onclick="window.print()">🖨 Print</button>`;
+ $('recordActions').innerHTML=`${f.status==='open'?`<button onclick="startEnd('${f.id}')">End flight</button>`:''}<button class="${f.status==='open'?'secondary':''}" onclick="savePdf('${f.id}')">⬇ Save PDF to Files</button><button class="secondary" onclick="window.print()">🖨 Print</button>${f.past?`<button class="danger" onclick="removePastFlight('${f.id}')">Remove this past flight</button>`:''}`;
  show('record');
 }
 
@@ -1667,6 +1695,15 @@ function decCell(x){
  return 'Recorded';
 }
 function recordModel(f){
+ if(f.past){ // past flight added later: only the date and flight time survive
+  const d=f.data||{},pl=d.pilot,ac=f.aircraft||{name:f.aircraftName,serial:f.aircraftSerial},k=(d.ops||{}).kind;
+  const kv=[['Flight ID',f.flightId],['Date flown',fmtDate(String(f.time).slice(0,10))],['Flight time',fmtDur((f.end||{}).flightTime)],['Aircraft',(ac.name||'—')+(ac.serial?' · '+ac.serial:'')],['Type of flight',k||'Not recorded']];
+  if(pl&&pl.name)kv.push(['Pilot in command',pl.name+(pl.operatorId?'\nFlyer ID: '+pl.operatorId:'')]);
+  kv.push(['Record status',{t:'PAST FLIGHT – LIMITED RECORD',tone:'warn'}],['Note',f.past.note]);
+  if(f.past.extra)kv.push(['Other details remembered',f.past.extra]);
+  kv.push(['Added to the log',fmtDT(f.past.addedAt)+(f.past.by?' by '+f.past.by:'')]);
+  return [{title:'Flight summary',kv},{title:'Not recorded',kv:[['Pre-flight checks, weather, airspace, risk assessment and end-of-flight checks','Not available for this flight – see note above.']]}];
+ }
  const d=f.data||{},ac=f.aircraft||{name:f.aircraftName,serial:f.aircraftSerial},st=statusInfo(f),dec=decInfo(f),fl=condFlags(f),S=[];
  const ok=t=>({t,tone:'ok'}),bad=t=>({t,tone:'bad'}),warn=t=>({t,tone:'warn'});
  const ops=d.ops||{},pl=d.pilot,w=d.weather||{},mw=ac.maxWind;
