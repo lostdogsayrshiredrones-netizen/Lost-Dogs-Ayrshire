@@ -167,6 +167,8 @@ input[type=date]::-webkit-date-and-time-value,input[type=datetime-local]::-webki
 <button onclick="goReview()">Review flight</button></section>
 <section id="review" class="screen"><button class="back" onclick="show('risk')">‹ Risk</button><h2>Final review</h2><div id="reviewBody"></div><div class="notice">A unique Flight ID is issued when you complete the record. Final record will be stored on this device.</div><button id="completeBtn" onclick="completeFlight()">✓ Complete pre-flight record</button></section>
 
+<section id="swap" class="screen"><button class="back" onclick="viewFlight(flight.swap.fromId)">‹ Last flight</button><h2>Battery swap</h2><div class="nfb"></div><div id="swapBody"></div><button onclick="swapReview()">Review – GO / NO GO</button></section>
+
 <section id="endlist" class="screen"><h2>End flight</h2><div id="endListBody"></div></section>
 <section id="endform" class="screen"><button class="back" onclick="show('endlist')">‹ Flights</button><h2>End flight</h2><div id="endFormBody"></div></section>
 
@@ -517,7 +519,7 @@ async function confirmDlg(title,text,ok,danger){return !!(await dlg({title,text,
 let _tt;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2600)}
 
 /* ================= Navigation ================= */
-const TAB={home:'navHome',incidents:'navHome',incident:'navHome',pilot:'navEquip',equipment:'navEquip',batterylog:'navEquip',new:'navNew',checks:'navNew',props:'navNew',controller:'navNew',batteries:'navNew',weather:'navNew',airspace:'navNew',risk:'navNew',review:'navNew',endlist:'navEnd',endform:'navEnd',history:'navHist',record:'navHist'};
+const TAB={home:'navHome',incidents:'navHome',incident:'navHome',pilot:'navEquip',equipment:'navEquip',batterylog:'navEquip',new:'navNew',checks:'navNew',props:'navNew',controller:'navNew',batteries:'navNew',weather:'navNew',airspace:'navNew',risk:'navNew',review:'navNew',swap:'navNew',endlist:'navEnd',endform:'navEnd',history:'navHist',record:'navHist'};
 function show(id){
  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');
  document.querySelectorAll('.bottom button').forEach(b=>b.classList.remove('active'));if(TAB[id])$(TAB[id]).classList.add('active');
@@ -941,6 +943,7 @@ function batCount(){
 }
 function refreshCount(){const c=batCount(),el=$('batCount');if(el){el.className='pill '+c.cls;el.textContent=c.text}}
 function renderBatteries(){
+ if(flight.swap&&!flight.swap.full&&$('swap').classList.contains('active'))return renderSwap();
  const a=curAircraft(),active=a.batteries.filter(b=>b.active),c=batCount();
  const chips=active.length?`<div class="chips">${active.map(b=>`<button class="chip ${flight.batteries[b.id]?'on':''}" onclick="toggleBattery('${b.id}')"><b>${flight.batteries[b.id]?'✓ ':''}${esc(b.name)}</b><span>${esc(b.serial)}</span></button>`).join('')}</div>`:'<div class="notice" style="margin-top:10px;background:#fef3f2;color:#b42318">No active batteries in this kit. Add batteries under Equipment.</div>';
  const sel=a.batteries.filter(b=>flight.batteries[b.id]);
@@ -1322,10 +1325,12 @@ function offerSave(f,title,text){
 }
 let reviewOpen=false,reviewDraft=null;
 function renderReview(){
+ {const bk=document.querySelector('#review .back');if(bk&&!(flight.swap&&!flight.swap.full)){bk.textContent='‹ Risk';bk.onclick=()=>show('risk')}}
  const draft=reviewDraft,dec=decInfo(draft),o=flight.ops,w=flight.weather,a=curAircraft(),stop=nf();
  const bats=Object.values(flight.batteries).map(b=>b.name+(b.charge?' '+b.charge+'%':'')).join(', ')||'—';
  const rows=[['Aircraft',a.name+' · '+a.serial],['Type of flight',o.kind||'—']];
  if(isLive(o.kind))rows.push(['Job number',o.jobNo]);
+ if(flight.swap)rows.push(['Battery swap',swapText(flight.swap)]);
  rows.push(['Batteries',bats],['Weather',[w.cond,w.wind!=null?'wind '+w.wind+' m/s'+(w.gust?' gust '+w.gust:''):'',w.kp!=null?'Kp '+w.kp:''].filter(Boolean).join(' · ')||'—'],['Location',flight.airspace.location||'—']);
  const head=stop?`<div class="decbanner bad"><b>NO FLY</b><div>${dec.reasons.map(esc).join('<br>')}</div></div>`:dec.tone==='warn'?`<div class="decbanner warn"><b>${esc(dec.t)}</b><div>${collectDefects(draft).filter(x=>x.dec==='continue').map(x=>esc(x.item+': '+x.note)).concat(condFlags(draft).amber.map(x=>esc(x.text))).join('<br>')}</div></div>`:`<div class="decbanner" style="background:#ecfdf3;border:1.5px solid #17b26a;color:#067647"><b>CLEARED TO FLY</b><div>All checks complete – no defects or increased risks recorded.</div></div>`;
  $('reviewBody').innerHTML=head+`<div class="card">${rows.map(r=>`<div class="kvr"><div class="k">${esc(r[0])}</div><div class="v">${esc(r[1])}</div></div>`).join('')}
@@ -1360,6 +1365,105 @@ async function completeFlight(){
   show('home');
   await info(`Flight ID\n${f.flightId}\n\nAfter landing, use End flight to record flight time and aircraft condition. The PDF is saved at that point.`,'Pre-flight record saved');
  }
+}
+
+/* ================= Battery swap: same task, new battery ================= */
+const SWAP_HOURS=2;
+const SWAP_Q=[['props','Propellers','No chips, cracks or looseness'],['arms','Arms and body','Locked, no damage'],['gimbal','Gimbal and camera','Moves freely, lens clean']];
+function swapInfo(f){ // can this ended flight be followed by a battery swap? {ok} or {ok:false,why}
+ const d=f.data||{},ops=d.ops||{},e=f.end||{};
+ if(f.status!=='ended'||!isLive(ops.kind))return null; // only offered for live tasks that have landed
+ const at=new Date(e.endedAt||f.time).getTime(),mins=(Date.now()-at)/6e4;
+ if(mins>SWAP_HOURS*60)return null; // old flights: say nothing
+ const why=[];
+ if(e.incident&&e.incident.occurred)why.push('An incident was recorded on this flight.');
+ if(endIssues(f).length)why.push('A defect was recorded at the end of this flight.');
+ if(collectDefects(f).length)why.push('This flight flew with a recorded defect.');
+ const ac=db.aircraft.find(x=>x.id===f.aircraftId);
+ if(!ac||isRetired(ac))why.push('This aircraft is not in service.');
+ else if(ac.awayForRepair||ac.needsTest||ac.needsInspection)why.push('This aircraft needs attention in Equipment.');
+ const pl=d.pilot||{},me=db.pilot||{};
+ if(!me.operatorId||String(pl.operatorId||'').trim().toUpperCase()!==String(me.operatorId).trim().toUpperCase())why.push('A different pilot is flying – they do their own IMSAFE and currency check.');
+ const later=db.flights.find(x=>x!==f&&x.data&&x.data.swap&&x.data.swap.fromId===f.id);
+ if(later)return{ok:false,done:later.flightId};
+ return why.length?{ok:false,why}:{ok:true,left:Math.max(1,Math.round(SWAP_HOURS*60-mins))};
+}
+function swapCardHtml(f){
+ const i=swapInfo(f);if(!i)return '';
+ if(i.done)return `<div class="card noprint"><div class="small">Battery swap already started from this flight: <b style="color:var(--ink)">${esc(i.done)}</b></div></div>`;
+ if(!i.ok)return `<div class="decbanner warn noprint"><b>Battery swap not available – full checks needed</b>${i.why.map(esc).join('<br>')}</div>`;
+ return `<div class="card noprint" style="border:2px solid var(--accent)"><h3>Same task, new battery?</h3><div class="small">Location, take-off point, airspace, permissions, risk assessment and crew are carried over. You only re-check what can change.</div><button onclick="startSwap('${f.id}')">Battery swap – fly again on this task</button><div class="small" style="margin-top:6px;text-align:center">Available for ${i.left>=60?Math.floor(i.left/60)+' h '+(i.left%60)+' min':i.left+' min'} more · same pilot</div></div>`;
+}
+function swapText(sw){
+ const q=sw.q||{};
+ const parts=['From '+(sw.fromFlightId||'earlier flight')+' – same task, details carried over'];
+ if(sw.full)parts.push('Full checks completed'+(sw.fullWhy?' ('+sw.fullWhy+')':''));
+ else parts.push('Quick re-check: '+SWAP_Q.map(([k,l])=>l+' '+(q[k]?'OK':'—')).join(', ')+'; pilot fitness: no change; weather: unchanged');
+ return parts.join('\n');
+}
+function startSwap(id){
+ const f=db.flights.find(x=>x.id===id),i=f&&swapInfo(f);if(!i||!i.ok){if(f)viewFlight(f.id);return}
+ const data=clone(f.data);
+ flight=Object.assign(blankFlight(),data);
+ ['go','goAt','noGo','pilot'].forEach(k=>delete flight[k]);
+ delete flight.risk.cfg;delete flight.risk.gra;
+ flight.batteries={};flight.rejected=[];
+ flight.controller=Object.assign({},flight.controller);delete flight.controller.charge;
+ flight.swap={fromId:f.id,fromFlightId:f.flightId,fromLanded:(f.end||{}).endedAt||f.time,used:Object.keys(data.batteries||{}),q:{},pilot:undefined,weather:undefined};
+ renderSwap();show('swap');
+}
+function swapSet(k,v){flight.swap[k]=v;renderSwap()}
+function swapQ(k,v){flight.swap.q[k]=v;renderSwap()}
+async function swapDefect(k,label){
+ if(!await confirmDlg('Defect found – full checks',`${label}: record the defect on the full aircraft checks.\n\nThis flight will use the full pre-flight checks, with everything already filled in from the last flight.`,'Go to full checks'))return;
+ swapFull('defect found on quick check');flight.checks={};flight.props={};renderChecks();show('checks');
+}
+function swapFull(why){flight.swap.full=true;flight.swap.fullWhy=why}
+async function swapChanged(which){
+ if(which==='pilot'){
+  if(!await confirmDlg('Fitness to fly has changed','You will answer IMSAFE again, then go through the full pre-flight checks with everything already filled in from the last flight.','Answer IMSAFE'))return;
+  swapFull('pilot fitness changed');const o=flight.ops;o.imsafe={};delete o.imsafeDec;delete o.imsafeNote;delete o.fit;
+  renderAircraftSelect();$('aircraftSelect').value=flight.aircraftId;renderFlightSetup();show('new');return;
+ }
+ if(!await confirmDlg('Weather has changed','You will update the weather page, then carry on through site, airspace and risk – all filled in from the last flight.','Update weather'))return;
+ if(!await swapBatteriesOk())return;
+ swapFull('weather changed');show('weather');
+}
+function renderSwap(){
+ const sw=flight.swap,a=curAircraft(),c=batCount(),q=sw.q,o=flight.ops,as=flight.airspace||{},w=flight.weather||{};
+ const mins=Math.round((Date.now()-new Date(sw.fromLanded).getTime())/6e4);
+ const active=a.batteries.filter(b=>b.active);
+ const chips=`<div class="chips">${active.map(b=>{const used=sw.used.includes(b.id)&&!flight.batteries[b.id],cyc=cycleOf(b);return `<button class="chip ${flight.batteries[b.id]?'on':''}" ${used?'disabled style="opacity:.5"':''} onclick="toggleBattery('${b.id}')"><b>${flight.batteries[b.id]?'✓ ':''}${esc(b.name)}</b><span>${used?'Just used':esc(b.serial)}${cyc!==null?' · '+cyc+' cycles':''}</span></button>`}).join('')}</div>`;
+ const sel=a.batteries.filter(b=>flight.batteries[b.id]);
+ const qrow=(k,l,h)=>`<div class="item row" style="padding:9px 0"><span style="min-width:0"><b>${l}</b><span class="small" style="display:block">${h}</span></span><span class="seg" style="flex:none;gap:6px"><button class="mini ${q[k]?'on good':''}" style="padding:9px 14px" onclick="swapQ('${k}',true)">OK</button><button class="mini" style="padding:9px 14px" onclick="swapDefect('${k}','${l}')">Defect</button></span></div>`;
+ const yn=(k,l,h,yes)=>`<div class="item row" style="padding:9px 0"><span style="min-width:0"><b>${l}</b><span class="small" style="display:block">${h}</span></span><span class="seg" style="flex:none;gap:6px"><button class="mini ${sw[k]==='same'?'on good':''}" style="padding:9px 14px" onclick="swapSet('${k}','same')">${yes}</button><button class="mini" style="padding:9px 14px" onclick="swapChanged('${k}')">Changed</button></span></div>`;
+ const carried=[['Flight type',o.kind],['Job number',o.jobNo],['Take-off point / location',as.location||'—'],['Airspace',as.status||'—'],['Risk assessment',flight.risk.none?'Generic risk assessment – nothing extra at this site':Object.keys(flight.risk.hazards||{}).length+' site hazards with controls'],['Observer',o.hasObs?(o.observer||'')+(o.obsFit?' · IMSAFE confirmed':''):'None'],['Weather (last flight)',[w.cond,w.wind!=null?'wind '+w.wind+' m/s':''].filter(Boolean).join(' · ')||'—']];
+ $('swapBody').innerHTML=`<div class="card"><div class="serial">Job number<b>${esc(o.jobNo)}</b></div><div class="small" style="margin-top:8px">Following flight <b style="color:var(--ink)">${esc(sw.fromFlightId)}</b> · landed ${mins<1?'just now':mins+' min ago'}<br>${esc(a.name)} · ${esc(a.serial)}</div></div>
+ <div class="card"><h3>1 · New ${c.req===1?'battery':'batteries'}</h3><div class="small">Tap to select. Batteries used on the last flight are greyed out.</div>${chips}<div class="reqbar"><span><b>${esc(a.name)}</b> needs <b>${c.req}</b></span><span id="batCount" class="pill ${c.cls}">${c.text}</span></div></div>
+ ${sel.map(b=>batCard(b)).join('')}
+ <div class="card"><h3>2 · Quick aircraft check</h3><div class="small">After the last landing</div>${SWAP_Q.map(([k,l,h])=>qrow(k,l,h)).join('')}
+ <label>Controller charge (%)</label><input type="number" min="0" max="100" inputmode="numeric" value="${esc(flight.controller.charge==null?'':flight.controller.charge)}" oninput="flight.controller.charge=this.value===''?undefined:+this.value"></div>
+ <div class="card"><h3>3 · Pilot and conditions</h3>${yn('pilot','Still fit to fly?','IMSAFE – any change since the last flight?','No change')}${yn('weather','Weather','Wind, rain, visibility as before?','Same')}<div class="hint">“Changed” takes you to the full page for that check, with everything filled in from the last flight.</div></div>
+ <div class="card"><h3>Carried over from ${esc(sw.fromFlightId)}</h3>${carried.map(([k,v])=>`<div class="kvr"><div class="k">${esc(k)}</div><div class="v"><span class="t-ok">✓</span> ${esc(v)}</div></div>`).join('')}</div>`;
+ updateBanners();
+}
+async function swapBatteriesOk(){
+ const a=curAircraft(),req=reqOf(a),sel=a.batteries.filter(b=>flight.batteries[b.id]);
+ if(sel.length!==req){await info(`${a.name} needs ${req} ${req===1?'battery':'batteries'}. Select ${req===1?'one':req} above.`,'Batteries required');return false}
+ if(sel.some(b=>flight.batteries[b.id].defect)){await info('A selected battery has a recorded defect. Remove it and select a different battery.','Battery defect');return false}
+ if(sel.some(b=>!batState(flight.batteries[b.id]).ok)){await info('Complete the battery checks – charge, DJI green and charge cycle (highlighted red until they pass).','Batteries need review');return false}
+ return true;
+}
+async function swapReview(){
+ const sw=flight.swap,c=flight.controller,miss=[];
+ if(!await swapBatteriesOk())return;
+ SWAP_Q.forEach(([k,l])=>{if(!sw.q[k])miss.push(l+' – OK, or Defect')});
+ if(!(c.charge>0&&c.charge<=100))miss.push('Controller charge (1–100%)');
+ if(sw.pilot!=='same')miss.push('Still fit to fly?');
+ if(sw.weather!=='same')miss.push('Weather');
+ if(miss.length){await info('Please complete:\n\n'+miss.map(x=>'• '+x).join('\n'),'Battery swap');return}
+ await goReview();
+ const back=document.querySelector('#review .back');if(back){back.textContent='‹ Battery swap';back.onclick=()=>show('swap')}
 }
 
 /* ================= End flight ================= */
@@ -1545,7 +1649,7 @@ function renderHistory(){
 function viewFlight(id){
  const f=db.flights.find(x=>x.id===id);if(!f)return;currentRecordId=id;
  const s=statusInfo(f);
- $('recordHead').innerHTML=`<div class="card idbanner"><div class="small">Flight ID</div><div class="fid">${esc(f.flightId)}</div><span class="pill ${s.cls}">${s.label}</span></div>${decBannerHtml(f)}`;
+ $('recordHead').innerHTML=`<div class="card idbanner"><div class="small">Flight ID</div><div class="fid">${esc(f.flightId)}</div><span class="pill ${s.cls}">${s.label}</span></div>${decBannerHtml(f)}${swapCardHtml(f)}`;
  $('recordBody').innerHTML=recordHtml(recordModel(f));
  $('recordActions').innerHTML=`${f.status==='open'?`<button onclick="startEnd('${f.id}')">End flight</button>`:''}<button class="${f.status==='open'?'secondary':''}" onclick="savePdf('${f.id}')">⬇ Save PDF to Files</button><button class="secondary" onclick="window.print()">🖨 Print</button>`;
  show('record');
@@ -1572,6 +1676,7 @@ function recordModel(f){
   if(ops.kind)sum.push(['Type of flight',ops.kind]);
   if(isLive(ops.kind)&&ops.jobNo)sum.push(['Job number',ops.jobNo]);
   if(ops.jobRef)sum.push(['Police / requester ref',ops.jobRef]);
+  if(d.swap)sum.push(['Battery swap',swapText(d.swap)]);
   if(ops.fit!==undefined)sum.push(['Fit to fly (IMSAFE)',ops.fit?(ops.imsafeDec==='fit'?warn('Yes – after assessment'):ok('Yes – No to all')):bad('No – NO FLY')]);
   sum.push(['Observer',ops.hasObs?(ops.observer||'—')+'\n'+(ops.obsFit?'IMSAFE confirmed':'Not fit – did not take part'):'None']);
  }else{
