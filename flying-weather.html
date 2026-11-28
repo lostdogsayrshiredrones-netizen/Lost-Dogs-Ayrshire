@@ -593,10 +593,17 @@ function assess(drone, w) {
 
   // Wind: sustained at 10 m and 120 m, and gusts
   const caution = d.wind * 0.75, up = w.src120 === 'mo100' ? '100 m' : '120 m';
-  const worst = Math.max(w.gust, w.wind10, w.wind120 ?? 0);
-  if (worst > d.wind) add('Wind', NOGO, `Gusts ${w.gust.toFixed(1)} m/s, wind at ${up} ${(w.wind120 ?? 0).toFixed(1)} m/s. Over the ${d.wind} m/s limit.`);
-  else if (worst > caution) add('Wind', CAUTION, `Gusts ${w.gust.toFixed(1)} m/s, wind at ${up} ${(w.wind120 ?? 0).toFixed(1)} m/s. Close to the ${d.wind} m/s limit.`);
-  else add('Wind', GO, `Wind ${w.wind10.toFixed(1)} m/s, gusts ${w.gust.toFixed(1)} m/s, ${up} ${(w.wind120 ?? 0).toFixed(1)} m/s.`);
+  // Go / no-go is set by the wind at 10 m and the gusts. Wind higher up is shown, and only ever raises a caution:
+  // pilots usually fly well below 120 m and can descend if it is rough higher up.
+  const worst = Math.max(w.gust, w.wind10);
+  if (worst > d.wind) add('Wind', NOGO, `Wind ${w.wind10.toFixed(1)} m/s, gusts ${w.gust.toFixed(1)} m/s. Over the ${d.wind} m/s limit.`);
+  else if (worst > caution) add('Wind', CAUTION, `Wind ${w.wind10.toFixed(1)} m/s, gusts ${w.gust.toFixed(1)} m/s. Close to the ${d.wind} m/s limit.`);
+  else add('Wind', GO, `Wind ${w.wind10.toFixed(1)} m/s, gusts ${w.gust.toFixed(1)} m/s.`);
+  if (w.wind120 != null) {
+    if (w.wind120 > d.wind) add('Wind higher up', CAUTION, `Wind at ${up} ${w.wind120.toFixed(1)} m/s – over the ${d.wind} m/s limit at that height. Stay lower, where the wind is lighter, and watch the aircraft's wind warnings.`);
+    else if (w.wind120 > caution) add('Wind higher up', CAUTION, `Wind at ${up} ${w.wind120.toFixed(1)} m/s – stronger higher up. Watch the aircraft's wind warnings.`);
+    else add('Wind higher up', GO, `Wind at ${up} ${w.wind120.toFixed(1)} m/s.`);
+  }
 
   // Second opinion: if the European model's gusts differ a lot from the Met Office, never show plain green
   if (w.src === 'mo' && w.gustAlt != null && Math.abs(w.gustAlt - w.gust) > 3)
