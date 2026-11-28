@@ -515,12 +515,13 @@
     <button class="btn wide" id="wx-week-btn" type="button" hidden>Show next 7 days</button>
   </div>
 
-  <p class="hint">Guidance only, from Open-Meteo forecasts and DJI's published limits. The pilot in command makes the final decision. Airspace check uses NATS UK AIP data and does not include NOTAMs or temporary restrictions. Always complete your own airspace and NOTAM checks before flying.</p>
+  <p class="hint">Guidance only, from Open-Meteo forecasts and DJI's published limits. Wind and gusts from the Met Office UK model where available, with the European ECMWF model as a second opinion. <a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather data by Open-Meteo.com</a> · includes Met Office data (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>). The pilot in command makes the final decision. Airspace check uses NATS UK AIP data and does not include NOTAMs or temporary restrictions. Always complete your own airspace and NOTAM checks before flying.</p>
 
   <div class="wx-checks">
     <h3>Connection checks</h3>
     <p id="wx-c-geo">Place search: not run yet</p>
     <p id="wx-c-wx">Weather forecast: not run yet</p>
+    <p id="wx-c-mo">Met Office wind: not run yet</p>
     <p id="wx-c-kp">Solar activity (Kp): not run yet</p>
     <p id="wx-c-air">Airspace data: not run yet</p>
   </div>
@@ -591,11 +592,15 @@ function assess(drone, w) {
   const add = (factor, level, text) => out.push({ factor, level, text });
 
   // Wind: sustained at 10 m and 120 m, and gusts
-  const caution = d.wind * 0.75;
+  const caution = d.wind * 0.75, up = w.src120 === 'mo100' ? '100 m' : '120 m';
   const worst = Math.max(w.gust, w.wind10, w.wind120 ?? 0);
-  if (worst > d.wind) add('Wind', NOGO, `Gusts ${w.gust.toFixed(1)} m/s, wind at 120 m ${(w.wind120 ?? 0).toFixed(1)} m/s. Over the ${d.wind} m/s limit.`);
-  else if (worst > caution) add('Wind', CAUTION, `Gusts ${w.gust.toFixed(1)} m/s, wind at 120 m ${(w.wind120 ?? 0).toFixed(1)} m/s. Close to the ${d.wind} m/s limit.`);
-  else add('Wind', GO, `Wind ${w.wind10.toFixed(1)} m/s, gusts ${w.gust.toFixed(1)} m/s, 120 m ${(w.wind120 ?? 0).toFixed(1)} m/s.`);
+  if (worst > d.wind) add('Wind', NOGO, `Gusts ${w.gust.toFixed(1)} m/s, wind at ${up} ${(w.wind120 ?? 0).toFixed(1)} m/s. Over the ${d.wind} m/s limit.`);
+  else if (worst > caution) add('Wind', CAUTION, `Gusts ${w.gust.toFixed(1)} m/s, wind at ${up} ${(w.wind120 ?? 0).toFixed(1)} m/s. Close to the ${d.wind} m/s limit.`);
+  else add('Wind', GO, `Wind ${w.wind10.toFixed(1)} m/s, gusts ${w.gust.toFixed(1)} m/s, ${up} ${(w.wind120 ?? 0).toFixed(1)} m/s.`);
+
+  // Second opinion: if the European model's gusts differ a lot from the Met Office, never show plain green
+  if (w.src === 'mo' && w.gustAlt != null && Math.abs(w.gustAlt - w.gust) > 3)
+    add('Forecasts', CAUTION, `Forecasts disagree: Met Office gusts ${w.gust.toFixed(1)} m/s, European model ${w.gustAlt.toFixed(1)} m/s. Check again nearer the time.`);
 
   // Thunderstorms
   if (w.code >= 95) add('Thunder', NOGO, 'Thunderstorm in the area.');
@@ -693,14 +698,46 @@ async function getWeather(lat, lon) {
   try {
     const { j, ms } = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${vars}&current=temperature_2m,is_day&daily=sunrise,sunset&wind_speed_unit=ms&timezone=auto&forecast_days=8`);
     check('wx-c-wx', true, `Weather forecast: working (${ms} ms)`);
+    await addMetOffice(j, lat, lon);
     return j;
   } catch (e) { check('wx-c-wx', false, 'Weather forecast failed: ' + errText(e)); throw e; }
+}
+
+// Wind from the Met Office UK model (UKV 2 km for the next 2 days, then Met Office global),
+// with the European ECMWF model as a second opinion. Any gap keeps the blended value, so nothing goes blank.
+async function addMetOffice(j, lat, lon) {
+  const h = j.hourly, base = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&models=ukmo_seamless,ecmwf_ifs025&wind_speed_unit=ms&timezone=auto&forecast_days=8&hourly=`;
+  let r = null, ms = 0;
+  for (const vars of ['wind_speed_10m,wind_gusts_10m,wind_direction_10m,wind_speed_120m,wind_speed_100m', 'wind_speed_10m,wind_gusts_10m,wind_direction_10m,wind_speed_120m', 'wind_speed_10m,wind_gusts_10m,wind_direction_10m']) {
+    try { ({ j: r, ms } = await getJSON(base + vars)); break; } catch (e) { r = null; }
+  }
+  const n = h.time.length;
+  h.src = Array(n).fill('blend'); h.src120 = Array(n).fill('blend'); h.gustAlt = Array(n).fill(null);
+  if (!r || !r.hourly || !r.hourly.time) { check('wx-c-mo', false, 'Met Office wind: not available – using the blended forecast'); return; }
+  const m = r.hourly, at = new Map(m.time.map((t, k) => [t, k])), num = v => (typeof v === 'number' && isFinite(v)) ? v : null;
+  const col = (v, model) => m[v + '_' + model] || [];
+  let used = 0, alt = 0;
+  h.time.forEach((t, i) => {
+    const k = at.get(t); if (k === undefined) return;
+    const g = num(col('wind_gusts_10m', 'ukmo_seamless')[k]), w = num(col('wind_speed_10m', 'ukmo_seamless')[k]);
+    if (g !== null && w !== null) {
+      h.wind_gusts_10m[i] = g; h.wind_speed_10m[i] = w; h.src[i] = 'mo'; used++;
+      const dir = num(col('wind_direction_10m', 'ukmo_seamless')[k]); if (dir !== null) h.wind_direction_10m[i] = dir;
+      // Upper wind: Met Office at 120 m if given, otherwise Met Office at 100 m, otherwise the blend at 120 m
+      const w120 = num(col('wind_speed_120m', 'ukmo_seamless')[k]), w100 = num(col('wind_speed_100m', 'ukmo_seamless')[k]);
+      if (w120 !== null) { h.wind_speed_120m[i] = w120; h.src120[i] = 'mo'; }
+      else if (w100 !== null) { h.wind_speed_120m[i] = w100; h.src120[i] = 'mo100'; }
+    }
+    const e = num(col('wind_gusts_10m', 'ecmwf_ifs025')[k]); if (e !== null) { h.gustAlt[i] = e; alt++; }
+  });
+  check('wx-c-mo', used > 0, used > 0 ? `Met Office wind: working (${ms} ms)${alt ? ' · second opinion: ECMWF' : ''}` : 'Met Office wind: no data for this place – using the blended forecast');
 }
 
 function hourAt(h, i, kp, forecast) {
   return { temp: h.temperature_2m[i], dew: h.dew_point_2m[i], humidity: h.relative_humidity_2m[i], precip: h.precipitation[i] || 0,
     snow: h.snowfall[i] || 0, code: h.weather_code[i], gust: h.wind_gusts_10m[i] ?? 0, wind10: h.wind_speed_10m[i] ?? 0,
     wind120: h.wind_speed_120m[i], vis: h.visibility[i], isDay: h.is_day[i],
+    src: (h.src || [])[i] || 'blend', src120: (h.src120 || [])[i] || 'blend', gustAlt: (h.gustAlt || [])[i] ?? null,
     precipProb: h.precipitation_probability[i + 1] ?? h.precipitation_probability[i] ?? 0,
     kp: forecast ? undefined : kp, forecast: !!forecast };
 }
@@ -845,8 +882,8 @@ function buildTiles(h, k, kp, forecast) {
     { lb: 'Sun times', vl: '\u2191 ' + hm(rise) + '<br>\u2193 ' + hm(set), sm: true, sb: w.isDay ? 'Daylight' : 'Dark', c: twilight ? 'tsun' : clsOf(lvl('Daylight')) },
     { lb: 'Temperature', vl: Math.round(w.temp) + '\u00b0C', sb: 'Dew point ' + Math.round(w.dew) + '\u00b0C', c: clsOf(Math.max(lvl('Temperature'), icingL)) },
     { lb: 'Wind', vl: mph(w.wind10) + ' mph', sb: w.wind10.toFixed(1) + ' m/s at 10 m', c: clsOf(w.wind10 > 12 ? 2 : w.wind10 > 9 ? 1 : 0) },
-    { lb: 'Gusts', vl: mph(w.gust) + ' mph', sb: w.gust.toFixed(1) + ' m/s', c: clsOf(w.gust > 12 ? 2 : w.gust > 9 ? 1 : 0) },
-    { lb: 'Wind at 120 m', vl: w.wind120 == null ? '\u2014' : mph(w.wind120) + ' mph', sb: w.wind120 == null ? 'Not available' : w.wind120.toFixed(1) + ' m/s', c: w.wind120 == null ? 'tn' : clsOf(w.wind120 > 12 ? 2 : w.wind120 > 9 ? 1 : 0) },
+    { lb: 'Gusts', vl: mph(w.gust) + ' mph', sb: w.gust.toFixed(1) + ' m/s' + (w.src === 'mo' ? ' · Met Office' : ''), c: clsOf(w.gust > 12 ? 2 : w.gust > 9 ? 1 : 0) },
+    { lb: w.src120 === 'mo100' ? 'Wind at 100 m' : 'Wind at 120 m', vl: w.wind120 == null ? '\u2014' : mph(w.wind120) + ' mph', sb: w.wind120 == null ? 'Not available' : w.wind120.toFixed(1) + ' m/s' + (w.src120 !== 'blend' ? ' · Met Office' : ' · blend'), c: w.wind120 == null ? 'tn' : clsOf(w.wind120 > 12 ? 2 : w.wind120 > 9 ? 1 : 0) },
     { lb: 'Wind direction', html: deg == null ? '<span class="vl">\u2014</span>' : svgIcon('<circle cx="24" cy="24" r="19" stroke-width="2"/><path d="M24 36V13M16 20l8-8 8 8"/>', ` style="transform:rotate(${(deg + 180) % 360}deg)"`), sb: deg == null ? '' : 'From the ' + COMPASS[Math.round(deg / 45) % 8], c: 'tn' },
     { lb: 'Rain chance', vl: w.precipProb + '%', sb: w.precip > 0 ? w.precip.toFixed(1) + ' mm/h now' : 'Dry now', c: clsOf(lvl('Rain', 'Snow')) },
     { lb: 'Cloud cover', vl: cloud == null ? '\u2014' : cloud + '%', sb: 'Base about ' + Math.round(base / 10) * 10 + ' m', c: clsOf(lvl('Cloud base')) },
